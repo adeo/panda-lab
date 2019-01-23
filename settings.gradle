@@ -1,0 +1,4 @@
+rootProject.name = 'lab-panda'
+include 'android'
+include 'devices'
+
