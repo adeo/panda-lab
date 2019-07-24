@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">PandaLab</string>
+
+    <string name="serialId">Serial ID</string>
+    <string name="name">Name</string>
+    <string name="ip">Current IP</string>
+    <string name="phoneModel">Model</string>
+    <string name="phoneProduct">Product</string>
+    <string name="phoneDevice">Device</string>
+    <string name="phoneManufacturer">Manufacturer</string>
+    <string name="phoneBrand">Brand</string>
+    <string name="phoneAndroidVersion">Android Version</string>
+    <string name="currentServiceVersion">PandaLab Version</string>
+    <string name="lastConnexion">Last Update</string>
+    <string name="update">Update</string>
+    <string name="errorToken">No firebase token found, retry.</string>
+    <string name="errorNetwork">Error, please verify your internet connexion.</string>
+    <string name="enroll">Enroll</string>
+    <string name="no_enroll">This device isn\'t enrolled</string>
+    <string name="enroll_with_identifier">This device is enrolled with identifier: %s</string>
+</resources>

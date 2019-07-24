@@ -1,0 +1,35 @@
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthentificated() {
+    	return request.auth.uid != null;
+    }
+
+    function isAgent() {
+        return request.auth.token.role != null && request.auth.token.role == "agent";
+    }
+
+		function isWeb() {
+        return request.auth.token.role != null && request.auth.token.role == "web";
+    }
+
+    function isMobileAgent() {
+        return request.auth.token.role != null && request.auth.token.role == "mobile-agent";
+    }
+
+	match /agents/{agentId} {
+    	allow read: if isAuthentificated();
+        allow write: if isAgent() && request.auth.uid == agentId;
+    }
+
+    match /devices/{device} {
+        allow read: if isAgent() || isWeb();
+        allow write: if isMobileAgent();
+    }
+
+    match /jobs/{job} {
+        allow read: if isAgent();
+        allow write: if isAgent();
+    }
+  }
+}
+
