@@ -4,6 +4,7 @@ import {adbService} from './adb.service';
 import {firebaseService} from "@/services/firebase.service";
 import {DeviceData, DeviceLog, DeviceLogType} from "@/models/device";
 import {UUID} from "@/services/remote";
+import devicesData from "../assets/data/devices-data-complete.json"
 
 class DeviceService {
 
@@ -13,11 +14,11 @@ class DeviceService {
         this.uuid = UUID;
     }
 
-    // getDevicePicture(): Observable<DeviceData[]> {
-    //     return this.http.get<DeviceData[]>('./assets/data/devices-data-complete.json');
-    // }
+    getDevicesData(): DeviceData[] {
+        return devicesData;
+    }
 
-    searchDeviceData(devicesData: DeviceData[], phoneDevice: string, phoneModel: string): DeviceData | null {
+    searchDeviceData(phoneDevice: string, phoneModel: string): DeviceData | null {
         const data = devicesData.filter(
             (device) => {
                 return device.deviceName === phoneDevice ||
@@ -35,6 +36,14 @@ class DeviceService {
             return null;
         }
     }
+
+    // const deviceData = this.searchDeviceData(devicesData, device.phoneDevice, device.phoneModel);
+    //                                     if (deviceData != null) {
+    //                                         device.pictureIcon = deviceData.devicePictureUrl;
+    //                                         device.processor = deviceData.deviceProcessor;
+    //                                     }
+    //                                     console.log(device);
+    //                                     return device;
 
     // listenDevicesFromFirebase(): Observable<Device[]> {
     //     return new Observable<Device[]>(emitter => {

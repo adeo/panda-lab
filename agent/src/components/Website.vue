@@ -2,6 +2,25 @@
     <div class="hello">
         <h1>Home</h1>
     </div>
+    <div class="devices-card-container">
+        <div *ngFor="let device of devices$ | async" class="devices-grid">
+            <md-card md-with-hover class="devices-card">
+                <md-card-header>
+                    <div class="md-title">{{ device.phoneModel }}</div>
+                </md-card-header>
+
+                <md-card-media md-big>
+                    <img :src="(device.pictureIcon || 'assets/images/device.png')">
+                </md-card-media>
+
+                <md-card-content>
+                    <div class="card-text-content">
+                        {{ device.name }}
+                    </div>
+                </md-card-content>
+            </md-card>
+        </div>
+    </div>
 </template>
 
 <script lang="ts">
@@ -13,20 +32,15 @@
     }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-    h3 {
-        margin: 40px 0 0;
+    .devices-card-container {
+        margin: 15px;
+        position: relative;
+        overflow: auto;
     }
-    ul {
-        list-style-type: none;
-        padding: 0;
-    }
-    li {
-        display: inline-block;
-        margin: 0 10px;
-    }
-    a {
-        color: #42b983;
+    .devices-card {
+        width: 300px;
+        float: left;
+        margin: 5px;
     }
 </style>

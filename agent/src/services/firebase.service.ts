@@ -145,6 +145,15 @@ class FirebaseService {
         });
     }
 
+    listenDevicesFromFirestore(): Observable<Device[]> {
+        return new Observable(emitter => {
+            FIRESTORE.collection(FIRESTORE_DEVICE_COLLECTION).onSnapshot(function (snapshot) {
+                const data = snapshot.docs.map(doc => doc.data());
+                emitter.next(data);
+            })
+        });
+    }
+
     uploadFiles(uuid: string, uploadApplications: UploadApplications): Observable<UploadApplicationProgress> {
         const { appName, versionName } = uploadApplications;
         const keys = Object.keys(uploadApplications)
