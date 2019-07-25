@@ -146,10 +146,10 @@ class FirebaseService {
     }
 
     listenDevicesFromFirestore(): Observable<Device[]> {
-        return new Observable(emitter => {
+        return new Observable<Device[]>(emitter => {
             FIRESTORE.collection(FIRESTORE_DEVICE_COLLECTION).onSnapshot(function (snapshot) {
                 const data = snapshot.docs.map(doc => doc.data());
-                emitter.next(data);
+                emitter.next(data as Device[]);
             })
         });
     }
