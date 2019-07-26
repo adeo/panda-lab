@@ -5,21 +5,23 @@
         <div class="devices-card-container">
             <div v-for="device in devices" class="devices-grid">
                 <md-card md-with-hover class="devices-card">
-                    <div @click="showDetails(device)">
-                        <md-card-header>
-                            <div class="md-title">{{ device.phoneModel }}</div>
-                        </md-card-header>
+                    <md-ripple>
+                        <div @click="showDetails(device)">
+                            <md-card-header>
+                                <div class="md-title">{{ device.phoneModel }}</div>
+                            </md-card-header>
 
-                        <md-card-media md-big>
-                            <img :src="device.pictureIcon ? device.pictureIcon : require('../assets/images/device.png')">
-                        </md-card-media>
+                            <md-card-media md-big>
+                                <img :src="device.pictureIcon ? device.pictureIcon : require('../assets/images/device.png')">
+                            </md-card-media>
 
-                        <md-card-content>
-                            <div class="card-text-content">
-                                {{ device.name }}
-                            </div>
-                        </md-card-content>
-                    </div>
+                            <md-card-content>
+                                <div class="card-text-content">
+                                    {{ device.name }}
+                                </div>
+                            </md-card-content>
+                        </div>
+                    </md-ripple>
                 </md-card>
             </div>
         </div>
