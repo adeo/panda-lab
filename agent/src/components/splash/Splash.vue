@@ -20,6 +20,8 @@
     import {Component, Vue} from "vue-property-decorator";
     import {Subscription} from "rxjs";
     import {firebaseService} from "@/services/firebase.service";
+    import {Workspace} from "@/node/workspace";
+    import {JobSchedulers} from "@/node/job-schedulers";
 
     enum State {
         LOADING, SUCCESS, ERROR
@@ -56,6 +58,11 @@
 
         private createAgentToken() {
             console.log(`App createAgentToken()`);
+            if (firebaseService.isConnected) {
+                this.onNext();
+                return;
+            }
+
             this.cancelSubscription();
             this.state = State.LOADING;
             this.subscription = firebaseService.createAgentToken().subscribe(

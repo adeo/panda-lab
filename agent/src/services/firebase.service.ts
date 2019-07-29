@@ -3,6 +3,8 @@ import {flatMap, map, mergeMap, tap} from 'rxjs/operators';
 import * as firebase from 'firebase';
 import {Device, DeviceState} from "@/models/firebase";
 import {UUID} from "@/services/remote";
+import {Workspace} from "@/node/workspace";
+import {JobSchedulers} from "@/node/job-schedulers";
 
 firebase.initializeApp({
     apiKey: 'AIzaSyB-LYCs9okzeQFQbhi3t0fhe8qq44h6pt0',
@@ -14,8 +16,8 @@ firebase.initializeApp({
 
 });
 
-const FIRESTORE = firebase.firestore();
-const FUNCTIONS = firebase.functions();
+export const FIRESTORE = firebase.firestore();
+export const FUNCTIONS = firebase.functions();
 export const STORAGE = firebase.storage();
 
 const CREATE_AGENT_FUNCTION = FUNCTIONS.httpsCallable('createAgent');
@@ -46,6 +48,13 @@ class FirebaseService {
     // region agent token
 
     public get agentToken(): string | null {
+        const currentUser = firebase.auth().currentUser;
+        console.log(currentUser);
+        if (currentUser === null) {
+            this.agentToken = null;
+            return null;
+        }
+
         return localStorage.getItem('agent_token');
     }
 
@@ -57,6 +66,9 @@ class FirebaseService {
         }
     }
 
+    public get isConnected(): boolean {
+        return firebase.auth().currentUser !== null;
+    }
     createAgentToken(): Observable<string> {
         return new Observable<string>(emitter => {
             console.log('Create agent token with uid = ', this.uuid);
@@ -69,6 +81,9 @@ class FirebaseService {
                     emitter.error(error);
                 });
         }).pipe(
+            tap(async () => {
+                await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+            }),
             tap(token => console.log(`Agent token created ${token}`)),
             tap(token => this.agentToken = token),
             mergeMap(token => from(firebase.auth().signInWithCustomToken(token))),
@@ -84,7 +99,7 @@ class FirebaseService {
             }),
             map(userCredentials => userCredentials !== null),
             tap(() => console.log('Firebase User credentials = ', JSON.stringify(firebase.auth().currentUser))),
-            map(value => this.agentToken!)
+            map(value => this.agentToken!),
         );
     }
 

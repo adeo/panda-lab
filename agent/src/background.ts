@@ -2,8 +2,6 @@
 
 import {app, BrowserWindow, protocol} from 'electron'
 import {createProtocol, installVueDevtools} from 'vue-cli-plugin-electron-builder/lib'
-import {Workspace} from '../node/workspace';
-import {JobSchedulers} from '../node/job-schedulers';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -15,6 +13,10 @@ let win;
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: {secure: true, standard: true}}]);
 
 app.commandLine.appendSwitch('remote-debugging-port', '9222');
+
+console.log("###########");
+console.log("ANDROID HOME");
+console.log(process.env.ANDROID_HOME);
 
 function createWindow() {
     // Create the browser window.
@@ -70,13 +72,6 @@ app.on('ready', async () => {
     }
     createWindow()
 });
-
-
-// const workspace = new Workspace();
-// workspace.prepare();
-//
-// const jobSchedulers = new JobSchedulers(workspace);
-// jobSchedulers.watch();
 
 // Exit cleanly on request from parent process in development mode.
 if (isDevelopment) {
