@@ -13,6 +13,7 @@
                 <p>Une erreur est survenue</p>
                 <md-button class="md-raised md-primary md-white" v-on:click="onRetry">Ré-essayer</md-button>
             </div>
+            <p class="step">{{ configurationMessage }}</p>
         </div>
     </div>
 </template>
@@ -20,8 +21,8 @@
     import {Component, Vue} from "vue-property-decorator";
     import {Subscription} from "rxjs";
     import {firebaseService} from "@/services/firebase.service";
-    import {Workspace} from "@/node/workspace";
-    import {JobSchedulers} from "@/node/job-schedulers";
+    import {ConfigurationService} from "@/services/configuration.service";
+    import {workspace} from "@/node/workspace";
 
     enum State {
         LOADING, SUCCESS, ERROR
@@ -30,12 +31,14 @@
     @Component
     export default class Splash extends Vue {
 
+        private readonly configurationService = new ConfigurationService();
         protected StateEnum = State;
         protected state: State = State.LOADING;
         private subscription?: Subscription;
+        private configurationMessage: string;
 
         async mounted() {
-            this.createAgentToken();
+            this.configure();
         }
 
         destroyed() {
@@ -43,7 +46,7 @@
         }
 
         protected onRetry() {
-            this.createAgentToken();
+            this.configure();
         }
 
         protected onNext() {
@@ -56,23 +59,24 @@
             }
         }
 
-        private createAgentToken() {
-            console.log(`App createAgentToken()`);
-            if (firebaseService.isConnected) {
-                this.onNext();
-                return;
-            }
-
+        private configure() {
             this.cancelSubscription();
             this.state = State.LOADING;
-            this.subscription = firebaseService.createAgentToken().subscribe(
-                token => {
-                    this.state = State.SUCCESS;
-                    console.log(`App createAgentToken() success, token = ${token}`);
+            this.configurationService.configureMobileApk().subscribe(
+                () => console.log('onnext'),
+                (err) => console.error(err),
+                () => console.log('on finish'),
+            );
+            this.subscription = this.configurationService.configure().subscribe(
+                msg => {
+                    console.log(msg);
+                    this.configurationMessage = msg;
+                    this.$forceUpdate();
                 }, error => {
                     this.state = State.ERROR;
                     console.error(`App createAgentToken() error`, error);
                 }, () => {
+                    this.state = State.SUCCESS;
                     console.log(`App createAgentToken() finish()`);
                 }
             );
@@ -95,9 +99,14 @@
         line-height: 1em;
     }
 
+    #splash .step {
+        font-size: 0.5em;
+    }
+
     .md-white {
         background: white;
     }
+
     .center {
         position: fixed;
         top: 50%;
@@ -109,6 +118,6 @@
     .logo {
         width: 40%;
         height: 40%;
-        filter: invert(100%) ;
+        filter: invert(100%);
     }
 </style>

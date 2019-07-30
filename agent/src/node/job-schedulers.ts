@@ -1,12 +1,12 @@
 import * as path from 'path';
 import {Device, FirebaseModel, Job, JobTask} from './models';
-import {Workspace} from './workspace';
+import {workspace} from './workspace';
 import {asyncForEach, Mutex} from './utils';
 import {getDeviceUUID} from './adb';
 import {parseSpoon, Spoon} from './spoon';
+import * as firebase from 'firebase';
 import {adb, ANDROID_HOME, HOME_DIR, UUID} from '@/services/remote';
-import {FIRESTORE, STORAGE} from "@/services/firebase.service";
-import firebase from 'firebase';
+import {firebaseService, FIRESTORE, STORAGE} from "@/services/firebase.service";
 import DocumentData = firebase.firestore.DocumentData;
 import DocumentReference = firebase.firestore.DocumentReference;
 import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
@@ -14,21 +14,13 @@ import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 
-// const firebaseApp = admin.initializeApp({
-//     credential: admin.credential.cert(require(`${__dirname}/../../panda-lab-lm-firebase-adminsdk.json`)),
-//     databaseURL: 'https://panda-lab-lm.firebaseio.com',
-// });
+class JobSchedulers {
 
-
-export class JobSchedulers {
-
-    private readonly workspace: Workspace;
     private tasks: JobTask[] = [];
     private tasksMutex = new Mutex();
-    private adbClient: any;
-
-    constructor(workspace: Workspace) {
-        this.workspace = workspace;
+    private readonly adbClient: any;
+f
+    constructor() {
         this.adbClient = adb;
     }
 
@@ -42,58 +34,69 @@ export class JobSchedulers {
         return firebaseModel;
     }
 
+    private cancelWatcher: () => void;
+
     watch() {
-        console.log(`Jobs tasks watch`);
-        console.log(`Jobs tasks watch`);
-        console.log(`Jobs tasks watch`);
-        console.log(`Jobs tasks watch`);
-        console.log(`Jobs tasks watch`);
-        const uuid = UUID;
-        FIRESTORE.collection('jobs-tasks')
-            .where('status', '==', 'pending')
-            .onSnapshot(async snapshot => {
-                console.log(`Jobs tasks in pending`);
-                this.tasks = this.tasks.filter(value => !value.finish);
-                const unlock = await this.tasksMutex.lock();
-                const promises: Promise<JobTask>[] = snapshot.docs.map(document => {
-                    return this.getJobTask(document);
-                });
-                const results = await Promise.all(promises);
-                const resultsFiltered = results
-                    .filter(job => {
-                        return FIRESTORE.collection('agents').doc(uuid).isEqual(job.device.agent);
-                    })
-                    .filter(job => {
-                        const index = this.tasks.findIndex(value => value._id === job._id);
-                        console.log(`${job._id} : $index = ${index}`);
-                        return index === -1;
+        firebase.auth().onAuthStateChanged(user => {
+            console.log(`onAuthStateChanged, user = ${user}`);
+            this.cancelWatchIfNeeded();
+            if (user !== null) {
+                this.cancelWatcher = firebaseService.registerJobsTaks(async snapshot => {
+                    console.log(`Jobs tasks in pending`);
+                    this.tasks = this.tasks.filter(value => !value.finish);
+                    const unlock = await this.tasksMutex.lock();
+                    const promises: Promise<JobTask>[] = snapshot.docs.map(document => {
+                        return this.getJobTask(document);
                     });
-
-                console.log(`Jobs tasks in pending ${resultsFiltered.length}`);
-
-                if (resultsFiltered.length === 0) {
-                    unlock();
-                    return;
-                }
-
-                await FIRESTORE.runTransaction(async (transaction) => {
-                    try {
-                        resultsFiltered.forEach(task => {
-                            transaction.update(task.ref, {status: 'installing'});
-                        });
-                        this.tasks.push(...resultsFiltered);
-                    } catch (e) {
-                        console.error(e);
-                    } finally {
+                    const jobTasks = this.filterJobTasks(await Promise.all(promises));
+                    console.log(`Jobs tasks in pending ${jobTasks.length}`);
+                    if (jobTasks.length === 0) {
                         unlock();
+                        return;
                     }
-                    try {
-                        this.perform();
-                    } catch (e) {
-                        console.log('Perform apk error', e);
-                    }
+                    await this.installing(jobTasks, unlock);
                 });
+            }
+        });
+    }
+
+    private cancelWatchIfNeeded() {
+        if (this.cancelWatcher) {
+            this.cancelWatcher();
+        }
+    }
+
+    private filterJobTasks(jobTasks: JobTask[]) {
+        return jobTasks
+            .filter(job => {
+                console.log(job);
+                return FIRESTORE.collection('agents').doc(UUID).isEqual(job.device.agent);
+            })
+            .filter(job => {
+                const index = this.tasks.findIndex(value => value._id === job._id);
+                console.log(`${job._id} : $index = ${index}`);
+                return index === -1;
             });
+    }
+
+    private async installing(jobTasks: JobTask[], unlock: Function) {
+        await FIRESTORE.runTransaction(async (transaction) => {
+            try {
+                jobTasks.forEach(task => {
+                    transaction.update(task.ref, {status: 'installing'});
+                });
+                this.tasks.push(...jobTasks);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                unlock();
+            }
+            try {
+                this.perform();
+            } catch (e) {
+                console.log('Perform apk error', e);
+            }
+        });
     }
 
     private async getJobTask(documentSnapshot: DocumentSnapshot): Promise<JobTask> {
@@ -162,7 +165,7 @@ export class JobSchedulers {
             const fileTest = await this.downloadApk(jobId, apkTest);
             task.finish = true;
             task.ref.set({status: 'running'}, {merge: true});
-            const reportDirectory = this.workspace.getReportJobDirectory(jobId, deviceId);
+            const reportDirectory = workspace.getReportJobDirectory(jobId, deviceId);
 
             // const path = require('path');
             // console.log('make a worker: ', path.resolve(__dirname, 'worker.ts'));
@@ -194,8 +197,10 @@ export class JobSchedulers {
         const url = await STORAGE.ref(filePath).getDownloadURL();
         // const readStream = bucket.file(filePath).createReadStream();
         // const filename = filePath.split('/').slice(-1)[0];
-        return this.workspace.downloadApk(jobId, url, filename);
+        return workspace.downloadApk(jobId, url, filename);
     }
 
 
 }
+
+export const jobSchedulers = new JobSchedulers();

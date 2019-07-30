@@ -12,7 +12,7 @@ export class GetDeviceIdentifierAction {
         this.adbClient = adb;
     }
 
-    async execute(deviceId: string): Promise<LogcatMessage> {
+    async execute(deviceId: string): Promise<string> {
         const transactionId = Guid.create().toString();
         return this.buildLogcat(deviceId, transactionId)
             .then(logcat => {
@@ -29,10 +29,10 @@ export class GetDeviceIdentifierAction {
                             });
                     });
                 }
-            );
-        // return <LogcatMessage> {
-        //   message:`{"device_id": "${transactionId}"}`
-        // };
+            ).then(logcatMessage => {
+                const message = JSON.parse(logcatMessage.message);
+                return message.device_id;
+            });
     }
 
     private async buildLogcat(deviceId: string, transactionId: string) {

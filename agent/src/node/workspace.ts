@@ -10,11 +10,15 @@ export class Workspace {
     private readonly homeDir: string;
     private readonly workspacepath: string;
     private readonly apkPath: string;
+    public readonly agentApkPath: string;
+    public readonly spoonJarPath: string;
 
     constructor() {
         this.homeDir = HOME_DIR;
         this.workspacepath = `${this.homeDir}${path.sep}.pandalab`;
         this.apkPath = `${this.workspacepath}${path.sep}apk`;
+        this.agentApkPath = `${this.workspacepath}${path.sep}panda-lab-mobile.apk`;
+        this.spoonJarPath = `${this.workspacepath}${path.sep}spoon-runner.jar`;
     }
 
     private static mkdir(pathDir: string) {
@@ -36,6 +40,16 @@ export class Workspace {
         return `${this.apkPath}${path.sep}${jobId}${path.sep}report${path.sep}${deviceId}`;
     }
 
+    getPandaLabMobileApk(): string {
+        const pandaLabMobileApk = `${this.workspacepath}${path.sep}panda-lab-mobile.apk`;
+        if (!fs.existsSync(pandaLabMobileApk)) {
+            // TODO DOWNLOAD
+            console.log(`AGENT MOBILE not exist in ${pandaLabMobileApk}`);
+        } else {
+            console.log(`AGENT MOBILE exist in ${pandaLabMobileApk}`);
+        }
+        return pandaLabMobileApk;
+    }
     async downloadApk(jobId: string, url: string, filename: string): Promise<string> {
         const directory = this.getJobDirectory(jobId);
         Workspace.mkdir(directory);
@@ -66,3 +80,5 @@ export class Workspace {
     }
 
 }
+
+export const workspace = new Workspace();
