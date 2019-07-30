@@ -167,12 +167,8 @@ f
             task.ref.set({status: 'running'}, {merge: true});
             const reportDirectory = workspace.getReportJobDirectory(jobId, deviceId);
 
-            // const path = require('path');
-            // console.log('make a worker: ', path.resolve(__dirname, 'worker.ts'));
-
-            const spoonPath = `${HOME_DIR}${path.sep}.pandalab${path.sep}spoon-runner.jar`;
             const spoonCommands = [
-                `java -jar ${spoonPath}`,
+                `java -jar ${workspace.spoonJarPath}`,
                 `--apk ${fileDebug}`,
                 `--test-apk ${fileTest}`,
                 `--sdk ${ANDROID_HOME}`,
@@ -181,7 +177,6 @@ f
             ];
             const cmd = spoonCommands.join(' ');
             console.log(`Run : ${cmd}`);
-            // Executing instrumentation suite on 0 device(s)
             const {stdout, stderr} = await exec(cmd);
             console.log('stdout:', stdout);
             console.log('stderr:', stderr);
@@ -195,8 +190,6 @@ f
     private async downloadApk(jobId: string, filePath: string): Promise<string> {
         const filename = STORAGE.ref(filePath).name;
         const url = await STORAGE.ref(filePath).getDownloadURL();
-        // const readStream = bucket.file(filePath).createReadStream();
-        // const filename = filePath.split('/').slice(-1)[0];
         return workspace.downloadApk(jobId, url, filename);
     }
 
