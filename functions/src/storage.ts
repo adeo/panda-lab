@@ -19,27 +19,20 @@ ApkReader.prototype._open = ApkReaderFromBuffer.prototype._openBuffer;
 
 export const ANALYSE_APK = functions.storage.bucket().object().onFinalize(async (object, context) => {
     const path = `${object.name}`;
-    // const filename = path.split('/').slice(-1);
-    const directory = path.split('/').slice(0, -1).join('/');
-    // Get all files in directory
-    const files = (await admin.storage().bucket().getFiles({
-        directory: directory
-    }));
 
-    // Exclude directory name
-    const apks: File[] = files[0].filter(value => value.name.endsWith('.apk'));
-    if (apks.length !== 3) {
+    // const filename = path.split('/').slice(-1);
+    const filename = path.split('/').slice(-1).join();
+    const directory = path.split('/').slice(1, -1).join();
+
+    if (directory !== "upload" || !filename || !filename.endsWith(".apk")) {
         console.log("File ignored :", path);
-        return Promise.reject(`Directory : ${directory} not contain 3 apk files`);
+        return Promise.resolve("ignore file");
     }
 
-    const promises = apks
-        .map(apk => apk.name.split('/').slice(-1)) // extract filename
-        .map(filename => extractApk(directory, filename[0]));
-
-    return Promise.all(promises)
+    return extractApk(directory, filename)
         .catch(reason => {
-            console.error("Can't process", reason);
+            console.error("Can't process. Delete file", reason);
+            return admin.storage().bucket().file(path).delete()
         });
 });
 
@@ -48,34 +41,46 @@ async function extractApk(directory: string, filename: string) {
     const part = filename.replace('.apk', '').split('_');
     const appName = part[0];
     const uuid = part[1];
-    const versionName = part[2];
-    const versionType = part[3];
+    const flavor = part[2];
+    const buildType = part[3];
+    const type = part[4];
 
     const response = await admin.storage().bucket().file(fullPath).download();
     const reader = await ApkReaderFromBuffer.open(response[0]);
     const manifest = await reader.readManifest();
     console.log(util.inspect(manifest, {depth: null}));
-    const newData = {
-        appName,
-        uuid,
-        versionName
+
+    const newPath = "applications/" + appName + "/" + filename;
+
+
+    const appData = {
+        flavor: flavor,
+        appName: appName,
+        package: manifest.package,
+        timestamp: admin.database.ServerValue.TIMESTAMP
     };
 
-    newData[versionType] = {
+    const artifactData = {
         package: manifest.package,
-        type: versionType,
+        path: newPath,
+        buildType: buildType,
+        type: type,
+        timestamp: admin.database.ServerValue.TIMESTAMP
     };
 
     if (manifest.versionCode) {
-        newData[versionType].versionCode = manifest.versionCode
+        appData['versionCode'] = manifest.versionCode;
+        artifactData['versionCode'] = manifest.versionCode;
     }
     if (manifest.versionName) {
-        newData[versionType].versionName = manifest.versionName
+        appData['versionName'] = manifest.versionName;
+        artifactData['versionName'] = manifest.versionName;
     }
-    const newPath = "applications/" + appName + "/" + filename;
 
     await admin.storage().bucket().file(fullPath).move(newPath);
 
     const doc = admin.firestore().collection("applications").doc(appName).collection("versions").doc(uuid);
-    return doc.set(newData, {merge: true});
+    await doc.set(appData, {merge: true});
+
+    return doc.collection('artifacts').doc(filename).set(artifactData)
 }
