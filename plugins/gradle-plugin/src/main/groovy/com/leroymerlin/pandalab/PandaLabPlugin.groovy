@@ -8,10 +8,12 @@ import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.firestore.*
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
+import com.google.firebase.cloud.FirestoreClient
 import com.google.firebase.cloud.StorageClient
 import groovy.json.JsonSlurper
 import groovy.transform.TypeChecked
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.Input
@@ -37,7 +39,7 @@ class PandaLabPlugin implements Plugin<Project> {
                 AppPlugin, {
             project.afterEvaluate({
                 if (!this.extension.serviceAccountFile || !this.extension.appName) {
-                    project.logger.warn("Panda lab endpoint not configured. Plugin disabled")
+                    project.logger.warn("pandalab not configured. Plugin disabled. Add a serviceAccountFile and an appName to fix it")
                 } else {
                     afterEvaluate()
                 }
@@ -54,51 +56,82 @@ class PandaLabPlugin implements Plugin<Project> {
             FirebaseAuthentification t ->
                 t.bucketUrl = extension.storageBucket
                 t.databaseUrl = extension.databaseUrl
+                t.projectId = extension.projectId
                 t.serviceAccountFile = extension.serviceAccountFile
         }
 
+
         project.extensions.getByType(BaseAppModuleExtension).applicationVariants.all { ApplicationVariant variant ->
             def outputFile = variant.outputs.first()
-            def flavorName = variant.flavorName ?: project.name
+            def flavorName = variant.flavorName ?: variant.name
             flavorName = flavorName.replaceAll("_", "-")
             if (outputFile instanceof ApkVariantOutput) {
                 def bddAppName = extension.appName.replaceAll("_", "-")
-                def versionUID = "${extension.versionPrefix?.replaceAll("_", "-")}-${outputFile.versionNameOverride?.replaceAll("_", "-")}-${outputFile.versionCodeOverride}-${flavorName}"
-                def variantName = variant.buildType.name.replaceAll("_", "-")
+                def versionUID = "${flavorName}-${outputFile.versionNameOverride?.replaceAll("_", "-")}-${outputFile.versionCodeOverride}-${extension.versionSuffix?.replaceAll("_", "-")}"
+                def buildType = variant.buildType.name.replaceAll("_", "-")
 
 
                 def type = "release"
                 if (variant.testVariant) {
                     type = "debug"
-                    project.task("upload${flavorName.capitalize()}${outputFile.name.capitalize()}ToPandaLab",
+                    project.task(getUploadTaskName(variant.name, "test"),
                             type: UploadApk,
                             group: PANDA_LAB_GROUP,
-                            dependsOn: ["setupPandaLab", variant.assembleProvider.name]
+                            //assembleProvider support old version of android plugin
+                            dependsOn: ["setupPandaLab", variant.testVariant.hasProperty("assembleProvider") ? variant.testVariant.assembleProvider.name : variant.testVariant.assemble]
                     ) {
                         UploadApk upTask ->
                             upTask.appName = bddAppName
                             upTask.versionUID = versionUID
-                            upTask.variantName = variantName
+                            upTask.flavorName = flavorName
+                            upTask.buildType = buildType
                             upTask.apkType = "test"
                             upTask.apkFile = variant.testVariant.outputs.first().outputFile
                     }
                 }
-                project.task("upload${flavorName.capitalize()}${outputFile.name.capitalize()}ToPandaLab",
+                project.task(getUploadTaskName(variant.name, ""),
                         type: UploadApk,
                         group: PANDA_LAB_GROUP,
-                        dependsOn: ["setupPandaLab", variant.assembleProvider.name]
+                        //assembleProvider support old version of android plugin
+                        dependsOn: ["setupPandaLab", hasProperty("assembleProvider") ? variant.assembleProvider.name : variant.assemble.name]
                 ) {
                     UploadApk upTask ->
                         upTask.appName = bddAppName
                         upTask.versionUID = versionUID
-                        upTask.variantName = variantName
+                        upTask.flavorName = flavorName
+                        upTask.buildType = buildType
                         upTask.apkType = type
-                        upTask.apkFile = variant.testVariant.outputs.first().outputFile
+                        upTask.apkFile = variant.outputs.first().outputFile
                 }
             }
         }
 
+        project.tasks.withType(PandaLabTest).each {
+            testTask ->
+                def testUploadTaskName = getUploadTaskName(testTask.variantName, "test")
+                def uploadTaskName = getUploadTaskName(testTask.variantName, "debug")
+                def upTask = project.tasks.getByName(uploadTaskName)
+                if (!upTask) {
+                    throw new GradleException("task ${testTask.name} use an invalid variantName ${testTask.variantName}. " +
+                            "Available variants are : ${project.extensions.getByType(BaseAppModuleExtension).applicationVariants.findAll { ApplicationVariant it -> it.testVariant }.collect { it.name }.join(", ")}")
+                }
+
+                def upTaskTest = project.tasks.getByName(testUploadTaskName)
+                if (!upTaskTest) {
+                    throw new GradleException("task ${testTask.name} variant name ${testTask.variantName} has no test variant." +
+                            "Available variants are : ${project.extensions.getByType(BaseAppModuleExtension).applicationVariants.findAll { ApplicationVariant it -> it.testVariant }.collect { it.name }.join(", ")}")
+                }
+
+                testTask.dependsOn.addAll([upTask, upTaskTest])
+
+        }
+
+
         project.task("uploadToPandaLab", group: PANDA_LAB_GROUP, dependsOn: project.tasks.withType(UploadApk))
+    }
+
+    private static GString getUploadTaskName(String variantName, String type) {
+        "upload${variantName.capitalize()}${type.capitalize()}ToPandaLab"
     }
 
 }
@@ -109,8 +142,9 @@ class PandaLabExtension {
     File serviceAccountFile
     String storageBucket
     String databaseUrl
+    String projectId
     String appName
-    String versionPrefix = System.currentTimeMillis()
+    String versionSuffix = System.currentTimeMillis()
 
 }
 
@@ -118,6 +152,10 @@ class PandaLabExtension {
 class FirebaseAuthentification extends DefaultTask {
     @Input
     File serviceAccountFile
+
+    @Input
+    @Optional
+    String projectId
 
     @Input
     @Optional
@@ -134,21 +172,36 @@ class FirebaseAuthentification extends DefaultTask {
                 new FileInputStream(serviceAccountFile)
 
         def account = new JsonSlurper().parse(serviceAccountFile)
+        def pid = account['project_id']?.toString() ?: ""
 
+        if (this.projectId) {
+            pid = this.projectId
+        }
         if (!bucketUrl) {
-            bucketUrl = account['project_id'] + ".appspot.com"
+            bucketUrl = "${pid}.appspot.com"
         }
         if (!databaseUrl) {
-            databaseUrl = "https://${account['project_id']}.firebaseio.com"
+            databaseUrl = "https://${pid}.firebaseio.com"
         }
 
+        FirestoreOptions firestoreOptions =
+                FirestoreOptions.newBuilder()
+                        .setTimestampsInSnapshotsEnabled(true)
+                        .build()
         FirebaseOptions options = new FirebaseOptions.Builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                .setProjectId(pid)
                 .setStorageBucket(bucketUrl)
                 .setDatabaseUrl(databaseUrl)
+                .setFirestoreOptions(firestoreOptions)
                 .build()
 
-        FirebaseApp.initializeApp(options)
+
+        try {
+            FirebaseApp.initializeApp(options)
+        } catch (e) {
+            project.logger.debug("FirebaseApp already initialized", e)
+        }
 
     }
 }
@@ -165,7 +218,10 @@ class UploadApk extends DefaultTask {
     String versionUID
 
     @Input
-    String variantName
+    String buildType
+
+    @Input
+    String flavorName
 
     @Input
     String apkType
@@ -176,26 +232,29 @@ class UploadApk extends DefaultTask {
         try {
             def baseFile = "${appName}_" +
                     "${versionUID}_" +
-                    "${variantName}_" +
+                    "${flavorName}_" +
+                    "${buildType}_" +
                     "${apkType}" +
                     ".apk"
 
 
-            StorageClient.getInstance().bucket()
-                    .create("upload/${baseFile}", apkFile.newInputStream())
-
             CountDownLatch called = new CountDownLatch(1)
 
-            registration = Firestore.newInstance().collection("applications")
+            def firestore = FirestoreClient.firestore
+
+            registration = firestore.collection("applications")
                     .document(appName)
-                    .collection("version")
+                    .collection("versions")
                     .document(versionUID)
                     .collection("artifacts")
                     .addSnapshotListener(new EventListener<QuerySnapshot>() {
                         @Override
                         void onEvent(@Nullable QuerySnapshot value, @Nullable FirestoreException error) {
-                            def result = value.documentChanges.findAll { it -> it.type != DocumentChange.Type.REMOVED }
-                                    .find { it.document.id == baseFile }
+                            def result = value.documentChanges
+                                    .findAll { it.type != DocumentChange.Type.REMOVED }
+                                    .find {
+                                        return it.document.id == baseFile.replace(".apk", "")
+                                    }
 
                             if (result) {
                                 called.countDown()
@@ -204,9 +263,12 @@ class UploadApk extends DefaultTask {
                         }
                     })
 
-            assert called.await(20, TimeUnit.SECONDS): "Analyse timeout reached. Check logs on firebase functions"
+            StorageClient.getInstance().bucket()
+                    .create("upload/${baseFile}", apkFile.newInputStream())
+
+            assert called.await(30, TimeUnit.SECONDS): "Analyse timeout reached. Check logs on firebase functions"
         } catch (e) {
-            project.logger.error("Can't upload apk : $apkFile", e)
+            throw new GradleException("Can't upload apk : $apkFile", e)
         } finally {
             registration?.remove()
         }
@@ -228,7 +290,8 @@ class PandaLabTest extends DefaultTask {
     Long timeoutInSecond
 
 
-
-
-    //TODO implement test setup
+    @TaskAction
+    def launchTask() {
+        //TODO
+    }
 }

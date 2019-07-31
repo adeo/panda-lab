@@ -3,7 +3,7 @@ import {UserRecord} from "firebase-functions/lib/providers/auth";
 import {Message} from "firebase-functions/lib/providers/pubsub";
 import {DocumentSnapshot} from "firebase-functions/lib/providers/firestore";
 import {API_FUNCTION} from "./api";
-import {ANALYSE_APK} from "./storage";
+import {ANALYSE_APK, CLEAN_ARTIFACT} from "./storage";
 import * as firebaseAdmin from "firebase-admin";
 
 const admin = require('firebase-admin');
@@ -157,6 +157,7 @@ exports.onRemoveJob = functions.firestore.document('jobs/{jobId}').onDelete(asyn
 });
 
 exports.analyse_apk = ANALYSE_APK;
+exports.clean_artifact = CLEAN_ARTIFACT;
 exports.api = API_FUNCTION;
 
 // exports.onTaskCreated = functions.firestore.document('jobs-tasks/{taskId}').onCreate(async (snapshot: DocumentSnapshot, context: EventContext) => {

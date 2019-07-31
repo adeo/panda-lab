@@ -44,4 +44,3 @@ delivery {
     archiveRepositories = project.properties['bintrayMobiletribeRepositories']
 
 }
-

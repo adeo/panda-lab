@@ -22,7 +22,7 @@ export const ANALYSE_APK = functions.storage.bucket().object().onFinalize(async 
 
     // const filename = path.split('/').slice(-1);
     const filename = path.split('/').slice(-1).join();
-    const directory = path.split('/').slice(1, -1).join();
+    const directory = path.split('/').slice(0, -1).join();
 
     if (directory !== "upload" || !filename || !filename.endsWith(".apk")) {
         console.log("File ignored :", path);
@@ -31,10 +31,18 @@ export const ANALYSE_APK = functions.storage.bucket().object().onFinalize(async 
 
     return extractApk(directory, filename)
         .catch(reason => {
-            console.error("Can't process. Delete file", reason);
+            console.error("Can't process file", reason);
             return admin.storage().bucket().file(path).delete()
         });
 });
+
+export const CLEAN_ARTIFACT = functions.firestore.document('applications/{appId}/versions/{versionId}/artifacts/{artifactId}')
+    .onDelete((snapshot) => {
+        let path = snapshot.get("path");
+        console.log("remove file of " + snapshot.id, path);
+        return admin.storage().bucket().file(path).delete()
+    });
+
 
 async function extractApk(directory: string, filename: string) {
     const fullPath = directory + '/' + filename;
@@ -57,15 +65,16 @@ async function extractApk(directory: string, filename: string) {
         flavor: flavor,
         appName: appName,
         package: manifest.package,
-        timestamp: admin.database.ServerValue.TIMESTAMP
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
     };
 
     const artifactData = {
         package: manifest.package,
         path: newPath,
+        flavor: flavor,
         buildType: buildType,
         type: type,
-        timestamp: admin.database.ServerValue.TIMESTAMP
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
     };
 
     if (manifest.versionCode) {
@@ -77,10 +86,16 @@ async function extractApk(directory: string, filename: string) {
         artifactData['versionName'] = manifest.versionName;
     }
 
-    await admin.storage().bucket().file(fullPath).move(newPath);
-
     const doc = admin.firestore().collection("applications").doc(appName).collection("versions").doc(uuid);
-    await doc.set(appData, {merge: true});
-
-    return doc.collection('artifacts').doc(filename).set(artifactData)
+    try {
+        await admin.storage().bucket().file(fullPath).move(newPath);
+        await doc.set(appData, {merge: true});
+        await doc.collection('artifacts').doc(filename.replace('.apk', '')).set(artifactData, {merge: false});
+    } catch (e) {
+        console.warn("delete moved file in " + newPath);
+        await admin.storage().bucket().file(newPath).delete()
+    }
+    return "ok"
 }
+
+
