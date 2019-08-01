@@ -47,6 +47,7 @@
     }
     #home .content-container {
         flex: 1 auto;
+        overflow: scroll;
         padding: 12px;
     }
 

@@ -3,7 +3,7 @@
         <div class="devices-list-container md-elevation-4">
             <h2 class="md-display-1">List of connected devices:</h2>
             <md-list>
-                <md-list-item v-for="device in devices">
+                <md-list-item v-for="device in devices" v-bind:key="device.id">
                     <md-icon>phone_android</md-icon>
                     <div class="devices-header-container">
                         <h3 class="devices-list-block"><b>{{ device.id }}</b></h3>
@@ -19,7 +19,7 @@
                            v-bind:style="{'color': (device.deviceLogs != null && getLastLog(device).value.type === deviceLogType.ERROR)? '#D2413A' : '#4caf50'}">
                             {{ (device.deviceLogs != null) ? getLastLog(device).value.log : ' ' }}
                             <md-tooltip class="md-tooltip">
-                                <div v-for="log in showDeviceLogs(device)">
+                                <div v-for="log in showDeviceLogs(device)" v-bind:key="log">
                                     {{ log }}
                                 </div>
                             </md-tooltip>
@@ -64,10 +64,14 @@
             <h2 class="md-display-1">Settings:</h2>
             <md-list>
                 <md-list-item>
-                    <md-switch class="md-primary" v-model="autoEnrollSwitch" @change="autoEnrollActivation()">Auto enrollment</md-switch>
+                    <md-switch class="md-primary" v-model="autoEnrollSwitch" @change="autoEnrollActivation()">Auto
+                        enrollment
+                    </md-switch>
                 </md-list-item>
                 <md-list-item>
-                    <md-switch class="md-primary" v-model="enableTcpIpSwitch" @change="enableTcpIpActivaton()">Enable TCP/IP</md-switch>
+                    <md-switch class="md-primary" v-model="enableTcpIpSwitch" @change="enableTcpIpActivaton()">Enable
+                        TCP/IP
+                    </md-switch>
                 </md-list-item>
             </md-list>
         </div>
@@ -79,7 +83,7 @@
     import {Subscription} from 'vue-rx-decorators';
     import 'rxjs/Rx';
     import {adbService} from "@/services/adb.service";
-    import {flatMap, map, tap} from "rxjs/operators";
+    import {flatMap, map} from "rxjs/operators";
     import {from, Subscription as Sub, Timestamp} from "rxjs";
     import {AdbStatusState, DeviceAdb} from "@/models/adb";
     import {DeviceLog, DeviceLogType} from "@/models/device";
@@ -108,7 +112,12 @@
 
         @Subscription()
         protected get devices() {
-            return adbService.listenAdb().pipe(tap(devices => this.devicesCount = devices.length));
+            return adbService
+                .listenAdb()
+                .do(devices => {
+                    console.log(`Total devices : ${devices.length}`);
+                    this.devicesCount = devices.length;
+                });
         }
 
         @Subscription()

@@ -10,7 +10,7 @@ export interface LogcatMessage {
 }
 
 async function buildLogcat(adbClient: any, deviceId: string, transactionId: string) {
-  const logcat = null;//await adbClient.openLogcat(deviceId, {clear: true});
+  const logcat = await adbClient.openLogcat(deviceId, {clear: true});
   await adbClient.startActivity(deviceId, {
     component: ACTIVITY_COMPONENT,
     extras: {
