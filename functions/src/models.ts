@@ -1,4 +1,4 @@
-enum JobStatus {
+export enum JobStatus {
     pending = "pending",
     unstable = "unstable",
     failure = "failure",
@@ -9,7 +9,7 @@ enum JobStatus {
 /**
  * Differents status : [ 'pending', 'installing', 'running', 'finished', 'error' ]
  */
-enum TaskStatus {
+export enum TaskStatus {
     pending = "pending",
     installing = "installing",
     running = "running",

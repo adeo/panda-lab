@@ -20,13 +20,13 @@ admin.firestore().collection("config").doc("secrets").get()
     })
     .catch(e => console.error("Error checking apiKey", e));
 
+import {JobStatus, TaskStatus} from "./models";
 import {Change, EventContext} from "firebase-functions";
 import {UserRecord} from "firebase-functions/lib/providers/auth";
 import {DocumentSnapshot} from "firebase-functions/lib/providers/firestore";
 import {API_FUNCTION} from "./api";
 import {ANALYSE_APK, CLEAN_ARTIFACT} from "./storage";
 import * as firebaseAdmin from "firebase-admin";
-import CollectionReference = firebaseAdmin.firestore.CollectionReference;
 import QuerySnapshot = firebaseAdmin.firestore.QuerySnapshot;
 
 const functions = require('firebase-functions');
@@ -101,16 +101,16 @@ exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, conte
 exports.onTaskResult = functions.firestore.document('jobs-tasks/{taskId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
     const taskId = context.params.taskId;
     const newValue: DocumentSnapshot = change.after!;
-    const data = newValue.data()!;
+    const jobId = newValue.get("job");
 
-    // get total jobs tasks completed
-    const collection: CollectionReference = change.after.ref.parent;
-    const jobsTasksSnapshot = await collection.where('job', '==', data.job).get();
+    const jobDocumentRef = admin.firestore().collection("jobs").doc(jobId);
 
     let hasFailure = false;
     let hasSuccess = false;
 
-    const totalTasks = jobsTasksSnapshot.docs;
+    const tasksList = await admin.firestore().collection("jobs-tasks").where("job", "==", jobId).get();
+
+    const totalTasks = tasksList.docs;
     const totalTasksCompleted = totalTasks
         .map(snapshot => snapshot.data())
         .filter(dataSnapshot => {
@@ -123,8 +123,6 @@ exports.onTaskResult = functions.firestore.document('jobs-tasks/{taskId}').onUpd
         .length;
 
 
-    // get total tasks in job
-    const jobsCollection: CollectionReference = admin.firestore().collection('jobs');
 
     console.log(`JobsTasks ${taskId} - Compare size : ${totalTasksCompleted} / ${totalTasks.length}`);
     // compare if is same size
@@ -139,7 +137,7 @@ exports.onTaskResult = functions.firestore.document('jobs-tasks/{taskId}').onUpd
         jobStatus = JobStatus.failure
     }
 
-    await jobsCollection.doc(data.job.id).set({completed: completed, status: jobStatus}, {merge: true});
+    await jobDocumentRef.set({completed: completed, status: jobStatus}, {merge: true});
 });
 
 exports.onRemoveJob = functions.firestore.document('jobs/{jobId}').onDelete(async (snapshot: DocumentSnapshot, context: EventContext) => {

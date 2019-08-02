@@ -1,6 +1,7 @@
 import cors = require("cors");
 import express = require("express");
 import * as admin from "firebase-admin";
+import {JobStatus, TaskStatus} from "./models";
 
 const functions = require('firebase-functions');
 const app = express();
