@@ -11,7 +11,7 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 
-class FirebaseAuthentification extends DefaultTask {
+class FirebaseAuthentificationTask extends DefaultTask {
     @Input
     File serviceAccountFile
 

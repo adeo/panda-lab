@@ -4,9 +4,9 @@ import com.android.build.gradle.AppPlugin
 import com.android.build.gradle.api.ApkVariantOutput
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
-import com.leroymerlin.pandalab.tasks.FirebaseAuthentification
-import com.leroymerlin.pandalab.tasks.PandaLabTest
-import com.leroymerlin.pandalab.tasks.UploadApk
+import com.leroymerlin.pandalab.tasks.FirebaseAuthentificationTask
+import com.leroymerlin.pandalab.tasks.PandaLabTestTask
+import com.leroymerlin.pandalab.tasks.UploadApkTask
 import groovy.transform.TypeChecked
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -22,7 +22,7 @@ class PandaLabPlugin implements Plugin<Project> {
         this.project = project
         this.extension = project.extensions.create("pandalab", PandaLabExtension)
 
-        project.extensions.extraProperties.set("PandaLabTest", PandaLabTest)
+        project.extensions.extraProperties.set("PandaLabTestTask", PandaLabTestTask)
 
         project.plugins.withType(
                 AppPlugin, {
@@ -41,8 +41,8 @@ class PandaLabPlugin implements Plugin<Project> {
     @TypeChecked
     def afterEvaluate() {
 
-        project.task("setupPandaLab", type: FirebaseAuthentification, group: PANDA_LAB_GROUP) {
-            FirebaseAuthentification t ->
+        project.task("setupPandaLab", type: FirebaseAuthentificationTask, group: PANDA_LAB_GROUP) {
+            FirebaseAuthentificationTask t ->
                 t.bucketUrl = extension.storageBucket
                 t.databaseUrl = extension.databaseUrl
                 t.projectId = extension.projectId
@@ -64,12 +64,12 @@ class PandaLabPlugin implements Plugin<Project> {
                 if (variant.testVariant) {
                     type = "debug"
                     project.task(getUploadTaskName(variant.name, "test"),
-                            type: UploadApk,
+                            type: UploadApkTask,
                             group: PANDA_LAB_GROUP,
                             //assembleProvider support old version of android plugin
                             dependsOn: ["setupPandaLab", variant.testVariant.hasProperty("assembleProvider") ? variant.testVariant.assembleProvider.name : variant.testVariant.assemble]
                     ) {
-                        UploadApk upTask ->
+                        UploadApkTask upTask ->
                             upTask.appName = bddAppName
                             upTask.versionUID = versionUID
                             upTask.flavorName = flavorName
@@ -79,12 +79,12 @@ class PandaLabPlugin implements Plugin<Project> {
                     }
                 }
                 project.task(getUploadTaskName(variant.name, ""),
-                        type: UploadApk,
+                        type: UploadApkTask,
                         group: PANDA_LAB_GROUP,
                         //assembleProvider support old version of android plugin
                         dependsOn: ["setupPandaLab", hasProperty("assembleProvider") ? variant.assembleProvider.name : variant.assemble.name]
                 ) {
-                    UploadApk upTask ->
+                    UploadApkTask upTask ->
                         upTask.appName = bddAppName
                         upTask.versionUID = versionUID
                         upTask.flavorName = flavorName
@@ -95,12 +95,12 @@ class PandaLabPlugin implements Plugin<Project> {
             }
         }
 
-        project.tasks.withType(PandaLabTest).each {
+        project.tasks.withType(PandaLabTestTask).each {
             it.setup()
         }
 
 
-        project.task("uploadToPandaLab", group: PANDA_LAB_GROUP, dependsOn: project.tasks.withType(UploadApk))
+        project.task("uploadToPandaLab", group: PANDA_LAB_GROUP, dependsOn: project.tasks.withType(UploadApkTask))
     }
 
     static GString getUploadTaskName(String variantName, String type) {
