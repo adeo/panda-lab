@@ -38,7 +38,7 @@ export const ANALYSE_APK = functions.storage.bucket().object().onFinalize(async 
 
 export const CLEAN_ARTIFACT = functions.firestore.document('applications/{appId}/versions/{versionId}/artifacts/{artifactId}')
     .onDelete((snapshot) => {
-        let path = snapshot.get("path");
+        const path = snapshot.get("path");
         console.log("remove file of " + snapshot.id, path);
         return admin.storage().bucket().file(path).delete()
     });

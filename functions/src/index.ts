@@ -1,22 +1,36 @@
-import {Change, EventContext} from "firebase-functions";
-import {UserRecord} from "firebase-functions/lib/providers/auth";
-import {Message} from "firebase-functions/lib/providers/pubsub";
-import {DocumentSnapshot} from "firebase-functions/lib/providers/firestore";
-import {API_FUNCTION} from "./api";
-import {ANALYSE_APK, CLEAN_ARTIFACT} from "./storage";
-import * as firebaseAdmin from "firebase-admin";
-
 const admin = require('firebase-admin');
-import CollectionReference = firebaseAdmin.firestore.CollectionReference;
-import QuerySnapshot = firebaseAdmin.firestore.QuerySnapshot;
-
-const functions = require('firebase-functions');
-
 admin.initializeApp({
     credential: admin.credential.applicationDefault(),
     databaseURL: "https://panda-lab-lm.firebaseio.com",
     storageBucket: "panda-lab-lm.appspot.com"
 });
+
+
+//Generate api key at start
+const uuidv4 = require('uuid/v4');
+admin.firestore().collection("config").doc("secrets").get()
+    .then(document => {
+        if (!document.exists || document.get("apiKey") === undefined) {
+            console.warn("Generate new api key");
+            return admin.firestore().collection("config").doc("secrets")
+                .set({'apiKey': uuidv4()}, {merge: true})
+                .then("api key added")
+        }
+        return Promise.resolve("api key exist")
+    })
+    .catch(e => console.error("Error checking apiKey", e));
+
+import {Change, EventContext} from "firebase-functions";
+import {UserRecord} from "firebase-functions/lib/providers/auth";
+import {DocumentSnapshot} from "firebase-functions/lib/providers/firestore";
+import {API_FUNCTION} from "./api";
+import {ANALYSE_APK, CLEAN_ARTIFACT} from "./storage";
+import * as firebaseAdmin from "firebase-admin";
+import CollectionReference = firebaseAdmin.firestore.CollectionReference;
+import QuerySnapshot = firebaseAdmin.firestore.QuerySnapshot;
+
+const functions = require('firebase-functions');
+
 
 interface DeveloperClaims {
     role: string;
@@ -83,44 +97,6 @@ exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, conte
     return createCustomToken(user.uid, WEB_AGENT);
 });
 
-exports.runJob = functions.pubsub.topic('run-job').onPublish((message: Message, context: EventContext) => {
-    // const body = message.json;
-    // const jobId = context.eventId;
-    // console.log(`topic 'run-job' received a message `, JSON.stringify(body));
-    // const {apkUrl, name, device} = body;
-    // console.log(`Run job [${name}] with apk : ${apkUrl}. Device target : ${device}`);
-    //
-    // return admin.messaging().sendToTopic(device, {
-    //     data: {jobId, name, apkUrl,}
-    // });
-});
-
-/**
- * Differents status : [ 'pending', 'installing', 'running', 'finish', 'error' ]
- */
-exports.initJob = functions.https.onRequest(async (req, res) => {
-    const job = await admin.firestore().collection('jobs').add({
-        apk: 'apk/demo/demo-1.1.18-debug.apk',
-        apk_test: 'apk/demo/demo-1.1.18-debug-test.apk',
-        apk_release: 'apk/demo/demo-1.1.18-release.apk',
-        tasks: [],
-        completed: false
-    });
-
-    const task = await admin.firestore().collection('jobs-tasks').add({
-        job: admin.firestore().collection('jobs').doc(job.id),
-        device: admin.firestore().collection('devices').doc('aa885792-c5de-4076-a6f8-c28d4c841efb'),
-        status: 'pending', // status [ 'pending', 'installing', 'running', 'finish', 'error' ]
-    });
-
-
-    const merge = true;
-    const tasks = [task];
-    await job.set({tasks}, {merge});
-
-    res.status(200).send();
-});
-
 
 exports.onTaskResult = functions.firestore.document('jobs-tasks/{taskId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
     const taskId = context.params.taskId;
@@ -130,29 +106,45 @@ exports.onTaskResult = functions.firestore.document('jobs-tasks/{taskId}').onUpd
     // get total jobs tasks completed
     const collection: CollectionReference = change.after.ref.parent;
     const jobsTasksSnapshot = await collection.where('job', '==', data.job).get();
-    const totalTasksCompleted = jobsTasksSnapshot.docs
+
+    let hasFailure = false;
+    let hasSuccess = false;
+
+    const totalTasks = jobsTasksSnapshot.docs;
+    const totalTasksCompleted = totalTasks
         .map(snapshot => snapshot.data())
-        .filter(dataSnapshot => dataSnapshot.status === 'error' || dataSnapshot.status === 'finish')
+        .filter(dataSnapshot => {
+            const taskError = dataSnapshot.status === TaskStatus.error;
+            const taskSuccess = dataSnapshot.status === TaskStatus.finished;
+            hasFailure = hasFailure || taskError;
+            hasSuccess = hasSuccess || taskSuccess;
+            return taskError || taskSuccess
+        })
         .length;
+
 
     // get total tasks in job
     const jobsCollection: CollectionReference = admin.firestore().collection('jobs');
-    const jobSnapshot: DocumentSnapshot = await jobsCollection.doc(data.job.id).get();
-    const totalTasks = jobSnapshot.data()!.tasks.length;
 
-    console.log(`JobsTasks ${taskId} - Compare size : ${totalTasksCompleted} / ${totalTasks}`);
+    console.log(`JobsTasks ${taskId} - Compare size : ${totalTasksCompleted} / ${totalTasks.length}`);
     // compare if is same size
-    if (totalTasks === totalTasksCompleted) {
-        console.log(`Job ${data.job.id} completed`);
-        await jobSnapshot.ref.set({completed: true}, {merge: true});
+    const completed = totalTasks.length === totalTasksCompleted;
+
+    let jobStatus = JobStatus.pending;
+    if (hasFailure && hasSuccess) {
+        jobStatus = JobStatus.unstable
+    } else if (hasSuccess && completed) {
+        jobStatus = JobStatus.success
+    } else if (hasFailure && completed) {
+        jobStatus = JobStatus.failure
     }
+
+    await jobsCollection.doc(data.job.id).set({completed: completed, status: jobStatus}, {merge: true});
 });
 
 exports.onRemoveJob = functions.firestore.document('jobs/{jobId}').onDelete(async (snapshot: DocumentSnapshot, context: EventContext) => {
-    const jobId = context.params.jobId;
-    const ref = admin.firestore().collection('jobs').doc(jobId);
-    const collection = admin.firestore().collection('jobs-tasks') as CollectionReference;
-    const query: QuerySnapshot = await collection.where('job', '==', ref).get();
+    const collection = admin.firestore().collection('jobs-tasks');
+    const query: QuerySnapshot = await collection.where('job', '==', snapshot.id).get();
     query.docs.forEach(doc => doc.ref.delete());
 });
 
