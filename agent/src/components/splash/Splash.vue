@@ -5,10 +5,6 @@
             <div v-if="state === StateEnum.LOADING">
                 <p>Création du token en cours ...</p>
             </div>
-            <div v-else-if="state === StateEnum.SUCCESS">
-                <p>Bravo! La configuration s'est effectuée avec succès.</p>
-                <md-button class="md-raised md-primary md-white" v-on:click="onNext()">Suivant</md-button>
-            </div>
             <div v-else>
                 <p>Une erreur est survenue</p>
                 <md-button class="md-raised md-primary md-white" v-on:click="onRetry">Ré-essayer</md-button>
@@ -20,12 +16,10 @@
 <script lang="ts">
     import {Component, Vue} from "vue-property-decorator";
     import {Subscription} from "rxjs";
-    import {firebaseService} from "@/services/firebase.service";
     import {ConfigurationService} from "@/services/configuration.service";
-    import {workspace} from "@/node/workspace";
 
     enum State {
-        LOADING, SUCCESS, ERROR
+        LOADING, ERROR
     }
 
     @Component
@@ -35,7 +29,7 @@
         protected StateEnum = State;
         protected state: State = State.LOADING;
         private subscription?: Subscription;
-        private configurationMessage: string;
+        private configurationMessage: string = "Loading...";
 
         async mounted() {
             this.configure();
@@ -49,10 +43,6 @@
             this.configure();
         }
 
-        protected onNext() {
-            this.$router.replace('/home');
-        }
-
         private cancelSubscription() {
             if (this.subscription) {
                 this.subscription.unsubscribe();
@@ -62,11 +52,6 @@
         private configure() {
             this.cancelSubscription();
             this.state = State.LOADING;
-            this.configurationService.configureMobileApk().subscribe(
-                () => console.log('onnext'),
-                (err) => console.error(err),
-                () => console.log('on finish'),
-            );
             this.subscription = this.configurationService.configure().subscribe(
                 msg => {
                     console.log(msg);
@@ -76,12 +61,11 @@
                     this.state = State.ERROR;
                     console.error(`App createAgentToken() error`, error);
                 }, () => {
-                    this.state = State.SUCCESS;
+                    this.$router.replace('/home');
                     console.log(`App createAgentToken() finish()`);
                 }
             );
         }
-
     }
 
 </script>

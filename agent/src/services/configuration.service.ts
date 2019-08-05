@@ -10,12 +10,11 @@ const fs = require('fs');
 export class ConfigurationService {
 
     public configure() {
-        const delay = 2000;
         return of('Start configuration')
             .concat(
-                this.configureAgentToken().map(value => "Agent token configured 1/3").delay(delay),
-                this.configureMobileApk().map(value => "Agent mobile downloaded 2/3").delay(delay),
-                this.configureSpoonJar().map(value => "Spoon jar downloaded 3/3").delay(delay)
+                this.configureAgentToken().map(() => "Agent token configured 1/3"),
+                this.configureMobileApk().map(() => "Agent mobile downloaded 2/3"),
+                this.configureSpoonJar().map(() => "Spoon jar downloaded 3/3")
             );
     }
 

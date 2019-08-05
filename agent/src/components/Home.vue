@@ -22,6 +22,11 @@
                         <md-icon>code</md-icon>
                     </md-button>
                 </router-link>
+                <router-link to="/devices">
+                    <md-button class="md-icon-button toolbar-devices-button">
+                        <md-icon>phone_android</md-icon>
+                    </md-button>
+                </router-link>
             </div>
         </md-toolbar>
     </div>
@@ -35,7 +40,7 @@
     }
 
 </script>
-<style>
+<style scoped>
     #home {
         display: flex;
         flex-flow: column nowrap;

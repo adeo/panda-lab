@@ -9,6 +9,7 @@ import * as firebaseAdmin from "firebase-admin";
 const admin = require('firebase-admin');
 import CollectionReference = firebaseAdmin.firestore.CollectionReference;
 import QuerySnapshot = firebaseAdmin.firestore.QuerySnapshot;
+import {DocumentReference} from "@google-cloud/firestore";
 
 const functions = require('firebase-functions');
 
@@ -99,24 +100,33 @@ exports.runJob = functions.pubsub.topic('run-job').onPublish((message: Message, 
  * Differents status : [ 'pending', 'installing', 'running', 'finish', 'error' ]
  */
 exports.initJob = functions.https.onRequest(async (req, res) => {
+
+    const applicationReference = admin.firestore()
+        .collection('applications')
+        .doc('demo')
+        .collection('versions')
+        .doc('1010');
+
     const job = await admin.firestore().collection('jobs').add({
-        apk: 'apk/demo/demo-1.1.18-debug.apk',
-        apk_test: 'apk/demo/demo-1.1.18-debug-test.apk',
-        apk_release: 'apk/demo/demo-1.1.18-release.apk',
+        application: applicationReference,
         tasks: [],
         completed: false
     });
 
-    const task = await admin.firestore().collection('jobs-tasks').add({
-        job: admin.firestore().collection('jobs').doc(job.id),
-        device: admin.firestore().collection('devices').doc('aa885792-c5de-4076-a6f8-c28d4c841efb'),
-        status: 'pending', // status [ 'pending', 'installing', 'running', 'finish', 'error' ]
+    const documentReferences = await admin.firestore().collection('devices').listDocuments();
+    documentReferences.forEach(async (documentReference: DocumentReference) => {
+        const task = await admin.firestore().collection('jobs-tasks').add({
+            job: admin.firestore().collection('jobs').doc(job.id),
+            device: documentReference,
+            status: 'pending', // status [ 'pending', 'installing', 'running', 'finish', 'error' ]
+        });
+
+
+        const merge = true;
+        const tasks = [task];
+        await job.set({tasks}, {merge});
     });
 
-
-    const merge = true;
-    const tasks = [task];
-    await job.set({tasks}, {merge});
 
     res.status(200).send();
 });

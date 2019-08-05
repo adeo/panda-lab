@@ -24,11 +24,11 @@ f
         this.adbClient = adb;
     }
 
-    private static async getReference<T extends FirebaseModel>(document: DocumentData, key: string, map: (obj: any) => T): Promise<T> {
+    private static async getReference<T extends FirebaseModel>(document: DocumentData, key: string, map: (obj: any) => T | Promise<T>): Promise<T> {
         const ref: DocumentReference = document[key];
         const subRef: DocumentSnapshot = await ref.get();
         const value = subRef.data();
-        const firebaseModel = map(value);
+        const firebaseModel = await map(value);
         firebaseModel._id = subRef.ref.id;
         firebaseModel._path = subRef.ref.path;
         return firebaseModel;
@@ -110,11 +110,9 @@ f
                 agent: obj.agent
             };
         });
-        const job: Job = await JobSchedulers.getReference<Job>(documentData, 'job', (obj: any) => {
+        const job: Job = await JobSchedulers.getReference<Job>(documentData, 'job',  async (obj: any) => {
             return <Job>{
-                apkDebug: obj.apk,
-                apkTest: obj.apk_test,
-                apkRelease: obj.apk_release,
+                application: obj.application,
             };
         });
 
@@ -149,9 +147,24 @@ f
 
         console.log(`start perform`);
         await asyncForEach(this.tasks, async (task: JobTask) => {
+            console.log("#######################");
+            console.log("#######################");
+            console.log("#######################");
+            console.log("#######################");
+            console.log("#######################");
+            const applicationReference = task.job.application;
+            const applicationSnapshot = await applicationReference.get();
+            const data = applicationSnapshot.data();
+
+            const {label, timestamp, versionCode, versionName, debug} = data;
+            const path = applicationReference.path;
+            const paths = path.split('/');
+            const fileStorage = `${paths[1]}_${paths[3]}_${versionName}`;
+            console.log(fileStorage);
             const jobId = task._id;
-            const {apkDebug, apkRelease, apkTest} = task.job;
             const deviceId = task.device._id;
+
+            // const {apkDebug, apkRelease, apkTest} = task.job;
             const logcatConfiguration = devicesUUID.find(value => value.id === deviceId);
             if (!logcatConfiguration) {
                 task.finish = true;
@@ -161,8 +174,8 @@ f
             }
             const serial = logcatConfiguration.serial;
             console.log(`Start download apk for job : ${jobId}`);
-            const fileDebug = await this.downloadApk(jobId, apkDebug);
-            const fileTest = await this.downloadApk(jobId, apkTest);
+            const fileDebug = await this.downloadApk(jobId, fileStorage);
+            const fileTest = await this.downloadApk(jobId, fileStorage);
             task.finish = true;
             task.ref.set({status: 'running'}, {merge: true});
             const reportDirectory = workspace.getReportJobDirectory(jobId, deviceId);

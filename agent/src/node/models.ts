@@ -1,5 +1,6 @@
 import * as firebase from 'firebase';
 import DocumentReference = firebase.firestore.DocumentReference;
+import DocumentData = firebase.firestore.DocumentData;
 
 export interface FirebaseModel {
   _id: string;
@@ -16,9 +17,7 @@ export interface Device extends FirebaseModel {
 }
 
 export interface Job extends FirebaseModel {
-  apkDebug: string;
-  apkTest: string;
-  apkRelease: string;
+  application: DocumentReference;
 }
 
 export interface JobTask extends FirebaseModel {
