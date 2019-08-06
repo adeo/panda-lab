@@ -5,7 +5,7 @@ import {asyncForEach, Mutex} from './utils';
 import {getDeviceUUID} from './adb';
 import {parseSpoon, Spoon} from './spoon';
 import * as firebase from 'firebase';
-import {adb, ANDROID_HOME, HOME_DIR, UUID} from '@/services/remote';
+import {adb, ANDROID_HOME, UUID} from '@/services/remote';
 import {firebaseService, FIRESTORE, STORAGE} from "@/services/firebase.service";
 import DocumentData = firebase.firestore.DocumentData;
 import DocumentReference = firebase.firestore.DocumentReference;
@@ -19,7 +19,7 @@ class JobSchedulers {
     private tasks: JobTask[] = [];
     private tasksMutex = new Mutex();
     private readonly adbClient: any;
-f
+
     constructor() {
         this.adbClient = adb;
     }
@@ -112,7 +112,8 @@ f
         });
         const job: Job = await JobSchedulers.getReference<Job>(documentData, 'job',  async (obj: any) => {
             return <Job>{
-                application: obj.application,
+                apk: obj.apk,
+                apkTest: obj.apk_test,
             };
         });
 
@@ -152,11 +153,11 @@ f
             console.log("#######################");
             console.log("#######################");
             console.log("#######################");
-            const applicationReference = task.job.application;
+            const applicationReference = task.job.apk;
             const applicationSnapshot = await applicationReference.get();
             const data = applicationSnapshot.data();
 
-            const {label, timestamp, versionCode, versionName, debug} = data;
+            const { versionName } = data;
             const path = applicationReference.path;
             const paths = path.split('/');
             const fileStorage = `${paths[1]}_${paths[3]}_${versionName}`;
@@ -164,7 +165,7 @@ f
             const jobId = task._id;
             const deviceId = task.device._id;
 
-            // const {apkDebug, apkRelease, apkTest} = task.job;
+            const {apk, apkTest} = task.job;
             const logcatConfiguration = devicesUUID.find(value => value.id === deviceId);
             if (!logcatConfiguration) {
                 task.finish = true;
@@ -174,8 +175,10 @@ f
             }
             const serial = logcatConfiguration.serial;
             console.log(`Start download apk for job : ${jobId}`);
-            const fileDebug = await this.downloadApk(jobId, fileStorage);
-            const fileTest = await this.downloadApk(jobId, fileStorage);
+            const apkDocumentSnapshot = await apk.get();
+            const apkTestDocumentSnapshot = await apkTest.get();
+            const fileDebug = await this.downloadApk(jobId, apkDocumentSnapshot.data().path);
+            const fileTest = await this.downloadApk(jobId, apkTestDocumentSnapshot.data().path);
             task.finish = true;
             task.ref.set({status: 'running'}, {merge: true});
             const reportDirectory = workspace.getReportJobDirectory(jobId, deviceId);

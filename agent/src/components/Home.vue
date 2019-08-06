@@ -19,12 +19,17 @@
                 </router-link>
                 <router-link to="/jobs">
                     <md-button class="md-icon-button toolbar-devices-button">
-                        <md-icon>code</md-icon>
+                        <md-icon>schedule</md-icon>
                     </md-button>
                 </router-link>
                 <router-link to="/devices">
                     <md-button class="md-icon-button toolbar-devices-button">
                         <md-icon>phone_android</md-icon>
+                    </md-button>
+                </router-link>
+                <router-link to="/applications">
+                    <md-button class="md-icon-button toolbar-devices-button">
+                        <md-icon>apps</md-icon>
                     </md-button>
                 </router-link>
             </div>
@@ -36,7 +41,6 @@
 
     @Component
     export default class Home extends Vue {
-
     }
 
 </script>
@@ -50,10 +54,14 @@
         position: fixed;
         background-color: #546e7a;
     }
+
     #home .content-container {
         flex: 1 auto;
         overflow: scroll;
         padding: 12px;
+        /*display: block;*/
+        /*width: 100%;*/
+        /*height: 100%;*/
     }
 
     #home .toolbar {

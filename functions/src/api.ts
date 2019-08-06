@@ -38,10 +38,12 @@ app.use(async (req, res, next) => {
 
 
 app.post('/createJob', async (req, res) => {
-
+    console.log(req.body);
     const artifact = req.body["artifact"];
+    console.log(`artifact : ${artifact}`);
     const groups = (req.body["groups"] || []) as string[];
     const devices = req.body["devices"] || [];
+    console.log(`devices : ${devices}`);
 
 
     //Check if artifact exist
@@ -68,10 +70,12 @@ app.post('/createJob', async (req, res) => {
 
 
     //Check devices ids
-    const devicesQuery = await Promise.all(groups.map(async (group: string) => {
-        const result = await admin.firestore().collection("deviceGroups").doc(group).collection("devices").get();
-        return result.docs.map(doc => doc.id)
-    }));
+    const devicesQuery = await Promise.all(
+        groups.map(async (group: string) => {
+            const result = await admin.firestore().collection("deviceGroups").doc(group).collection("devices").get();
+            return result.docs.map(doc => doc.id)
+        })
+    );
     let devicesList = devicesQuery.reduce((prev, curr) => prev.concat(curr), []);
     devicesList = devicesList.concat(devices);
 
@@ -91,8 +95,8 @@ app.post('/createJob', async (req, res) => {
 
     //Create job and tasks
     const job = await admin.firestore().collection('jobs').add({
-        apk: artifactDoc.ref.path,
-        apk_test: artifactTestDoc.ref.path,
+        apk: artifactDoc.ref,
+        apk_test: artifactTestDoc.ref,
         completed: false,
         status: JobStatus.pending
     });
@@ -100,8 +104,8 @@ app.post('/createJob', async (req, res) => {
     await Promise.all(finalDevices.map(
         async device => {
             const taskObj = {
-                job: job.id,
-                device: device,
+                job: admin.firestore().collection('jobs').doc(job.id),
+                device: admin.firestore().collection('devices').doc(device),
                 status: TaskStatus.pending,
             };
             return await admin.firestore().collection('jobs-tasks').add(taskObj);
@@ -117,4 +121,5 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(404).send();
 });
+
 export const API_FUNCTION = functions.https.onRequest(app);

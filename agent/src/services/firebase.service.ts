@@ -3,9 +3,12 @@ import {flatMap, map, mergeMap, tap} from 'rxjs/operators';
 import * as firebase from 'firebase';
 import {Device, DeviceState} from "@/models/firebase";
 import {store, UUID} from "@/services/remote";
-import QuerySnapshot = firebase.firestore.QuerySnapshot;
 import {adbService} from "@/services/adb.service";
 import "rxjs-compat/add/operator/onErrorResumeNext";
+import {AxiosInstance} from "axios";
+import QuerySnapshot = firebase.firestore.QuerySnapshot;
+
+const axios: AxiosInstance = require('axios');
 
 firebase.initializeApp({
     apiKey: 'AIzaSyB-LYCs9okzeQFQbhi3t0fhe8qq44h6pt0',
@@ -13,9 +16,15 @@ firebase.initializeApp({
     projectId: 'panda-lab-lm',
     databaseURL: 'https://panda-lab-lm.firebaseio.com',
     messagingSenderId: '24857120470',
-    storageBucket: "panda-lab-lm.appspot.com"
-
+    storageBucket: "panda-lab-lm.appspot.com",
 });
+
+export const API_URL = 'https://us-central1-panda-lab-lm.cloudfunctions.net';
+export const API_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'X-API-KEY': 'ec6ba3c4-d0f6-4243-a5ed-d598468dbf31',
+    'Content-Type': 'application/json',
+};
 
 export const FIRESTORE = firebase.firestore();
 export const FUNCTIONS = firebase.functions();
@@ -168,7 +177,7 @@ class FirebaseService {
     }
 
     uploadFiles(uuid: string, uploadApplications: UploadApplications): Observable<UploadApplicationProgress> {
-        const { appName, versionName } = uploadApplications;
+        const {appName, versionName} = uploadApplications;
         const keys = Object.keys(uploadApplications)
             .filter(key => {
                 return key !== 'appName' && key !== 'versionName';
@@ -191,7 +200,7 @@ class FirebaseService {
                         subscribe({
                             'next': (value) => {
                                 const percent = Math.floor(value.bytesTransferred / value.totalBytes * 100);
-                                subscriber.next(<UploadApplicationProgress> {
+                                subscriber.next(<UploadApplicationProgress>{
                                     file,
                                     percent,
                                 });
@@ -208,6 +217,26 @@ class FirebaseService {
         return FIRESTORE.collection('jobs-tasks')
             .where('status', '==', 'pending')
             .onSnapshot(callback);
+    }
+
+    /**
+     * Create a job
+     * @param artifact - firebase reference path ( ex: /applications/passport/versions/YOUR_VERSION/artifacts/YOUR_ARTIFACT
+     * @param devices - Ids of devices ( ex: [ ID_1, ID_2 ] )
+     * @param groups - Groups of devices ( ex: [ ID_GROUP_1, ID_GROUP_2 ] )
+     */
+    async createJob(artifact: string, devices: string[], groups: string[]) {
+        try {
+            const response = await axios.post(`${API_URL}/api/createJob`, {
+                artifact,
+                devices,
+                groups
+            }, {headers: API_HEADERS});
+            const data = response.data;
+            console.log(`Create job : ${data.jobId}`);
+        } catch (e) {
+            console.error(e);
+        }
     }
 
 }

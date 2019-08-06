@@ -17,7 +17,8 @@ export interface Device extends FirebaseModel {
 }
 
 export interface Job extends FirebaseModel {
-  application: DocumentReference;
+  apk: DocumentReference;
+  apkTest: DocumentReference;
 }
 
 export interface JobTask extends FirebaseModel {
