@@ -1,3 +1,5 @@
+import {FirebaseModel} from "@/models/jobs";
+
 export interface DeviceLog {
   log: string;
   type: DeviceLogType;
@@ -8,8 +10,7 @@ export enum DeviceLogType {
   ERROR
 }
 
-export interface Device {
-  _id: string;
+export interface Device extends FirebaseModel {
   serialId: string;
   name: string;
   ip: string;

@@ -60,8 +60,6 @@
         @ObservableMethod()
         private applicationVersion: ObservableMethod;
 
-
-
         /**
          * This subscription retrieve all artifacts with application and version id.
          * This observable is updated when the ObservableMethod pplicationVersion is called

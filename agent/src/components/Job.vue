@@ -6,41 +6,94 @@
             </md-button>
             <h3 class="md-title">Détail d'un job {{ job._id }}</h3>
         </md-toolbar>
-        <div>Build type : {{ job.apk.buildType }}</div>
-        <div>Flavor : {{ job.apk.flavor }}</div>
-        <div>Package : {{ job.apk.package }}</div>
-        <div>Path : {{ job.apk.path }}</div>
-        <div>Type : {{ job.apk.type }}</div>
-        <div>Version code : {{ job.apk.versionCode }}</div>
-        <div>Version name : {{ job.apk.versionName }}</div>
-        <div>Timestamp {{ job.apk.timestamp }}</div>
-        <!--        <md-button class="md-dense md-raised md-primary" v-on:click="displayDialog()">Ajouter un job-->
-        <!--        </md-button>-->
-        <!--        <md-table id="table" md-card>-->
-        <!--            <md-table-toolbar>-->
-        <!--                <h1 class="md-title">Liste des jobs</h1>-->
-        <!--            </md-table-toolbar>-->
-        <!--            <md-table-row>-->
-        <!--                <md-table-head>ID</md-table-head>-->
-        <!--                <md-table-head>Apk</md-table-head>-->
-        <!--                <md-table-head>Test</md-table-head>-->
-        <!--                <md-table-head>Completed</md-table-head>-->
-        <!--                <md-table-head>Tasks</md-table-head>-->
-        <!--            </md-table-row>-->
-        <!--            <md-table-row v-for="job in jobs" v-bind:key="job.id" v-on:click="onSelect(job)" md-selectable="single"-->
-        <!--                          class="md-primary">-->
-        <!--                <md-table-cell>{{ job._id }}</md-table-cell>-->
-        <!--                <md-table-cell>{{ job.apk.path }}</md-table-cell>-->
-        <!--                <md-table-cell>{{ job.apkTest.path }}</md-table-cell>-->
-        <!--                <md-table-cell>{{ job.completed }}</md-table-cell>-->
-        <!--                <md-table-cell>{{ job.tasks }}</md-table-cell>-->
-        <!--            </md-table-row>-->
-        <!--        </md-table>-->
+
+        <div class="content">
+            <div class="md-card">
+                <md-list class="md-double-line">
+                    <md-subheader>Informations</md-subheader>
+                    <md-list-item>
+                        <md-icon class="md-primary">apps</md-icon>
+                        <div class="md-list-item-text">
+                            <span>Build type : {{ job.apk.buildType }}</span>
+                            <span>Flavor : {{ job.apk.flavor }}</span>
+                            <span>Package : {{ job.apk.package }}</span>
+                        </div>
+                    </md-list-item>
+                    <md-divider class="md-inset"></md-divider>
+                    <md-subheader>Type</md-subheader>
+                    <md-list-item>
+                        <md-icon class="md-primary">apps</md-icon>
+                        <div class="md-list-item-text">
+                            <span>Type : {{ job.apk.type }}</span>
+                            <span>Version code : {{ job.apk.versionCode }}</span>
+                            <span>Version name : {{ job.apk.versionName }}</span>
+                        </div>
+                    </md-list-item>
+                    <md-divider class="md-inset"></md-divider>
+                    <md-subheader>Autre</md-subheader>
+                    <md-list-item>
+                        <md-icon class="md-primary">apps</md-icon>
+                        <div class="md-list-item-text">
+                            <span>Date: {{ formatTimestamp(job.apk.timestamp.seconds) }}</span>
+                            <span>Terminé: {{ job.completed ? 'oui' : 'non' }}</span>
+                        </div>
+                    </md-list-item>
+                </md-list>
+
+            </div>
+
+            <md-list v-if="jobsTasks">
+                <md-subheader>Téléphones</md-subheader>
+
+                <div v-for="(jobTask, index) in jobsTasks" v-bind:key="jobTask._id">
+                    <md-list-item v-for="jobTask in jobsTasks" v-bind:key="jobTask._id">
+                        <md-avatar>
+                            <img src="images/device.png">
+                        </md-avatar>
+
+                        <div class="md-list-item-text">
+                            <span>{{ jobTask.device.name }}</span>
+                            <span>{{ jobTask.device.phoneBrand }}</span>
+                            <p>{{ jobTask.device.serialId }}</p>
+                        </div>
+
+                        <p v-if="jobTask.status === 'error'">
+                            <md-icon class="md-error">error</md-icon>
+                        </p>
+                        <p v-else>
+                            <md-icon class="md-primary">done</md-icon>
+                        </p>
+
+                        <md-menu>
+                            <md-button md-menu-trigger class="md-icon-button md-primary">
+                                <md-icon>more_vert</md-icon>
+                            </md-button>
+                            <md-menu-content>
+                                <md-menu-item @click="onDisplayJobTaskResult(jobTask)">Voir les résultats</md-menu-item>
+                            </md-menu-content>
+                        </md-menu>
+                    </md-list-item>
+
+                    <md-divider v-if="index < (jobsTasks.length - 1)" class="md-inset"></md-divider>
+                </div>
+            </md-list>
+        </div>
     </div>
 </template>
 <script lang="ts">
 
     import {Component, Vue} from "vue-property-decorator";
+    import {Subscription} from "vue-rx-decorators";
+    import * as firebase from "firebase";
+    import {from} from "rxjs";
+    import "rxjs-compat/add/operator/map";
+    import "rxjs-compat/add/operator/mergeMap";
+    import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
+    import "rxjs-compat/add/operator/toArray";
+    import {tap} from "rxjs/operators";
+    import DocumentReference = firebase.firestore.DocumentReference;
+    import {jobService} from "@/services/job.service";
+    import {JobTask} from "@/models/jobs";
 
     @Component
     export default class Job extends Vue {
@@ -48,11 +101,46 @@
         private job: any;
 
         beforeCreate() {
+            console.log('beforeCreate');
             this.job = this.$route.params.job;
         }
 
+
+        @Subscription()
+        protected get jobsTasks() {
+            return jobService.getJobsTasks(this.job._id);
+        }
+
+        protected onDisplayJobTaskResult(jobTask) {
+            this.$router.push({
+                name: 'jobTaskDetail',
+                params: {
+                    jobTask
+                }
+            });
+        }
+
+        protected formatTimestamp(seconds: number) {
+            const date = new Date(1970, 0, 1); // Epoch
+            date.setSeconds(seconds);
+            return date.toLocaleDateString();
+        }
     }
 
 </script>
-<style lang="css">
+<style lang="css" scoped>
+    #job .content {
+        padding-top: 20px;
+        display: flex;
+        flex-flow: row wrap;
+        justify-content: space-between;
+    }
+
+    #job .content > .md-card {
+        width: 40%;
+    }
+
+    #job .content > .md-list {
+        width: 55%;
+    }
 </style>

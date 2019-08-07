@@ -138,7 +138,13 @@ class JobSchedulers {
         const devicesUUID = [];
 
         await asyncForEach(devices, async device => {
-            const uuid = await getDeviceUUID(this.adbClient, device.id);
+            let uuid = null;
+            try {
+                uuid = await getDeviceUUID(this.adbClient, device.id);
+            } catch (e) {
+                console.error(e);
+            }
+
             devicesUUID.push({
                 serial: device.id,
                 id: uuid,
@@ -177,11 +183,12 @@ class JobSchedulers {
             console.log(`Start download apk for job : ${jobId}`);
             const apkDocumentSnapshot = await apk.get();
             const apkTestDocumentSnapshot = await apkTest.get();
-            const fileDebug = await this.downloadApk(jobId, apkDocumentSnapshot.data().path);
-            const fileTest = await this.downloadApk(jobId, apkTestDocumentSnapshot.data().path);
+            const fileDebug = `/Users/mehdisli/.pandalab/demo-1.1.18-debug.apk`;//await this.downloadApk(jobId, apkDocumentSnapshot.data().path);
+            const fileTest = `/Users/mehdisli/.pandalab/demo-1.1.18-debug-test.apk`;//await this.downloadApk(jobId, apkTestDocumentSnapshot.data().path);
             task.finish = true;
             task.ref.set({status: 'running'}, {merge: true});
             const reportDirectory = workspace.getReportJobDirectory(jobId, deviceId);
+
 
             const spoonCommands = [
                 `java -jar ${workspace.spoonJarPath}`,
@@ -193,7 +200,25 @@ class JobSchedulers {
             ];
             const cmd = spoonCommands.join(' ');
             console.log(`Run : ${cmd}`);
-            const {stdout, stderr} = await exec(cmd);
+
+            // const ex = require('child_process').spawn;
+            // const child = ex('java', ['-jar', `${workspace.spoonJarPath}`, '--apk', `${fileDebug}`, '--test-apk', `${fileTest}`, '--sdk', `${ANDROID_HOME}`, '--output', `${reportDirectory}`, '-serial', `${serial}`]);
+            // await new Promise(((resolve, reject) => {
+            //     child.stdout.on('data', function (data) {
+            //         console.log('stdout: ' + data.toString());
+            //     });
+            //
+            //     child.stderr.on('data', function (data) {
+            //         console.log('stderr: ' + data.toString());
+            //         reject();
+            //     });
+            //
+            //     child.on('exit', function (code) {
+            //         resolve();
+            //         console.log('child process exited with code ' + code.toString());
+            //     });
+            // }));
+            const {stdout, stderr} = await exec(cmd, { shell: true });
             console.log('stdout:', stdout);
             console.log('stderr:', stderr);
             console.log(`End download apk for job : ${jobId}`);

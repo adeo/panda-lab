@@ -10,6 +10,7 @@ import Devices from "@/components/Devices.vue";
 import Device from "@/components/Device.vue";
 import Applications from "@/components/Applications.vue";
 import Job from "@/components/Job.vue";
+import JobTaskDetail from "@/components/JobTaskDetail.vue";
 
 Vue.use(VueRouter);
 
@@ -29,6 +30,7 @@ const HOME_ROUTE: RouteConfig = {
         {path: '/listDevice', component: ListDevice,},
         {path: '/jobs', component: Jobs,},
         {path: '/jobDetail', component: Job, name: "jobDetail"},
+        {path: '/jobTaskDetail', component: JobTaskDetail, name: "jobTaskDetail"},
         {path: '/phone', component: Jobs,},
         {path: '/devices', component: Devices,},
         {path: '/devices/:deviceId', component: Device,},

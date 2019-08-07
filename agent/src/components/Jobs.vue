@@ -17,8 +17,8 @@
             <md-table-row v-for="job in jobs" v-bind:key="job.id" v-on:click="onSelect(job)" md-selectable="single"
                           class="md-primary">
                 <md-table-cell>{{ job._id }}</md-table-cell>
-                <md-table-cell>{{ job.apk.path }}</md-table-cell>
-                <md-table-cell>{{ job.apkTest.path }}</md-table-cell>
+                <md-table-cell>{{ job.apk._path }}</md-table-cell>
+                <md-table-cell>{{ job.apkTest._path }}</md-table-cell>
                 <md-table-cell>{{ job.completed }}</md-table-cell>
                 <md-table-cell>{{ job.tasks }}</md-table-cell>
             </md-table-row>
@@ -34,6 +34,7 @@
     import CreateJob from "@/components/CreateJob.vue";
     import {CREATE_JOB_EVENT_DISPLAY} from "@/components/events";
     import DocumentReference = firebase.firestore.DocumentReference;
+    import {jobService} from "@/services/job.service";
 
     @Component({
         components: {CreateJob}
@@ -58,27 +59,7 @@
 
         @Subscription()
         protected get jobs() {
-            return from(firebase.firestore().collection('jobs').get())
-                .map(value => value.docs)
-                .flatMap(from)
-                .map(async doc => {
-                    const data = doc.data();
-                    const jobsTasks = await firebase.firestore().collection('jobs-tasks').where('job', '==', doc.ref).get();
-                    return {
-                        _path: doc.ref.path,
-                        _id: doc.id,
-                        apk: (await (data.apk as DocumentReference).get()).data(),
-                        apkTest: (await (data.apk_test as DocumentReference).get()).data(),
-                        completed: data.completed,
-                        tasks: jobsTasks.docs.length,
-                    };
-                })
-                .flatMap(promise => from(promise))
-                .toArray()
-                .map(v => {
-                    console.log(v);
-                    return v;
-                });
+            return jobService.getAllJobs();
         }
 
     }
