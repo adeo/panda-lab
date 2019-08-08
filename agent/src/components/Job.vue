@@ -1,5 +1,5 @@
 <template>
-    <div id="job">
+    <div id="job" v-if="job">
         <md-toolbar>
             <md-button class="md-icon-button" @click="$router.back()">
                 <md-icon>arrow_back</md-icon>
@@ -84,40 +84,33 @@
 
     import {Component, Vue} from "vue-property-decorator";
     import {Subscription} from "vue-rx-decorators";
-    import * as firebase from "firebase";
-    import {from} from "rxjs";
+    import {Observable} from "rxjs";
     import "rxjs-compat/add/operator/map";
     import "rxjs-compat/add/operator/mergeMap";
-    import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
     import "rxjs-compat/add/operator/toArray";
-    import {tap} from "rxjs/operators";
-    import DocumentReference = firebase.firestore.DocumentReference;
     import {jobService} from "@/services/job.service";
     import {JobTask} from "@/models/jobs";
 
     @Component
     export default class Job extends Vue {
 
-        private job: any;
+        protected get jobId() {
+            return this.$route.params.jobId;
+        }
 
-        beforeCreate() {
-            console.log('beforeCreate');
-            this.job = this.$route.params.job;
+        @Subscription()
+        protected get job() {
+            return jobService.getJob(this.jobId);
         }
 
 
         @Subscription()
-        protected get jobsTasks() {
-            return jobService.getJobsTasks(this.job._id);
+        protected get jobsTasks(): Observable<JobTask[]> {
+            return jobService.getJobsTasks(this.jobId);
         }
 
-        protected onDisplayJobTaskResult(jobTask) {
-            this.$router.push({
-                name: 'jobTaskDetail',
-                params: {
-                    jobTask
-                }
-            });
+        protected onDisplayJobTaskResult(jobTask: JobTask) {
+            this.$router.push(`/jobs/${this.jobId}/tasks/${jobTask._id}`);
         }
 
         protected formatTimestamp(seconds: number) {

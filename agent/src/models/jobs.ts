@@ -1,4 +1,5 @@
 import {Device} from "@/models/device";
+import {Spoon} from "@/node/spoon";
 
 export interface FirebaseModel {
     _id: string;
@@ -28,4 +29,5 @@ export interface JobTask extends FirebaseModel {
     device: Device;
     job: Job;
     status: string;
+    result: Spoon | null;
 }

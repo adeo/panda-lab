@@ -1,6 +1,6 @@
 <template>
     <div id="jobs">
-        <create-job />
+        <create-job/>
         <md-button class="md-dense md-raised md-primary" v-on:click="displayDialog()">Ajouter un job
         </md-button>
         <md-table id="table" md-card>
@@ -28,29 +28,21 @@
 <script lang="ts">
 
     import {Component, Emit, Vue} from "vue-property-decorator";
-    import * as firebase from "firebase";
-    import {from} from "rxjs";
+    import {Observable} from "rxjs";
     import {Subscription,} from "vue-rx-decorators";
     import CreateJob from "@/components/CreateJob.vue";
     import {CREATE_JOB_EVENT_DISPLAY} from "@/components/events";
-    import DocumentReference = firebase.firestore.DocumentReference;
     import {jobService} from "@/services/job.service";
+    import {Job} from "@/models/jobs";
 
     @Component({
         components: {CreateJob}
     })
     export default class Jobs extends Vue {
 
-        protected onSelect(job) {
-            this.$router.push({
-                name: 'jobDetail',
-                params: {
-                    job
-                }
-            });
-            // this.$router.push('/jobs/' + job._id);
+        protected onSelect(job: Job) {
+            this.$router.push('/jobs/' + job._id);
         }
-
 
         @Emit(CREATE_JOB_EVENT_DISPLAY)
         private displayDialog() {
@@ -58,7 +50,7 @@
         }
 
         @Subscription()
-        protected get jobs() {
+        protected get jobs(): Observable<Job[]> {
             return jobService.getAllJobs();
         }
 
