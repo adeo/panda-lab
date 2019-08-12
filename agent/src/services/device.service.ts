@@ -1,5 +1,5 @@
-import {concat, Observable, of, Timestamp} from 'rxjs';
-import {catchError, first, flatMap, ignoreElements, timeout, timestamp} from 'rxjs/internal/operators';
+import {AsyncSubject, concat, Observable, of, Timestamp} from 'rxjs';
+import {catchError, first, flatMap, ignoreElements, tap, timeout, timestamp} from 'rxjs/internal/operators';
 import {adbService} from './adb.service';
 import {firebaseService} from "@/services/firebase.service";
 import {DeviceData, DeviceLog, DeviceLogType} from "@/models/device";
@@ -77,6 +77,10 @@ class DeviceService {
     //     );
     // }
 
+    // TODO change this function
+    // 1. Récupérer l'id du téléphone et installer l'application si elle existe pas
+    // 2. Créer un custom token via l'id du téléphone
+    // 3. Lancer l'activité d'enrollement
     enroll(adbDeviceId: string): Observable<Timestamp<DeviceLog>> {
         return adbService.getDeviceId(adbDeviceId)
             .pipe(
@@ -115,52 +119,65 @@ class DeviceService {
     }
 
     // enroll(adbDeviceId: string): Observable<Timestamp<DeviceLog>> {
-    // const subject = new AsyncSubject<DeviceLog>();
-    // subject.next({
-    //     log: 'Download and install service APK...',
-    //     type: DeviceLogType.INFO,
-    // });
-    // return adbService.installOnlineApk(adbDeviceId, "https://pandalab.page.link/qbvQ")
-    //     .pipe(
-    //         tap(() => {
-    //             subject.next({log: 'Installation complete with success', type: DeviceLogType.INFO});
-    //             subject.next({log: 'Launch of the service...', type: DeviceLogType.INFO});
-    //         }),
-    //         flatMap(() => adbService.getDeviceId(adbDeviceId)),
-    //         tap(() => subject.next({log: `Generate firebase token...`, type: DeviceLogType.INFO})),
-    //         flatMap((deviceId) => {
-    //             return firebaseService.generateCustomJwtToken(`${deviceId}`)
-    //                 .pipe(
-    //                     tap((deviceToken) => {
-    //                         subject.next({
-    //                             log: `Firebase token generate with success with token ${deviceToken}`,
-    //                             type: DeviceLogType.INFO
-    //                         });
-    //                     }),
-    //                     flatMap(deviceToken => adbService.launchActivityWithToken(adbDeviceId, 'com.leroymerlin.pandalab/.home.HomeActivity', deviceToken, this.uuid)),
-    //                     tap(() => {
-    //                         subject.next({log: 'Launching success', type: DeviceLogType.INFO});
-    //                         subject.next({log: 'Wait for the device in database...', type: DeviceLogType.INFO});
-    //                     }),
-    //                     flatMap(() => firebaseService.listenSpecificDeviceFromFirestore(deviceId)
-    //                         .pipe(
-    //                             first(device => device != null),
-    //                             ignoreElements(),
-    //                         )
-    //                     ),
-    //                 );
-    //         }),
-    //         tap(() => subject.next({log: `Device enroll with success !`, type: DeviceLogType.INFO})),
-    //         timeout<DeviceLog>(50000),
+    //     const subject = new AsyncSubject<DeviceLog>();
+    //     subject.next({
+    //         log: 'Download and install service APK...',
+    //         type: DeviceLogType.INFO,
+    //     });
+    //     const observable = adbService.installOnlineApk(adbDeviceId, "https://pandalab.page.link/qbvQ")
+    //         .pipe(
+    //             tap(() => {
+    //                 console.log({log: 'Launch of the service...', type: DeviceLogType.INFO});
+    //                 subject.next({log: 'Installation complete with success', type: DeviceLogType.INFO});
+    //                 subject.next({log: 'Launch of the service...', type: DeviceLogType.INFO});
+    //             }),
+    //             flatMap(() => adbService.getDeviceId(adbDeviceId)),
+    //             tap(() => {
+    //                 subject.next({log: `Generate firebase token...`, type: DeviceLogType.INFO});
+    //                 console.log({log: `Generate firebase token...`, type: DeviceLogType.INFO});
+    //             }),
+    //             flatMap((deviceId) => {
+    //                 return firebaseService.generateCustomJwtToken(`${deviceId}`)
+    //                     .pipe(
+    //                         tap((deviceToken) => {
+    //                             console.log({
+    //                                 log: `Firebase token generate with success with token ${deviceToken}`,
+    //                                 type: DeviceLogType.INFO
+    //                             });
+    //                             subject.next({
+    //                                 log: `Firebase token generate with success with token ${deviceToken}`,
+    //                                 type: DeviceLogType.INFO
+    //                             });
+    //                         }),
+    //                         flatMap(deviceToken => adbService.launchActivityWithToken(adbDeviceId, 'com.leroymerlin.pandalab/.home.HomeActivity', deviceToken, this.uuid)),
+    //                         tap(() => {
+    //                             console.log({log: 'Launching success', type: DeviceLogType.INFO});
+    //                             subject.next({log: 'Launching success', type: DeviceLogType.INFO});
+    //                             subject.next({log: 'Wait for the device in database...', type: DeviceLogType.INFO});
+    //                         }),
+    //                         flatMap(() => firebaseService.listenSpecificDeviceFromFirestore(deviceId)
+    //                             .pipe(
+    //                                 first(device => device != null),
+    //                                 ignoreElements(),
+    //                             )
+    //                         ),
+    //                     );
+    //             }),
+    //             tap(() => {
+    //                 console.log({log: `Device enroll with success !`, type: DeviceLogType.INFO});
+    //                 subject.next({log: `Device enroll with success !`, type: DeviceLogType.INFO});
+    //             }),
+    //             // timeout<DeviceLog>(50000),
+    //             // catchError(error => of({log: 'Error: ' + error, type: DeviceLogType.ERROR})),
+    //             // timestamp()
+    //         );
+    //
+    //     observable.subscribe();
+    //     return subject.pipe(
+    //         timeout<DeviceLog>(1000 * 60 * 10),
     //         catchError(error => of({log: 'Error: ' + error, type: DeviceLogType.ERROR})),
     //         timestamp()
     //     );
-    // observable.subscribe();
-    // return subject.pipe(
-    //     timeout<DeviceLog>(50000),
-    //     catchError(error => of({log: 'Error: ' + error, type: DeviceLogType.ERROR})),
-    //     timestamp()
-    // );
     // }
 }
 

@@ -5,35 +5,34 @@
             <div v-if="state === StateEnum.LOADING">
                 <p>Création du token en cours ...</p>
             </div>
-            <div v-else-if="state === StateEnum.SUCCESS">
-                <p>Bravo! La configuration s'est effectuée avec succès.</p>
-                <md-button class="md-raised md-primary md-white" v-on:click="onNext()">Suivant</md-button>
-            </div>
             <div v-else>
                 <p>Une erreur est survenue</p>
                 <md-button class="md-raised md-primary md-white" v-on:click="onRetry">Ré-essayer</md-button>
             </div>
+            <p class="step">{{ configurationMessage }}</p>
         </div>
     </div>
 </template>
 <script lang="ts">
     import {Component, Vue} from "vue-property-decorator";
     import {Subscription} from "rxjs";
-    import {firebaseService} from "@/services/firebase.service";
+    import {ConfigurationService} from "@/services/configuration.service";
 
     enum State {
-        LOADING, SUCCESS, ERROR
+        LOADING, ERROR
     }
 
     @Component
     export default class Splash extends Vue {
 
+        private readonly configurationService = new ConfigurationService();
         protected StateEnum = State;
         protected state: State = State.LOADING;
         private subscription?: Subscription;
+        private configurationMessage: string = "Loading...";
 
         async mounted() {
-            this.createAgentToken();
+            this.configure();
         }
 
         destroyed() {
@@ -41,11 +40,7 @@
         }
 
         protected onRetry() {
-            this.createAgentToken();
-        }
-
-        protected onNext() {
-            this.$router.replace('/home');
+            this.configure();
         }
 
         private cancelSubscription() {
@@ -54,23 +49,23 @@
             }
         }
 
-        private createAgentToken() {
-            console.log(`App createAgentToken()`);
+        private configure() {
             this.cancelSubscription();
             this.state = State.LOADING;
-            this.subscription = firebaseService.createAgentToken().subscribe(
-                token => {
-                    this.state = State.SUCCESS;
-                    console.log(`App createAgentToken() success, token = ${token}`);
+            this.subscription = this.configurationService.configure().subscribe(
+                msg => {
+                    console.log(msg);
+                    this.configurationMessage = msg;
+                    this.$forceUpdate();
                 }, error => {
                     this.state = State.ERROR;
                     console.error(`App createAgentToken() error`, error);
                 }, () => {
+                    this.$router.replace('/home');
                     console.log(`App createAgentToken() finish()`);
                 }
             );
         }
-
     }
 
 </script>
@@ -88,9 +83,14 @@
         line-height: 1em;
     }
 
+    #splash .step {
+        font-size: 0.5em;
+    }
+
     .md-white {
         background: white;
     }
+
     .center {
         position: fixed;
         top: 50%;
@@ -102,6 +102,6 @@
     .logo {
         width: 40%;
         height: 40%;
-        filter: invert(100%) ;
+        filter: invert(100%);
     }
 </style>

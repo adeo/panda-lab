@@ -1,0 +1,46 @@
+buildscript {
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath "com.leroymerlin.plugins:delivery-plugin:3.3.4"
+    }
+}
+
+
+apply plugin: 'groovy'
+apply plugin: 'com.leroymerlin.delivery'
+
+repositories {
+    google()
+    jcenter()
+}
+
+configurations {
+    provided
+}
+
+sourceSets {
+    main.compileClasspath += configurations.provided
+    test.compileClasspath += configurations.provided
+    test.runtimeClasspath += configurations.provided
+}
+
+dependencies {
+    implementation gradleApi()
+    implementation localGroovy()
+    implementation 'com.google.firebase:firebase-admin:6.8.1'
+
+    provided 'com.android.tools.build:gradle:3.4.2'
+    compile 'com.google.guava:guava:23.6-jre'
+
+    testImplementation 'junit:junit:4.12'
+
+}
+
+delivery {
+
+    archiveRepositories = project.properties['bintrayMobiletribeRepositories']
+
+}

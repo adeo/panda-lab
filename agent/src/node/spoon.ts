@@ -47,6 +47,7 @@ export interface SpoonTestLog {
 
 
 export function parseSpoon(path: string) {
+  console.log(path);
   const jsonContent = fs.readFileSync(path);
   const json = JSON.parse(jsonContent);
   return <Spoon>{

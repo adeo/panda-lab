@@ -1,10 +1,13 @@
 import {BehaviorSubject, from, Observable} from 'rxjs';
-import {flatMap, map, toArray} from 'rxjs/internal/operators';
 import {GetDeviceIdentifierAction} from '@/actions/get-device-identifier.action';
-import {AdbStatus, AdbStatusState, DeviceAdb, LogcatMessage} from "@/models/adb";
+import {AdbStatus, AdbStatusState, DeviceAdb} from "@/models/adb";
 import {firebaseService} from "@/services/firebase.service";
-import {adb, request, Readable} from "@/services/remote";
+import {adb, Readable, request} from "@/services/remote";
 import {DeviceLog} from "@/models/device";
+import "rxjs-compat/add/operator/mergeMap";
+import "rxjs-compat/add/operator/map";
+import "rxjs-compat/add/operator/toArray";
+import {workspace} from "@/node/workspace";
 
 class AdbService {
 
@@ -89,22 +92,17 @@ class AdbService {
     }
 
     listenAdb(): Observable<Array<DeviceAdb>> {
-        return this.listDevices.pipe(
-            flatMap((devices: Array<DeviceAdb>) => {
-                    return from(devices).pipe(
-                        flatMap((device: DeviceAdb) => {
-                            return firebaseService.checkDeviceState(device.id).pipe(
-                                map(deviceState => {
-                                    device.deviceState = deviceState;
-                                    return device;
-                                })
-                            );
-                        }),
-                        toArray()
-                    );
-                }
-            )
-        );
+        return this.listDevices
+            .flatMap(from)
+            .flatMap(device => {
+                return firebaseService
+                    .checkDeviceState(device.id)
+                    .map(deviceState => {
+                        device.deviceState = deviceState;
+                        return device;
+                    })
+                    .toArray();
+            });
     }
 
     listenAdbStatus(): Observable<AdbStatus> {
@@ -133,9 +131,12 @@ class AdbService {
     }
 
     installOnlineApk(deviceId: string, apkUrl: string): Observable<void> {
+        // workspace.downloadApk()
         console.log(`installOnlineApk : ${apkUrl}`);
+        const apkPath = workspace.getPandaLabMobileApk();
         return new Observable(emitter => {
-            this.adbClient.install(deviceId, new Readable().wrap(request(apkUrl)))
+            // this.adbClient.install(deviceId, new Readable().wrap(request(apkUrl)))
+            this.adbClient.install(deviceId, apkPath)
                 .then(() => {
                     emitter.complete();
                 })
@@ -146,13 +147,7 @@ class AdbService {
     }
 
     getDeviceId(adbDeviceId: string): Observable<string> {
-        return from(this.getDeviceIdentifierAction.execute(adbDeviceId))
-            .pipe(
-                map((logcatMessage: LogcatMessage) => {
-                    const message = JSON.parse(logcatMessage.message);
-                    return message.device_id;
-                })
-            );
+        return from(this.getDeviceIdentifierAction.execute(adbDeviceId));
     }
 
     launchActivity(deviceId: string, activityName: string): Observable<void> {

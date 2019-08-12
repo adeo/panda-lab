@@ -13,7 +13,6 @@ export const SplashNotConfiguredGuard: NavigationGuard = async (to, from, next) 
 
 export const SplashConfiguredGuard: NavigationGuard = async (to, from, next) => {
     const isConfigured = await isConfiguredAsync();
-    console.log(`SplashConfiguredGuard() isConfigured = ${isConfigured}`);
     if (!isConfigured) {
         next('/');
     } else {
@@ -22,5 +21,5 @@ export const SplashConfiguredGuard: NavigationGuard = async (to, from, next) => 
 };
 
 async function isConfiguredAsync(): Promise<boolean> {
-    return await firebaseService.agentToken !== null;
+    return await firebaseService.agentToken !== null && firebaseService.isConnected;
 }

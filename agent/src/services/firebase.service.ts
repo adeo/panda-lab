@@ -1,8 +1,14 @@
-import {from, Observable} from 'rxjs';
+import {from, Observable, of} from 'rxjs';
 import {flatMap, map, mergeMap, tap} from 'rxjs/operators';
 import * as firebase from 'firebase';
 import {Device, DeviceState} from "@/models/firebase";
-import {UUID} from "@/services/remote";
+import {store, UUID} from "@/services/remote";
+import {adbService} from "@/services/adb.service";
+import "rxjs-compat/add/operator/onErrorResumeNext";
+import {AxiosInstance} from "axios";
+import QuerySnapshot = firebase.firestore.QuerySnapshot;
+
+const axios: AxiosInstance = require('axios');
 
 firebase.initializeApp({
     apiKey: 'AIzaSyB-LYCs9okzeQFQbhi3t0fhe8qq44h6pt0',
@@ -10,12 +16,18 @@ firebase.initializeApp({
     projectId: 'panda-lab-lm',
     databaseURL: 'https://panda-lab-lm.firebaseio.com',
     messagingSenderId: '24857120470',
-    storageBucket: "panda-lab-lm.appspot.com"
-
+    storageBucket: "panda-lab-lm.appspot.com",
 });
 
-const FIRESTORE = firebase.firestore();
-const FUNCTIONS = firebase.functions();
+export const API_URL = 'https://us-central1-panda-lab-lm.cloudfunctions.net';
+export const API_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'X-API-KEY': 'ec6ba3c4-d0f6-4243-a5ed-d598468dbf31',
+    'Content-Type': 'application/json',
+};
+
+export const FIRESTORE = firebase.firestore();
+export const FUNCTIONS = firebase.functions();
 export const STORAGE = firebase.storage();
 
 const CREATE_AGENT_FUNCTION = FUNCTIONS.httpsCallable('createAgent');
@@ -46,15 +58,21 @@ class FirebaseService {
     // region agent token
 
     public get agentToken(): string | null {
-        return localStorage.getItem('agent_token');
+        return store.get('agent_token');
     }
 
     public set agentToken(token: string | null) {
         if (token === null) {
-            localStorage.removeItem('agent_token');
+            store.delete('agent_token');
+            // localStorage.removeItem('agent_token');
         } else {
+            store.set('agent_token', token);
             localStorage.setItem('agent_token', token);
         }
+    }
+
+    public get isConnected(): boolean {
+        return firebase.auth().currentUser !== null;
     }
 
     createAgentToken(): Observable<string> {
@@ -69,6 +87,9 @@ class FirebaseService {
                     emitter.error(error);
                 });
         }).pipe(
+            tap(async () => {
+                await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+            }),
             tap(token => console.log(`Agent token created ${token}`)),
             tap(token => this.agentToken = token),
             mergeMap(token => from(firebase.auth().signInWithCustomToken(token))),
@@ -84,32 +105,42 @@ class FirebaseService {
             }),
             map(userCredentials => userCredentials !== null),
             tap(() => console.log('Firebase User credentials = ', JSON.stringify(firebase.auth().currentUser))),
-            map(value => this.agentToken!)
+            map(value => this.agentToken!),
         );
     }
 
     // endregion agent token
 
     checkDeviceState(deviceId: string): Observable<DeviceState> {
-        return new Observable(emitter => {
-            FIRESTORE.collection(FIRESTORE_DEVICE_COLLECTION).doc('device-' + deviceId).get()
-                .then(doc => {
-                    if (doc.exists) {
-                        if (doc.data()!.currentServiceVersion === '1.0') {
-                            emitter.next(DeviceState.UPDATED);
+        console.log(`checkDeviceState : ${deviceId}`);
+
+        const findDeviceInFirestore = (uuid) => {
+            return new Observable<DeviceState>(emitter => {
+                FIRESTORE.collection(FIRESTORE_DEVICE_COLLECTION).doc(uuid).get()
+                    .then(doc => {
+                        if (doc.exists) {
+                            const isSameVersion = doc.data()!.currentServiceVersion === '1.0';
+                            if (isSameVersion) {
+                                emitter.next(DeviceState.UPDATED);
+                            } else {
+                                emitter.next(DeviceState.ENROLL);
+                            }
+                            emitter.complete();
                         } else {
-                            emitter.next(DeviceState.ENROLL);
+                            emitter.next(DeviceState.NOT_ENROLL);
+                            emitter.complete();
                         }
-                        emitter.complete();
-                    } else {
-                        emitter.next(DeviceState.NOT_ENROLL);
-                        emitter.complete();
-                    }
-                })
-                .catch(error => {
-                    emitter.error(error);
-                });
-        });
+                    })
+                    .catch(error => {
+                        emitter.error(error);
+                    });
+            });
+        };
+
+        return adbService.getDeviceId(deviceId)
+            .flatMap(findDeviceInFirestore)
+            .onErrorResumeNext(of(DeviceState.NOT_ENROLL));
+
     }
 
 
@@ -155,7 +186,7 @@ class FirebaseService {
     }
 
     uploadFiles(uuid: string, uploadApplications: UploadApplications): Observable<UploadApplicationProgress> {
-        const { appName, versionName } = uploadApplications;
+        const {appName, versionName} = uploadApplications;
         const keys = Object.keys(uploadApplications)
             .filter(key => {
                 return key !== 'appName' && key !== 'versionName';
@@ -178,7 +209,7 @@ class FirebaseService {
                         subscribe({
                             'next': (value) => {
                                 const percent = Math.floor(value.bytesTransferred / value.totalBytes * 100);
-                                subscriber.next(<UploadApplicationProgress> {
+                                subscriber.next(<UploadApplicationProgress>{
                                     file,
                                     percent,
                                 });
@@ -189,6 +220,32 @@ class FirebaseService {
                     });
                 }),
             );
+    }
+
+    registerJobsTaks(callback: (snapshot: QuerySnapshot) => void): () => void {
+        return FIRESTORE.collection('jobs-tasks')
+            .where('status', '==', 'pending')
+            .onSnapshot(callback);
+    }
+
+    /**
+     * Create a job
+     * @param artifact - firebase reference path ( ex: /applications/passport/versions/YOUR_VERSION/artifacts/YOUR_ARTIFACT
+     * @param devices - Ids of devices ( ex: [ ID_1, ID_2 ] )
+     * @param groups - Groups of devices ( ex: [ ID_GROUP_1, ID_GROUP_2 ] )
+     */
+    async createJob(artifact: string, devices: string[], groups: string[]) {
+        try {
+            const response = await axios.post(`${API_URL}/api/createJob`, {
+                artifact,
+                devices,
+                groups
+            }, {headers: API_HEADERS});
+            const data = response.data;
+            console.log(`Create job : ${data.jobId}`);
+        } catch (e) {
+            console.error(e);
+        }
     }
 
 }
