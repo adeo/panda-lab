@@ -268,16 +268,26 @@
         }
 
         getAutoEnrollButtonState(): boolean {
+            if(storageUtils.getItemFromStorage(ListDevice.AUTO_ENROLL_KEY) == null) {
+                storageUtils.setItemInStorage(ListDevice.AUTO_ENROLL_KEY, false);
+            }
+
             if (this.devicesAutoEnroll == null) {
                 this.autoEnroll(storageUtils.getItemFromStorage(ListDevice.AUTO_ENROLL_KEY));
             }
+
             return storageUtils.getItemFromStorage(ListDevice.AUTO_ENROLL_KEY);
         }
 
         getEnableTcpIpButtonState(): boolean {
+            if(storageUtils.getItemFromStorage(ListDevice.ENABLE_TCP_IP) == null) {
+                storageUtils.setItemInStorage(ListDevice.ENABLE_TCP_IP, false);
+            }
+
             if (this.devicesTcpIp == null) {
                 this.enableTcpIp(storageUtils.getItemFromStorage(ListDevice.ENABLE_TCP_IP));
             }
+
             return storageUtils.getItemFromStorage(ListDevice.ENABLE_TCP_IP);
         }
     }
