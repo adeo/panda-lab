@@ -57,7 +57,7 @@
                         </md-list>
                     </div>
                     <div>
-                        <img src="images/device.png">
+                        <img :src="device.pictureIcon ? device.pictureIcon : require('../assets/images/device.png')">
                     </div>
                 </div>
             </div>

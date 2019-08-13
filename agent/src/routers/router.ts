@@ -32,7 +32,6 @@ const HOME_ROUTE: RouteConfig = {
         {path: '/jobs/:jobId', component: Job},
         {path: '/jobs/:jobId/tasks/:taskId', component: JobTaskDetail},
         {path: '/phone', component: Jobs,},
-        {path: '/devices', component: Devices,},
         {path: '/devices/:deviceId', component: Device,},
         {path: '/applications', component: Applications,},
     ]

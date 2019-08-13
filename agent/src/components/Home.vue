@@ -22,11 +22,6 @@
                         <md-icon>schedule</md-icon>
                     </md-button>
                 </router-link>
-                <router-link to="/devices">
-                    <md-button class="md-icon-button toolbar-devices-button">
-                        <md-icon>phone_android</md-icon>
-                    </md-button>
-                </router-link>
                 <router-link to="/applications">
                     <md-button class="md-icon-button toolbar-devices-button">
                         <md-icon>apps</md-icon>
