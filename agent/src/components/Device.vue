@@ -90,6 +90,7 @@
                         brand: data.phoneBrand,
                         model: data.phoneModel,
                         serialId: data.serialId,
+                        pictureIcon: data.pictureIcon,
                     };
                 });
         }

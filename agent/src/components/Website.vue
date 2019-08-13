@@ -1,48 +1,53 @@
 <template>
     <div>
         <h2 class="devices-home-title md-display-1">Devices:</h2>
-        <md-switch class="devices-home-display-switch md-primary" v-model="listMode">Mode liste</md-switch>
-        <div class="devices-card-container" v-if="!listMode">
-            <div v-for="device in devices" class="devices-grid">
-                <md-card md-with-hover class="devices-card">
-                    <md-ripple>
-                        <div @click="onDisplayDetail(device)">
-                            <md-card-header>
-                                <div class="md-title">{{ device.phoneModel }}</div>
-                            </md-card-header>
+        <template v-if="devices">
+            <md-switch class="devices-home-display-switch md-primary" v-model="listMode" @change="onListMode()">Mode liste</md-switch>
+            <div class="devices-card-container" v-if="!listMode">
+                <div v-for="device in devices" class="devices-grid">
+                    <md-card md-with-hover class="devices-card">
+                        <md-ripple>
+                            <div @click="onDisplayDetail(device)">
+                                <md-card-header>
+                                    <div class="md-title">{{ device.phoneModel }}</div>
+                                </md-card-header>
 
-                            <md-card-media md-big>
-                                <img :src="device.pictureIcon ? device.pictureIcon : require('../assets/images/device.png')">
-                            </md-card-media>
+                                <md-card-media md-big>
+                                    <img :src="device.pictureIcon ? device.pictureIcon : require('../assets/images/device.png')">
+                                </md-card-media>
 
-                            <md-card-content>
-                                <div class="card-text-content">
-                                    {{ device.name }}
-                                </div>
-                            </md-card-content>
-                        </div>
-                    </md-ripple>
-                </md-card>
+                                <md-card-content>
+                                    <div class="card-text-content">
+                                        {{ device.name }}
+                                    </div>
+                                </md-card-content>
+                            </div>
+                        </md-ripple>
+                    </md-card>
+                </div>
             </div>
-        </div>
-        <div class="devices-list-container" v-if="listMode">
-            <md-table md-card>
-                <md-table-row>
-                    <md-table-head>ID</md-table-head>
-                    <md-table-head>Name</md-table-head>
-                    <md-table-head>Brand</md-table-head>
-                    <md-table-head>Model</md-table-head>
-                    <md-table-head>Serial Id</md-table-head>
-                </md-table-row>
-                <md-table-row v-for="device in devices" v-bind:key="device.id" v-on:click="onDisplayDetail(device)">
-                    <md-table-cell>{{ device.id }}</md-table-cell>
-                    <md-table-cell>{{ device.name }}</md-table-cell>
-                    <md-table-cell>{{ device.brand }}</md-table-cell>
-                    <md-table-cell>{{ device.model }}</md-table-cell>
-                    <md-table-cell>{{ device.serialId }}</md-table-cell>
-                </md-table-row>
-            </md-table>
-        </div>
+            <div class="devices-list-container" v-if="listMode">
+                <md-table md-card>
+                    <md-table-row>
+                        <md-table-head>ID</md-table-head>
+                        <md-table-head>Name</md-table-head>
+                        <md-table-head>Brand</md-table-head>
+                        <md-table-head>Model</md-table-head>
+                        <md-table-head>Serial Id</md-table-head>
+                    </md-table-row>
+                    <md-table-row v-for="device in devices" v-bind:key="device.id" v-on:click="onDisplayDetail(device)">
+                        <md-table-cell>{{ device.id }}</md-table-cell>
+                        <md-table-cell>{{ device.name }}</md-table-cell>
+                        <md-table-cell>{{ device.brand }}</md-table-cell>
+                        <md-table-cell>{{ device.model }}</md-table-cell>
+                        <md-table-cell>{{ device.serialId }}</md-table-cell>
+                    </md-table-row>
+                </md-table>
+            </div>
+        </template>
+        <template v-else>
+            <p>LOADING...</p>
+        </template>
     </div>
 </template>
 
@@ -52,11 +57,14 @@
     import {from} from "rxjs";
     import * as firebase from "firebase";
     import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
+    import {storageUtils} from "@/utils/storage.utils";
 
     @Component
     export default class Website extends Vue {
 
-        listMode: boolean = false;
+        static LIST_MODE_KEY = 'listKey';
+
+        listMode: boolean = this.getListModeStatus();
 
         @Subscription()
         protected get devices() {
@@ -82,6 +90,19 @@
 
         protected onDisplayDetail(device: any) {
             this.$router.push('/devices/' + device.id);
+        }
+
+        protected onListMode() {
+            storageUtils.setItemInStorage(Website.LIST_MODE_KEY, this.listMode);
+        }
+
+        protected getListModeStatus() {
+            if(storageUtils.getItemFromStorage(Website.LIST_MODE_KEY) == null) {
+                storageUtils.setItemInStorage(Website.LIST_MODE_KEY, false);
+                return false;
+            } else {
+                return storageUtils.getItemFromStorage(Website.LIST_MODE_KEY);
+            }
         }
     }
 </script>
