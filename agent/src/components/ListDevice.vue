@@ -83,7 +83,7 @@
     import {Subscription} from 'vue-rx-decorators';
     import 'rxjs/Rx';
     import {adbService} from "@/services/adb.service";
-    import {flatMap, map} from "rxjs/operators";
+    import {flatMap, map, tap} from "rxjs/operators";
     import {from, Subscription as Sub, Timestamp} from "rxjs";
     import {AdbStatusState, DeviceAdb} from "@/models/adb";
     import {DeviceLog, DeviceLogType} from "@/models/device";

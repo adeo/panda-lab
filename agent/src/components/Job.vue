@@ -48,7 +48,7 @@
                 <div v-for="(jobTask, index) in jobsTasks" v-bind:key="jobTask._id">
                     <md-list-item v-for="jobTask in jobsTasks" v-bind:key="jobTask._id">
                         <md-avatar>
-                            <img src="images/device.png">
+                            <img :src="jobTask.device.pictureIcon ? jobTask.device.pictureIcon : require('../assets/images/device.png')">
                         </md-avatar>
 
                         <div class="md-list-item-text">
