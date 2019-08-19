@@ -4,7 +4,7 @@
         <template v-if="devices">
             <md-switch class="devices-home-display-switch md-primary" v-model="listMode" @change="onListMode()">Mode liste</md-switch>
             <div class="devices-card-container" v-if="!listMode">
-                <div v-for="device in devices" class="devices-grid">
+                <div v-for="device in devices" v-bind:key="device.id" class="devices-grid">
                     <md-card md-with-hover class="devices-card">
                         <md-ripple>
                             <div @click="onDisplayDetail(device)">
