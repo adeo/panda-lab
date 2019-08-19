@@ -12,7 +12,7 @@ let win;
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: {secure: true, standard: true}}]);
 
-app.commandLine.appendSwitch('remote-debugging-port', '9222');
+app.commandLine.appendSwitch('remote-debugging-port', '59222');
 
 console.log("###########");
 console.log("ANDROID HOME");
