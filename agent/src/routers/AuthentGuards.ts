@@ -1,9 +1,9 @@
 import {NavigationGuard} from "vue-router";
 import {firebaseService} from "@/services/firebase.service";
 
-export const SplashNotConfiguredGuard: NavigationGuard = async (to, from, next) => {
+export const AuthentNotConfiguredGuard: NavigationGuard = async (to, from, next) => {
     const isConfigured = await isConfiguredAsync();
-    console.log(`SplashConfiguredGuard() isConfigured = ${isConfigured}`);
+    console.log(`AuthentConfiguredGuard() isConfigured = ${isConfigured}`);
     if (!isConfigured) {
         next();
     } else {
@@ -11,7 +11,7 @@ export const SplashNotConfiguredGuard: NavigationGuard = async (to, from, next) 
     }
 };
 
-export const SplashConfiguredGuard: NavigationGuard = async (to, from, next) => {
+export const AuthentConfiguredGuard: NavigationGuard = async (to, from, next) => {
     const isConfigured = await isConfiguredAsync();
     if (!isConfigured) {
         next('/');

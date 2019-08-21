@@ -11,7 +11,7 @@
     export default class Auth extends Vue {
         mounted() {
             let uiConfig = {
-                signInSuccessUrl: '/auth/success',
+                signInSuccessUrl: '/splash',
                 signInOptions: [
                     {
                         provider: firebase.auth.GoogleAuthProvider.PROVIDER_ID,
