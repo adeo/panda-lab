@@ -33,6 +33,18 @@ import QuerySnapshot = firebaseAdmin.firestore.QuerySnapshot;
 
 const functions = require('firebase-functions');
 
+admin.firestore().collection('user-security')
+    .onSnapshot(querySnapshot => {
+        querySnapshot.docChanges().forEach(change => {
+            if (change.type === 'added' || change.type === 'modified') {
+                console.log('User security added or modified: ', change.doc.data());
+                admin.auth.setCustomUserClaims(change.doc.data().uid, {role: change.doc.data().role})
+                    .then(() => {
+                        console.log(`Claims for user ${change.dov.data().uid} updated with success`)
+                    })
+            }
+        });
+    });
 
 interface DeveloperClaims {
     role: string;
@@ -40,7 +52,9 @@ interface DeveloperClaims {
 
 const MOBILE_AGENT = "mobile-agent";
 const DESKTOP_AGENT = "agent";
-const WEB_AGENT = "web";
+const ADMIN = "admin";
+// const USER = "user";
+const GUEST = "guest";
 
 function createCustomToken(uid: string, role: string): Promise<string> {
     return admin
@@ -56,6 +70,14 @@ function createCustomToken(uid: string, role: string): Promise<string> {
             console.error("createCustomToken() error", error);
             throw new functions.https.HttpsError("failed-token", error);
         });
+}
+
+function saveUserSecurity(uid: string, role: string) {
+    admin.firestore().collection('user-security').doc(uid).set({
+        uid: uid,
+        role: role,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
 }
 
 exports.generate_custom_jwt_token = functions.https.onCall((data, context) => {
@@ -78,13 +100,23 @@ exports.createMobileAgent = functions.https.onCall((data: any) => {
 });
 
 exports.createAgent = functions.https.onCall(async (data: any) => {
-    await admin.firestore().collection('agents').doc(data.uid).set({
-        uid: data.uid,
-        devices: [],
-        finalize: false,
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-    return createCustomToken(data.uid, DESKTOP_AGENT);
+    return admin.auth()
+        .verifyIdToken(data.token)
+        .then(async (claims: any) => {
+            console.log(`createDesktopAgent() token = [${data.token}] claims = [${JSON.stringify(claims)}`);
+            if (claims.role === ADMIN) {
+                await admin.firestore().collection('agents').doc(data.uid).set({
+                    uid: data.uid,
+                    devices: [],
+                    finalize: false,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+                return await createCustomToken(data.uid, DESKTOP_AGENT);
+            } else {
+                console.error(`The role [${claims.role}] is not authorized to create custom tokens for desktop`);
+                throw new functions.https.HttpsError("role-unauthorized", `The role [${claims.role}] is not authorized to create custom tokens for desktop`);
+            }
+        })
 });
 
 /**
@@ -96,7 +128,21 @@ exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, conte
     // see the function createAgent
 
     // create custom claims for web
-    return createCustomToken(user.uid, WEB_AGENT);
+    // return createCustomToken(user.uid, WEB_AGENT);
+
+    admin.firestore().collection("user-security")
+        .where('role', '==', ADMIN).get()
+        .then(snapshot => {
+            if(snapshot.empty) {
+                saveUserSecurity(user.uid, ADMIN);
+            } else {
+                saveUserSecurity(user.uid, GUEST);
+            }
+        })
+        .catch(err => {
+            console.error('Error during the access to user-security');
+            throw new functions.https.HttpsError("role-unauthorized", `Error during the access to userèsecurity`);
+        })
 });
 
 /**
