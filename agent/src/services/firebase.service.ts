@@ -1,7 +1,7 @@
 import {from, Observable, of} from 'rxjs';
 import {flatMap, map, mergeMap, tap} from 'rxjs/operators';
 import * as firebase from 'firebase';
-import {Device, DeviceState} from "@/models/firebase";
+import {Device, DeviceState} from "pandalab-commons";
 import {store, UUID} from "@/services/remote";
 import {adbService} from "@/services/adb.service";
 import "rxjs-compat/add/operator/onErrorResumeNext";

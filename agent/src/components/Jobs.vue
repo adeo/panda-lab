@@ -33,7 +33,8 @@
     import CreateJob from "@/components/CreateJob.vue";
     import {CREATE_JOB_EVENT_DISPLAY} from "@/components/events";
     import {jobService} from "@/services/job.service";
-    import {Job} from "@/models/jobs";
+    import {Job} from "pandalab-commons";
+
 
     @Component({
         components: {CreateJob}

@@ -89,7 +89,7 @@
     import "rxjs-compat/add/operator/mergeMap";
     import "rxjs-compat/add/operator/toArray";
     import {jobService} from "@/services/job.service";
-    import {JobTask} from "@/models/jobs";
+    import {JobTask} from "pandalab-commons";
 
     @Component
     export default class Job extends Vue {

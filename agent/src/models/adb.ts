@@ -1,6 +1,6 @@
 import {Timestamp} from 'rxjs';
 import {DeviceLog} from './device';
-import {DeviceState} from './firebase';
+import {DeviceState} from 'pandalab-commons';
 
 export interface DeviceAdb {
   id: string;

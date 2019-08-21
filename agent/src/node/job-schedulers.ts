@@ -3,13 +3,14 @@ import {Device, FirebaseModel, Job, JobTask} from './models';
 import {workspace} from './workspace';
 import {asyncForEach, Mutex} from './utils';
 import {getDeviceUUID} from './adb';
-import {parseSpoon, Spoon} from './spoon';
+import {parseSpoon} from './spoon';
 import * as firebase from 'firebase';
 import {adb, ANDROID_HOME, UUID} from '@/services/remote';
 import {firebaseService, FIRESTORE, STORAGE} from "@/services/firebase.service";
 import DocumentData = firebase.firestore.DocumentData;
 import DocumentReference = firebase.firestore.DocumentReference;
 import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
+import {Spoon} from "pandalab-commons";
 
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -110,7 +111,7 @@ class JobSchedulers {
                 agent: obj.agent
             };
         });
-        const job: Job = await JobSchedulers.getReference<Job>(documentData, 'job',  async (obj: any) => {
+        const job: Job = await JobSchedulers.getReference<Job>(documentData, 'job', async (obj: any) => {
             return <Job>{
                 apk: obj.apk,
                 apkTest: obj.apk_test,
@@ -163,7 +164,7 @@ class JobSchedulers {
             const applicationSnapshot = await applicationReference.get();
             const data = applicationSnapshot.data();
 
-            const { versionName } = data;
+            const {versionName} = data;
             const path = applicationReference.path;
             const paths = path.split('/');
             const fileStorage = `${paths[1]}_${paths[3]}_${versionName}`;
@@ -218,7 +219,7 @@ class JobSchedulers {
             //         console.log('child process exited with code ' + code.toString());
             //     });
             // }));
-            const {stdout, stderr} = await exec(cmd, { shell: true });
+            const {stdout, stderr} = await exec(cmd, {shell: true});
             console.log('stdout:', stdout);
             console.log('stderr:', stderr);
             console.log(`End download apk for job : ${jobId}`);

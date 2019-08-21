@@ -3,8 +3,7 @@ import * as firebase from 'firebase';
 import {API_HEADERS, API_URL} from "@/services/firebase.service";
 import {from, Observable} from "rxjs";
 import "rxjs-compat/add/operator/filter";
-import {Artifact, Job, JobTask} from '@/models/jobs';
-import {Device} from "@/models/device";
+import {Artifact, Device, Job, JobTask} from 'pandalab-commons';
 import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
 import DocumentReference = firebase.firestore.DocumentReference;
 
