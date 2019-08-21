@@ -1,30 +1,32 @@
 import Vue from 'vue';
 import VueRouter, {RouteConfig} from 'vue-router';
 import Splash from "@/components/splash/Splash.vue";
-import {SplashConfiguredGuard, SplashNotConfiguredGuard} from "@/components/splash/SplashGuard";
+import {AuthentConfiguredGuard, AuthentNotConfiguredGuard} from "@/routers/AuthentGuards";
 import Home from "@/components/Home.vue";
 import Website from "@/components/Website.vue";
 import ListDevice from "@/components/ListDevice.vue";
 import Jobs from "@/components/Jobs.vue";
-import Devices from "@/components/Devices.vue";
 import Device from "@/components/Device.vue";
 import Applications from "@/components/Applications.vue";
 import Job from "@/components/Job.vue";
 import JobTaskDetail from "@/components/JobTaskDetail.vue";
+import Auth from "@/components/auth/Auth.vue";
 
 Vue.use(VueRouter);
 
-
-const SPLASH_ROUTE: RouteConfig = {
+const AUTHENT_ROUTE: RouteConfig = {
     path: '/',
-    component: Splash,
-    beforeEnter: SplashNotConfiguredGuard,
+    component: Auth,
+    beforeEnter: AuthentNotConfiguredGuard,
+    children: [
+        {path: '/splash', component: Splash,},
+    ]
 };
 
 const HOME_ROUTE: RouteConfig = {
     path: '/home',
     component: Home,
-    beforeEnter: SplashConfiguredGuard,
+    beforeEnter: AuthentConfiguredGuard,
     children: [
         {path: '', component: Website,},
         {path: '/listDevice', component: ListDevice,},
@@ -39,7 +41,7 @@ const HOME_ROUTE: RouteConfig = {
 
 
 const routes: Array<RouteConfig> = [
-    SPLASH_ROUTE,
+    AUTHENT_ROUTE,
     HOME_ROUTE,
 ];
 

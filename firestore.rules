@@ -5,31 +5,52 @@ service cloud.firestore {
     }
 
     function isAgent() {
-        return request.auth.token.role != null && request.auth.token.role == "agent";
+        return isAuthentificated() && request.auth.token.role == "agent";
     }
 
-		function isWeb() {
-        return request.auth.token.role != null && request.auth.token.role == "web";
+	function isAdmin() {
+        return isAuthentificated() && request.auth.token.role == "admin";
+    }
+
+    function isUser() {
+        return isAuthentificated() && request.auth.token.role == "user";
+    }
+
+    function isGuest() {
+        return isAuthentificated() && request.auth.token.role == null;
     }
 
     function isMobileAgent() {
-        return request.auth.token.role != null && request.auth.token.role == "mobile-agent";
+        return isAuthentificated() && request.auth.token.role == "mobile-agent";
     }
 
-	match /agents/{agentId} {
-    	allow read: if isAuthentificated();
-        allow write: if isAgent() && request.auth.uid == agentId;
+	 match /agents/{agentId} {
+    	allow read: if isAgent() || isAdmin() || isUser();
+        allow write: if isAgent()
     }
 
     match /devices/{device} {
-        allow read: if isAgent() || isWeb();
+        allow read: if isAgent() || isAdmin() || isUser();
         allow write: if isMobileAgent();
     }
 
     match /jobs/{job} {
-        allow read: if isAgent();
-        allow write: if isAgent();
+        allow read: if isAgent() || isAdmin() || isUser();
+        allow write: if false;
+    }
+
+    match /applications/{document=**} {
+        allow read: if isAgent() || isAdmin() || isUser();
+        allow write: if false;
+        allow delete: if isAgent();
+    }
+
+    match /jobs-tasks/{jobTask} {
+        allow read: if isAgent() || isAdmin() || isUser();
+        allow write: if false;
     }
   }
 }
+
+
 
