@@ -27,19 +27,27 @@ class PandaLabTestTask extends DefaultTask {
     @Input
     List<String> devices = []
 
+    @Input
+    Long devicesCount = 0
 
     @TaskAction
     def launchTask() {
 
         def uploadTaskName = PandaLabPlugin.getUploadTaskName(variantName, "")
         def upTask = project.tasks.getByName(uploadTaskName)
-        def body = [artifact: upTask.getDocumentRef().path, group: groups ?: [], devices: devices ?: []]
+        def body = [
+                artifact       : upTask.getDocumentRef().path,
+                groups          : groups ?: [],
+                devices        : devices ?: [],
+                devicesCount   : devicesCount,
+                timeoutInSecond: timeoutInSecond
+        ]
 
         String apiUrl = project.pandalab.apiUrl
         if (!apiUrl.startsWith("http")) {
             apiUrl = "https://${apiUrl}"
         }
-        def req = new URL(apiUrl + "/api/createJob").openConnection()
+        def req = new URL(apiUrl + "/api/job").openConnection()
         req.setRequestMethod("POST")
         req.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
         String apiKey = FirestoreClient.firestore.collection("config").document("secrets").get().get().getString("apiKey")

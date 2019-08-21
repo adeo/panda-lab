@@ -1,11 +1,10 @@
-import {JobStatus, TaskStatus} from "./models";
 import {Change, EventContext} from "firebase-functions";
 import {UserRecord} from "firebase-functions/lib/providers/auth";
 import {DocumentSnapshot} from "firebase-functions/lib/providers/firestore";
 import {API_FUNCTION} from "./api";
 import {ANALYSE_APK, CLEAN_ARTIFACT} from "./storage";
 import * as firebaseAdmin from "firebase-admin";
-import {DocumentReference} from "@google-cloud/firestore";
+import {jobService} from "./job/job.service";
 
 const admin = require('firebase-admin');
 admin.initializeApp({
@@ -99,80 +98,14 @@ exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, conte
     return createCustomToken(user.uid, WEB_AGENT);
 });
 
-/**
- * Differents status : [ 'pending', 'installing', 'running', 'finish', 'error' ]
- */
-exports.initJob = functions.https.onRequest(async (req, res) => {
 
-    const applicationReference = admin.firestore()
-        .collection('applications')
-        .doc('demo')
-        .collection('versions')
-        .doc('1010');
-
-    const job = await admin.firestore().collection('jobs').add({
-        application: applicationReference,
-        tasks: [],
-        completed: false
-    });
-
-    const documentReferences = await admin.firestore().collection('devices').listDocuments();
-    documentReferences.forEach(async (documentReference: DocumentReference) => {
-        const task = await admin.firestore().collection('jobs-tasks').add({
-            job: admin.firestore().collection('jobs').doc(job.id),
-            device: documentReference,
-            status: 'pending', // status [ 'pending', 'installing', 'running', 'finish', 'error' ]
-        });
-
-
-        const merge = true;
-        const tasks = [task];
-        await job.set({tasks}, {merge});
-    });
-
-
-    res.status(200).send();
+exports.cron = functions.pubsub.schedule('every 1 minutes').onRun((context) => {
+    console.log('Check task timout');
+    return jobService.checkTaskTimeout()
 });
 
 exports.onTaskResult = functions.firestore.document('jobs-tasks/{taskId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
-    const taskId = context.params.taskId;
-    const newValue: DocumentSnapshot = change.after!;
-    const jobId = newValue.get("job");
-
-    const jobDocumentRef = admin.firestore().collection("jobs").doc(jobId);
-
-    let hasFailure = false;
-    let hasSuccess = false;
-
-    const tasksList = await admin.firestore().collection("jobs-tasks").where("job", "==", jobId).get();
-
-    const totalTasks = tasksList.docs;
-    const totalTasksCompleted = totalTasks
-        .map(snapshot => snapshot.data())
-        .filter(dataSnapshot => {
-            const taskError = dataSnapshot.status === TaskStatus.error;
-            const taskSuccess = dataSnapshot.status === TaskStatus.finished;
-            hasFailure = hasFailure || taskError;
-            hasSuccess = hasSuccess || taskSuccess;
-            return taskError || taskSuccess
-        })
-        .length;
-
-
-    console.log(`JobsTasks ${taskId} - Compare size : ${totalTasksCompleted} / ${totalTasks.length}`);
-    // compare if is same size
-    const completed = totalTasks.length === totalTasksCompleted;
-
-    let jobStatus = JobStatus.pending;
-    if (hasFailure && hasSuccess) {
-        jobStatus = JobStatus.unstable
-    } else if (hasSuccess && completed) {
-        jobStatus = JobStatus.success
-    } else if (hasFailure && completed) {
-        jobStatus = JobStatus.failure
-    }
-
-    await jobDocumentRef.set({completed: completed, status: jobStatus}, {merge: true});
+    return jobService.onTaskUpdate(change.after)
 });
 
 exports.onRemoveJob = functions.firestore.document('jobs/{jobId}').onDelete(async (snapshot: DocumentSnapshot, context: EventContext) => {
@@ -184,27 +117,3 @@ exports.onRemoveJob = functions.firestore.document('jobs/{jobId}').onDelete(asyn
 exports.analyse_apk = ANALYSE_APK;
 exports.clean_artifact = CLEAN_ARTIFACT;
 exports.api = API_FUNCTION;
-
-// exports.onTaskCreated = functions.firestore.document('jobs-tasks/{taskId}').onCreate(async (snapshot: DocumentSnapshot, context: EventContext) => {
-//     const data = snapshot.data();
-//     if (data === undefined) {
-//         return;
-//     }
-//
-//     const taskId = context.params.taskId;
-//     const device = data.device;
-//     const job = await data.job.get();
-//     const pending = 'pending';
-//     const merge = true;
-//
-//     await snapshot.ref.set({ status: pending}, {merge});
-//
-//     return await admin.messaging().sendToTopic(device.id, {
-//         data: {
-//             task_id: taskId,
-//             job_id: job.id,
-//             apk_url: job.data().apk,
-//             reference_path: snapshot.ref.path
-//         },
-//     });
-// });

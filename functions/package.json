@@ -1,6 +1,8 @@
 {
   "name": "functions",
   "scripts": {
+    "preinstall": "npm run updateCommons",
+    "updateCommons": "if [ -d ../commons ]; then node commons-install.js; fi",
     "lint": "tslint --project tsconfig.json",
     "build": "tsc",
     "serve": "npm run build && npm run setup-env firebase serve --only functions",
@@ -13,7 +15,8 @@
   },
   "main": "lib/index.js",
   "dependencies": {
-    "@google-cloud/firestore": "^2.2.4",
+    "pandalab-commons": "file:packages\\pandalab-commons-0.0.1.tgz",
+    "@google-cloud/firestore": "^2.2.7",
     "adbkit-apkreader": "^3.1.2",
     "bluebird": "^3.5.5",
     "body-parser": "^1.19.0",

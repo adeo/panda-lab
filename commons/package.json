@@ -1,0 +1,41 @@
+{
+  "name": "pandalab-commons",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "typings": "dist/index",
+  "scripts": {
+    "lint": "tslint --project tsconfig.json",
+    "prepare": "npm run build",
+    "build": "cti create ./src && tsc"
+  },
+  "dependencies": {
+    "firebase": "^6.4.0"
+  },
+  "devDependencies": {
+    "create-ts-index": "^1.10.2",
+    "typescript": "^3.5.2"
+  },
+  "private": true,
+  "engines": {
+    "node": "8"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "rules": {
+      "no-console": "off",
+      "no-restricted-syntax": [
+        "error",
+        {
+          "selector": "CallExpression[callee.object.name='console'][callee.property.name!=/^(log|warn|error|info|trace)$/]",
+          "message": "Unexpected property on console object was called"
+        }
+      ]
+    },
+    "parserOptions": {
+      "parser": "@typescript-eslint/parser"
+    }
+  }
+}

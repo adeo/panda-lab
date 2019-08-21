@@ -1,11 +1,12 @@
 ## Compiled JavaScript files
-**/*.js
+/lib
 **/*.js.map
 
 # Typescript v1 declaration files
 typings/
 
 node_modules/
+packages/
 
 firebase-debug.log
 panda-lab-lm-firebase-adminsdk.json
