@@ -7,7 +7,10 @@ import {adbService} from "@/services/adb.service";
 import "rxjs-compat/add/operator/onErrorResumeNext";
 import {AxiosInstance} from "axios";
 import QuerySnapshot = firebase.firestore.QuerySnapshot;
-
+import * as _firestore from '@google-cloud/firestore';
+import DocumentReference = FirebaseFirestore.DocumentReference;
+import Timestamp = FirebaseFirestore.Timestamp;
+import "rxjs-compat/add/operator/timeout";
 const axios: AxiosInstance = require('axios');
 
 firebase.initializeApp({
@@ -138,6 +141,7 @@ class FirebaseService {
         };
 
         return adbService.getDeviceId(deviceId)
+            .timeout(5000)
             .flatMap(findDeviceInFirestore)
             .onErrorResumeNext(of(DeviceState.NOT_ENROLL));
 

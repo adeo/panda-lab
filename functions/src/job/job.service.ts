@@ -1,8 +1,9 @@
 import * as admin from "firebase-admin";
-import {Job, JobRequest, JobStatus, JobTask, TaskStatus, TestStatus} from "pandalab-commons";
-import DocumentReference = admin.firestore.DocumentReference;
-import Timestamp = admin.firestore.Timestamp;
+import * as firebase from "firebase";
+import {DeviceStatus, Job, JobRequest, JobStatus, JobTask, TaskStatus, TestStatus} from "pandalab-commons";
 import DocumentSnapshot = admin.firestore.DocumentSnapshot;
+import DocumentReference = firebase.firestore.DocumentReference;
+import Timestamp = firebase.firestore.Timestamp;
 
 
 export enum JobError {
@@ -13,7 +14,7 @@ export enum JobError {
 
 class JobService {
 
-    async createJob(job: JobRequest): Promise<DocumentReference> {
+    async createJob(job: JobRequest): Promise<admin.firestore.DocumentReference> {
         //Check if artifact exist
         const artifactDoc = await admin.firestore().doc(job.artifact).get();
         if (!artifactDoc.exists || artifactDoc.get("type") !== "debug") {
@@ -69,8 +70,8 @@ class JobService {
 
         //Create job and tasks
         const createdJob = {
-            apk: artifactDoc.ref,
-            apk_test: artifactTestDoc.ref,
+            apk: artifactDoc.ref as any as DocumentReference,
+            apk_test: artifactTestDoc.ref as any as DocumentReference,
             completed: false,
             status: JobStatus.pending
         } as Job;
@@ -80,7 +81,7 @@ class JobService {
         await Promise.all(new Array(taskCount).fill(0).map(
             async () => {
                 const taskObj = {
-                    job: admin.firestore().collection('jobs').doc(jobRef.id),
+                    job: admin.firestore().collection('jobs').doc(jobRef.id) as any as DocumentReference,
                     devices: finalDevices,
                     status: TaskStatus.pending,
                 } as JobTask;
@@ -92,11 +93,16 @@ class JobService {
     }
 
 
-    async onTaskUpdate(taskDoc: DocumentSnapshot) {
+    async onTaskUpdate(taskDoc: DocumentSnapshot) : Promise<void> {
         const task = taskDoc.data() as JobTask;
+
+
         if (task.status === TaskStatus.pending) {
+            if (!task.device) {
+                await this.assignTasksToDevices(taskDoc)
+            }
             console.log("task pending. skip job update");
-            return
+            return Promise.resolve()
         }
 
         const jobRef = task.job;
@@ -130,7 +136,7 @@ class JobService {
                 jobStatus = JobStatus.success
             }
         }
-        return await jobRef.set({completed: completed, status: jobStatus}, {merge: true});
+        return jobRef.set({completed: completed, status: jobStatus}, {merge: true});
 
 
     }
@@ -148,6 +154,57 @@ class JobService {
                 completed: true,
             } as JobTask, {merge: true})
         }))
+    }
+
+    async assignTasksToDevices(currentTask?: DocumentSnapshot) {
+        let tasksDocs: DocumentSnapshot[];
+        if (currentTask) {
+            tasksDocs = [currentTask]
+        } else {
+            const tasksQuery = await admin.firestore().collection('jobs-tasks')
+                .where("status", "==", JobStatus.pending)
+                .where("device", "==", null).get();
+            tasksDocs = tasksQuery.docs
+        }
+
+
+        if (tasksDocs.length === 0) {
+            console.log("no tasks to assign");
+            return
+        }
+
+        const devicesQuery = await admin.firestore().collection("devices")
+            .where("status", "==", DeviceStatus.available)
+            .orderBy("lastConnexion", "asc").get();
+
+        tasksDocs.forEach(
+            async taskDoc => {
+                const task = taskDoc.data() as JobTask;
+
+                const jobTasksQuery = await admin.firestore().collection('jobs-tasks')
+                    .where("job", "==", task.job)
+                    .get();
+
+                const alreadyUsedDevices = jobTasksQuery.docs
+                    .map(value => value.data() as JobTask)
+                    .map(value => value.device)
+                    .filter(value => value !== null)
+                    .map(value => value.id);
+
+                const devices = devicesQuery.docs;
+                const deviceIndex = devices
+                    .findIndex(value => alreadyUsedDevices.indexOf(value.id) < 0 && task.devices.indexOf(value.id) >= 0);
+                if (deviceIndex >= 0) {
+                    const selectedDevice = devices.splice(deviceIndex, 1)[0];
+                    console.log("assign task " + taskDoc.id + " to " + selectedDevice.id);
+                    await taskDoc.ref.set({
+                        "device": selectedDevice.ref as any as DocumentReference
+                    } as JobTask, {merge: true})
+                }
+            }
+        )
+
+
     }
 
 }

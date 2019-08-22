@@ -4,6 +4,7 @@ import * as firebase from "firebase";
 import DocumentReference = firebase.firestore.DocumentReference;
 import Timestamp = firebase.firestore.Timestamp;
 
+
 export enum JobStatus {
     pending = "pending",
     inprogress = "inprogress",

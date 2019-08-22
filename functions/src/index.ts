@@ -35,7 +35,7 @@ const functions = require('firebase-functions');
 admin.firestore().collection('user-security')
     .onSnapshot(querySnapshot => {
         querySnapshot.docChanges().forEach(change => {
-            if (change.type === 'added' || change.type === 'modified') {
+            if (change.type === 'added' || change.type === 'modified') {
                 console.log('User security added or modified: ', change.doc.data());
                 admin.auth.setCustomUserClaims(change.doc.data().uid, {role: change.doc.data().role})
                     .then(() => {
@@ -132,7 +132,7 @@ exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, conte
     admin.firestore().collection("user-security")
         .where('role', '==', ADMIN).get()
         .then(snapshot => {
-            if(snapshot.empty) {
+            if (snapshot.empty) {
                 saveUserSecurity(user.uid, ADMIN);
             } else {
                 saveUserSecurity(user.uid, GUEST);
@@ -148,6 +148,10 @@ exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, conte
 exports.cron = functions.pubsub.schedule('every 1 minutes').onRun((context) => {
     console.log('Check task timout');
     return jobService.checkTaskTimeout()
+});
+
+exports.onTaskResult = functions.firestore.document('devices/{deviceId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
+    return jobService.assignTasksToDevices()
 });
 
 exports.onTaskResult = functions.firestore.document('jobs-tasks/{taskId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {

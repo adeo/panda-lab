@@ -1,11 +1,14 @@
 import {AxiosInstance} from "axios";
 import * as firebase from 'firebase';
+
 import {API_HEADERS, API_URL} from "@/services/firebase.service";
 import {from, Observable} from "rxjs";
 import "rxjs-compat/add/operator/filter";
-import {Artifact, Device, Job, JobTask} from 'pandalab-commons';
+import {Artifact, Job, JobTask} from 'pandalab-commons';
 import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
 import DocumentReference = firebase.firestore.DocumentReference;
+import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
+
 
 const axios: AxiosInstance = require('axios');
 
@@ -37,13 +40,9 @@ class JobService {
     public getJob(id: string) {
         return from(firebase.firestore().collection('jobs').doc(id).get())
             .map(async doc => {
-                const data = doc.data();
-                return <Job>{
-                    apk: await this.getArtifact(data.apk),
-                    apkTest: await this.getArtifact(data.apk_test),
-                    _id: doc.id,
-                    _path: doc.ref.path,
-                };
+                const data = doc.data() as Job;
+                data._id = doc.id,
+                    data._path = doc.ref.path
             })
             .flatMap(from)
     }
@@ -129,54 +128,24 @@ class JobService {
         const jobReference = firebase.firestore().collection('jobs').doc(jobId);
         const promise = firebase.firestore().collection('jobs-tasks').where('job', '==', jobReference).get();
         return from(promise)
-            .map(query => query.docs)
-            .flatMap(from)
-            .map(async (doc: QueryDocumentSnapshot) => {
-                const deviceDocument = await (doc.data().device as DocumentReference).get();
-                const device = deviceDocument.data() as Device;
-                device._id = deviceDocument.id;
-                device._path = deviceDocument.ref.path;
-
-                const jobDocument = await (doc.data().job as DocumentReference).get();
-                const job = jobDocument.data() as Job;
-                job._id = jobDocument.id;
-                job._path = jobDocument.ref.path;
-
-                return <JobTask>{
+            .map(query => query.docs
+                .map(doc => <JobTask>{
                     ...doc.data(),
                     _id: doc.id,
                     _path: doc.ref.path,
-                    device,
-                    job,
-                }
-            })
-            .flatMap(from)
-            .toArray();
+                }))
     }
 
     public getJobTask(taskId: string): Observable<JobTask> {
         const promise = firebase.firestore().collection('jobs-tasks').doc(taskId).get();
         return from(promise)
-            .map(async (doc: QueryDocumentSnapshot) => {
-                const deviceDocument = await (doc.data().device as DocumentReference).get();
-                const device = deviceDocument.data() as Device;
-                device._id = deviceDocument.id;
-                device._path = deviceDocument.ref.path;
-
-                const jobDocument = await (doc.data().job as DocumentReference).get();
-                const job = jobDocument.data() as Job;
-                job._id = jobDocument.id;
-                job._path = jobDocument.ref.path;
-
-                return <JobTask>{
+            .map((doc: DocumentSnapshot) =>
+                <JobTask>{
                     ...doc.data(),
                     _id: doc.id,
                     _path: doc.ref.path,
-                    device,
-                    job,
                 }
-            })
-            .flatMap(from)
+            )
     }
 
 }
