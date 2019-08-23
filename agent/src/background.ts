@@ -2,6 +2,7 @@
 
 import {app, BrowserWindow, protocol} from 'electron'
 import {createProtocol, installVueDevtools} from 'vue-cli-plugin-electron-builder/lib'
+import {Services} from "./services/services.provider";
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -14,9 +15,16 @@ protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: {secure: true,
 
 app.commandLine.appendSwitch('remote-debugging-port', '59222');
 
+
+
+
 console.log("###########");
 console.log("ANDROID HOME");
 console.log(process.env.ANDROID_HOME);
+
+
+const serviceProvider = Services.getInstance();
+app["serviceProvider"] = serviceProvider;
 
 function createWindow() {
     // Create the browser window.
