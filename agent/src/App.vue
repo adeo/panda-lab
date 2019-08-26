@@ -7,10 +7,10 @@
 <script lang="ts">
     import {Component, Vue} from 'vue-property-decorator';
     import {router} from "@/routers/router";
-    import Splash from "@/components/splash/Splash.vue";
+    import Auth from "@/components/auth/Auth.vue";
 
     @Component({
-        components: {Splash},
+        components: {Auth},
         router,
     })
     export default class App extends Vue {

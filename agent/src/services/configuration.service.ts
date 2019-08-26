@@ -1,4 +1,4 @@
-import {firebaseService} from "@/services/firebase.service";
+import {authentService} from "@/services/authent.service";
 import {Observable, of} from "rxjs";
 import {workspace} from "@/node/workspace";
 import * as firebase from 'firebase';
@@ -25,7 +25,7 @@ export class ConfigurationService {
                     subscriber.next();
                     subscriber.complete();
                 }
-                firebaseService.createAgentToken().subscribe(subscriber);
+                authentService.createAgentToken().subscribe(subscriber);
             });
         });
     }
