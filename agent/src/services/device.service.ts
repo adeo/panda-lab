@@ -2,6 +2,7 @@ import {AsyncSubject, concat, Observable, of, Timestamp} from 'rxjs';
 import {catchError, first, flatMap, ignoreElements, tap, timeout, timestamp} from 'rxjs/internal/operators';
 import {adbService} from './agent.service';
 import {firebaseService} from "@/services/firebase.service";
+import {authentService} from "@/services/authent.service";
 import {DeviceData, DeviceLog, DeviceLogType} from "@/models/device";
 import {UUID} from "@/services/remote";
 import devicesData from "../assets/data/devices-data-complete.json"
@@ -87,7 +88,7 @@ class DeviceService {
                 flatMap(deviceId => {
                     return concat(
                         of({log: `Generate firebase token...`, type: DeviceLogType.INFO}),
-                        firebaseService.generateCustomJwtToken(`${deviceId}`)
+                        authentService.generateCustomJwtToken(`${deviceId}`)
                             .pipe(
                                 flatMap(deviceToken => concat(
                                     of({
