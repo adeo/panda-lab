@@ -16,15 +16,18 @@ protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: {secure: true,
 app.commandLine.appendSwitch('remote-debugging-port', '59222');
 
 
-
-
 console.log("###########");
-console.log("ANDROID HOME");
-console.log(process.env.ANDROID_HOME);
+console.log("ANDROID HOME", process.env.ANDROID_HOME);
 
-
-const serviceProvider = Services.getInstance();
-app["serviceProvider"] = serviceProvider;
+Services.setup({
+    apiKey: process.env.VUE_APP_API_KEY,
+    authDomain: process.env.VUE_APP_AUTH_DOMAIN,
+    projectId: process.env.VUE_APP_PROJECT_ID,
+    databaseURL: process.env.VUE_APP_DATABASE_URL,
+    messagingSenderId: process.env.VUE_APP_MESSAGING_SENDER_ID,
+    storageBucket: process.env.VUE_APP_STORAGE_BUCKET,
+    apiURL: process.env.VUE_APP_API_URL
+});
 
 function createWindow() {
     // Create the browser window.
@@ -32,7 +35,7 @@ function createWindow() {
         width: 1500, height: 800, webPreferences: {
             nodeIntegration: true,
         }
-    })
+    });
 
     if (process.env.WEBPACK_DEV_SERVER_URL) {
         // Load the url of the dev server if in development mode

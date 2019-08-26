@@ -1,6 +1,6 @@
 import {AsyncSubject, concat, Observable, of, Timestamp} from 'rxjs';
 import {catchError, first, flatMap, ignoreElements, tap, timeout, timestamp} from 'rxjs/internal/operators';
-import {adbService} from './adb.service';
+import {adbService} from './agent.service';
 import {firebaseService} from "@/services/firebase.service";
 import {DeviceData, DeviceLog, DeviceLogType} from "@/models/device";
 import {UUID} from "@/services/remote";

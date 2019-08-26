@@ -82,7 +82,7 @@
     import {Component, Vue} from 'vue-property-decorator';
     import {Subscription} from 'vue-rx-decorators';
     import 'rxjs/Rx';
-    import {adbService} from "@/services/adb.service";
+    import {adbService} from "@/services/agent.service";
     import {flatMap, map} from "rxjs/operators";
     import {from, Subscription as Sub, Timestamp} from "rxjs";
     import {AdbStatusState, DeviceAdb} from "@/models/adb";

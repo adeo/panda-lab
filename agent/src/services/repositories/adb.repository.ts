@@ -1,30 +1,27 @@
-import {BehaviorSubject, from, Observable} from 'rxjs';
-import {GetDeviceIdentifierAction} from '@/actions/get-device-identifier.action';
-import {AdbStatus, AdbStatusState, DeviceAdb} from "@/models/adb";
-import {firebaseService} from "@/services/firebase.service";
-import {adb, Readable, request} from "@/services/remote";
+import {BehaviorSubject, Observable} from 'rxjs';
+import {AdbStatus, AdbStatusState, DeviceAdb, LogcatMessage} from "../../models/adb";
 import {DeviceLog} from "@/models/device";
 import "rxjs-compat/add/operator/mergeMap";
 import "rxjs-compat/add/operator/map";
 import "rxjs-compat/add/operator/toArray";
+import "rxjs-compat/add/operator/from";
 import {workspace} from "@/node/workspace";
+import {Guid} from "guid-typescript";
 
-class AdbService {
+export class AdbRepository {
 
     private adbClient: any;
     private Readable: any;
     private request: any;
     private readonly listDevices: BehaviorSubject<Array<DeviceAdb>>;
     private readonly adbStatus: BehaviorSubject<AdbStatus>;
-    private readonly getDeviceIdentifierAction: GetDeviceIdentifierAction;
 
     constructor() {
-        this.adbClient = adb;
-        this.request = request;
-        this.Readable = Readable;
+        this.adbClient = require('adbkit').createClient();
+        this.request = require('request');
+        this.Readable = require('stream').Readable;
         this.listDevices = new BehaviorSubject(new Array<DeviceAdb>());
         this.adbStatus = new BehaviorSubject(<AdbStatus>{state: AdbStatusState.STOPPED, time: Date.now()});
-        this.getDeviceIdentifierAction = new GetDeviceIdentifierAction();
 
         this.startTrackingAdb();
     }
@@ -93,16 +90,6 @@ class AdbService {
 
     listenAdb(): Observable<Array<DeviceAdb>> {
         return this.listDevices
-            .flatMap(from)
-            .flatMap(device => {
-                return firebaseService
-                    .checkDeviceState(device.id)
-                    .map(deviceState => {
-                        device.deviceState = deviceState;
-                        return device;
-                    })
-                    .toArray();
-            });
     }
 
     listenAdbStatus(): Observable<AdbStatus> {
@@ -146,9 +133,6 @@ class AdbService {
         });
     }
 
-    getDeviceId(adbDeviceId: string): Observable<string> {
-        return from(this.getDeviceIdentifierAction.execute(adbDeviceId));
-    }
 
     launchActivity(deviceId: string, activityName: string): Observable<void> {
         return new Observable(emitter => {
@@ -187,6 +171,34 @@ class AdbService {
         });
     }
 
+
+    getDeviceId(adbDeviceId: string, activityComponent: string): Observable<string> {
+        const transactionId = Guid.create().toString();
+        let promise = this.adbClient.openLogcat(adbDeviceId, {clear: true})
+            .then(logcat => this.adbClient.startActivity(adbDeviceId, {
+                component: activityComponent,
+                extras: {transactionId}
+            }).then(_ => logcat))
+            .then(logcat => {
+                    return new Promise<LogcatMessage>((resolve, reject) => {
+                        logcat
+                            .excludeAll()
+                            .include(transactionId)
+                            .on('entry', (entry: LogcatMessage) => {
+                                resolve(entry);
+                                logcat.end();
+                            })
+                            .on('error', (error) => {
+                                reject(error);
+                            });
+                    });
+                }
+            ).then(logcatMessage => {
+                const message = JSON.parse(logcatMessage.message);
+                return message.device_id;
+            });
+        return Observable.fromPromise(promise);
+    }
+
 }
 
-export const adbService = new AdbService();

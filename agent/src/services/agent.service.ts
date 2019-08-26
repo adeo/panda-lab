@@ -1,0 +1,6 @@
+class AgentService {
+
+    constructor() {
+    }
+
+}

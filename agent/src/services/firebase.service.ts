@@ -3,7 +3,7 @@ import {flatMap, map, mergeMap, tap} from 'rxjs/operators';
 import * as firebase from 'firebase';
 import {Device, DeviceState} from "pandalab-commons";
 import {store, UUID} from "@/services/remote";
-import {adbService} from "@/services/adb.service";
+import {adbService} from "@/services/agent.service";
 import "rxjs-compat/add/operator/onErrorResumeNext";
 import {AxiosInstance} from "axios";
 import QuerySnapshot = firebase.firestore.QuerySnapshot;
