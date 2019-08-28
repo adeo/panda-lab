@@ -1,12 +1,6 @@
 import {BehaviorSubject, Observable} from 'rxjs';
-import {AdbStatus, AdbStatusState, DeviceAdb, LogcatMessage} from "../../models/adb";
-import {DeviceLog} from "@/models/device";
-import "rxjs-compat/add/operator/mergeMap";
-import "rxjs-compat/add/operator/map";
-import "rxjs-compat/add/operator/toArray";
-import "rxjs-compat/add/operator/from";
-import {workspace} from "@/node/workspace";
-import {Guid} from "guid-typescript";
+import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
+import {DeviceLog} from "../../models/device";
 
 export class AdbRepository {
 
@@ -103,29 +97,18 @@ export class AdbRepository {
         }
     }
 
-    readAdbLogcat(deviceId: string): Observable<string> {
+    readAdbLogcat(deviceId: string, filter?: string): Observable<string> {
         return new Observable(emitter => {
             this.adbClient.openLogcat(deviceId)
                 .then(logcat => {
-                    logcat.on('entry', entry => {
-                        emitter.next(entry.message);
-                    });
-                })
-                .catch(err => {
-                    emitter.error(err);
-                });
-        });
-    }
+                    let logcatFilter = logcat;
+                    if (filter) {
+                        logcatFilter = logcat.excludeAll()
+                            .include(filter)
+                    }
+                    logcatFilter.on('entry', emitter.next);
+                    logcatFilter.on('error', emitter.error)
 
-    installOnlineApk(deviceId: string, apkUrl: string): Observable<void> {
-        // workspace.downloadApk()
-        console.log(`installOnlineApk : ${apkUrl}`);
-        const apkPath = workspace.getPandaLabMobileApk();
-        return new Observable(emitter => {
-            // this.adbClient.install(deviceId, new Readable().wrap(request(apkUrl)))
-            this.adbClient.install(deviceId, apkPath)
-                .then(() => {
-                    emitter.complete();
                 })
                 .catch(err => {
                     emitter.error(err);
@@ -172,33 +155,17 @@ export class AdbRepository {
     }
 
 
-    getDeviceId(adbDeviceId: string, activityComponent: string): Observable<string> {
-        const transactionId = Guid.create().toString();
-        let promise = this.adbClient.openLogcat(adbDeviceId, {clear: true})
-            .then(logcat => this.adbClient.startActivity(adbDeviceId, {
-                component: activityComponent,
-                extras: {transactionId}
-            }).then(_ => logcat))
-            .then(logcat => {
-                    return new Promise<LogcatMessage>((resolve, reject) => {
-                        logcat
-                            .excludeAll()
-                            .include(transactionId)
-                            .on('entry', (entry: LogcatMessage) => {
-                                resolve(entry);
-                                logcat.end();
-                            })
-                            .on('error', (error) => {
-                                reject(error);
-                            });
-                    });
-                }
-            ).then(logcatMessage => {
-                const message = JSON.parse(logcatMessage.message);
-                return message.device_id;
-            });
-        return Observable.fromPromise(promise);
+    isInstalled(deviceId: string, packageName: string): Observable<boolean> {
+        return new Observable(emitter => {
+            this.adbClient.isInstalled(deviceId, packageName)
+                .then(installed => {
+                    emitter.next(installed);
+                    emitter.complete();
+                })
+                .catch(err => {
+                    emitter.error(err);
+                });
+        });
     }
-
 }
 

@@ -1,9 +1,16 @@
 import {ElectronStoreRepository, StoreRepository, WebStoreRepository} from "./repositories/store.repository";
 import {FirebaseConfig, FirebaseRepository} from "./repositories/firebase.repository";
-import {AdbRepository} from "@/services/repositories/adb.repository";
+import {AdbRepository} from './repositories/adb.repository';
+import {FirebaseAuthService} from "./auth.service";
+import {JobService} from "./job.service";
+import {AgentService} from "./agent.service";
 
 export interface ServicesProvider {
+    authService: FirebaseAuthService
+    jobService: JobService
 
+
+    agentService?: AgentService
 }
 
 export class Services {
@@ -48,22 +55,36 @@ class LocalServicesProvider implements ServicesProvider {
 
     store: StoreRepository;
     firebaseRepo: FirebaseRepository;
+    authService: FirebaseAuthService;
+    jobService: JobService;
+
+    agentService?: AgentService;
 
     private constructor(config: ServicesConfiguration) {
         console.log("Service provider initialized");
-        switch (getRuntimeEnv()) {
-            case RuntimeEnv.ELECTRON_RENDERER:
-                throw new Error("Can't instanciate local services provider in electron renderer process");
+
+        let runtimeEnv = getRuntimeEnv();
+        if (runtimeEnv == RuntimeEnv.ELECTRON_RENDERER) {
+            throw new Error("Can't instanciate local services provider in electron renderer process");
+        }
+
+        this.firebaseRepo = new FirebaseRepository(config);
+        this.authService = new FirebaseAuthService(this.firebaseRepo);
+        this.jobService = new JobService(this.firebaseRepo);
+
+        switch (runtimeEnv) {
             case RuntimeEnv.ELECTRON_MAIN:
                 this.store = new ElectronStoreRepository();
                 const adbRepository = new AdbRepository();
-
+                this.agentService = new AgentService(adbRepository, this.authService, this.firebaseRepo);
                 break;
             case RuntimeEnv.WEB:
                 this.store = new WebStoreRepository();
                 break;
+
+
         }
-        this.firebaseRepo = new FirebaseRepository(config);
+
     }
 
     static newInstance(config: ServicesConfiguration) {

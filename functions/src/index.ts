@@ -3,10 +3,12 @@ import {UserRecord} from "firebase-functions/lib/providers/auth";
 import {DocumentSnapshot} from "firebase-functions/lib/providers/firestore";
 import {API_FUNCTION} from "./api";
 import {ANALYSE_APK, CLEAN_ARTIFACT} from "./storage";
-import * as firebaseAdmin from "firebase-admin";
+import * as admin from "firebase-admin";
 import {jobService} from "./job/job.service";
+import {CallableContext} from "firebase-functions/lib/providers/https";
+import QuerySnapshot = admin.firestore.QuerySnapshot;
+import DecodedIdToken = admin.auth.DecodedIdToken;
 
-const admin = require('firebase-admin');
 admin.initializeApp({
     credential: admin.credential.applicationDefault(),
     databaseURL: "https://panda-lab-lm.firebaseio.com",
@@ -22,13 +24,12 @@ admin.firestore().collection("config").doc("secrets").get()
             console.warn("Generate new api key");
             return admin.firestore().collection("config").doc("secrets")
                 .set({'apiKey': uuidv4()}, {merge: true})
-                .then("api key added")
+                .then(() => "api key added")
         }
         return Promise.resolve("api key exist")
     })
     .catch(e => console.error("Error checking apiKey", e));
 
-import QuerySnapshot = firebaseAdmin.firestore.QuerySnapshot;
 
 const functions = require('firebase-functions');
 
@@ -37,9 +38,9 @@ admin.firestore().collection('user-security')
         querySnapshot.docChanges().forEach(change => {
             if (change.type === 'added' || change.type === 'modified') {
                 console.log('User security added or modified: ', change.doc.data());
-                admin.auth.setCustomUserClaims(change.doc.data().uid, {role: change.doc.data().role})
+                admin.auth().setCustomUserClaims(change.doc.data().uid, {role: change.doc.data().role})
                     .then(() => {
-                        console.log(`Claims for user ${change.dov.data().uid} updated with success`)
+                        console.log(`Claims for user ${change.doc.data().uid} updated with success`)
                     })
             }
         });
@@ -55,11 +56,12 @@ const ADMIN = "admin";
 // const USER = "user";
 const GUEST = "guest";
 
-function createCustomToken(uid: string, role: string): Promise<string> {
+function createCustomToken(uid: string, role: string, parentUid: string): Promise<any> {
     return admin
         .auth()
         .createCustomToken(uid, <DeveloperClaims>{
-            role: role
+            role: role,
+            parent: parentUid
         })
         .then(function (customToken) {
             console.log(`Custom token generated = [${customToken}], uid = [${uid}}, role = [${role}]`);
@@ -79,43 +81,36 @@ function saveUserSecurity(uid: string, role: string) {
     });
 }
 
-exports.generate_custom_jwt_token = functions.https.onCall((data, context) => {
-    return createCustomToken(data.uid, MOBILE_AGENT);
-});
+// exports.generate_custom_jwt_token = functions.https.onCall((data, context) => {
+//     return createCustomToken(data.uid, MOBILE_AGENT);
+// });
 
-exports.createMobileAgent = functions.https.onCall((data: any) => {
+exports.createMobileAgent = functions.https.onCall((data: any, context: CallableContext) => {
     console.log("createMobileAgent() data = ", data);
-    return admin.auth()
-        .verifyIdToken(data.token)
-        .then(async (claims: any) => {
-            console.log(`createMobileAgent() token = [${data.token}] claims = [${JSON.stringify(claims)}`);
-            if (claims.role === DESKTOP_AGENT) {
-                return await createCustomToken(data.uid, MOBILE_AGENT);
-            } else {
-                console.error(`The role [${claims.role}] is not authorized to create custom tokens for mobile`);
-                throw new functions.https.HttpsError("role-unauthorized", `The role [${claims.role}] is not authorized to create custom tokens for mobile`);
-            }
-        })
+    const token = context.auth!.token as DecodedIdToken;
+    if (token.role === DESKTOP_AGENT) {
+        return createCustomToken(data.uid, MOBILE_AGENT, context.auth!.uid);
+    } else {
+        console.error(`The role [${token.role}] is not authorized to create custom tokens for mobile`);
+        throw new functions.https.HttpsError("role-unauthorized", `The role [${token.role}] is not authorized to create custom tokens for mobile`);
+    }
 });
 
-exports.createAgent = functions.https.onCall(async (data: any) => {
-    return admin.auth()
-        .verifyIdToken(data.token)
-        .then(async (claims: any) => {
-            console.log(`createDesktopAgent() token = [${data.token}] claims = [${JSON.stringify(claims)}`);
-            if (claims.role === ADMIN) {
-                await admin.firestore().collection('agents').doc(data.uid).set({
-                    uid: data.uid,
-                    devices: [],
-                    finalize: false,
-                    createdAt: admin.firestore.FieldValue.serverTimestamp()
-                });
-                return await createCustomToken(data.uid, DESKTOP_AGENT);
-            } else {
-                console.error(`The role [${claims.role}] is not authorized to create custom tokens for desktop`);
-                throw new functions.https.HttpsError("role-unauthorized", `The role [${claims.role}] is not authorized to create custom tokens for desktop`);
-            }
-        })
+exports.createAgent = functions.https.onCall(async (data: any, context: CallableContext) => {
+    console.log("createMobileAgent() data = ", data);
+    const token = context.auth!.token as DecodedIdToken;
+    if (token.role === ADMIN) {
+        await admin.firestore().collection('agents').doc(data.uid).set({
+            uid: data.uid,
+            devices: [],
+            finalize: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return createCustomToken(data.uid, DESKTOP_AGENT, context.auth!.uid);
+    } else {
+        console.error(`The role [${token.role}] is not authorized to create custom tokens for desktop`);
+        throw new functions.https.HttpsError("role-unauthorized", `The role [${token.role}] is not authorized to create custom tokens for desktop`);
+    }
 });
 
 /**

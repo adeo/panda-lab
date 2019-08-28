@@ -1,4 +1,6 @@
-export class Workspace {
+import {from, Observable} from "rxjs";
+
+export class WorkspaceRepository {
 
     private readonly homeDir: string;
     private readonly workspacepath: string;
@@ -24,7 +26,7 @@ export class Workspace {
 
     private mkdir(pathDir: string) {
         if (!this.fs.existsSync(pathDir)) {
-            this.fs.mkdirSync(pathDir);
+            this.fs.mkdirSync(pathDir, {recursive: true});
         }
     }
 
@@ -34,53 +36,43 @@ export class Workspace {
     }
 
     getJobDirectory(jobId: string): string {
-        return `${this.apkPath}${this.path.sep}${jobId}`;
+        let directory = `${this.apkPath}${this.path.sep}${jobId}`;
+        this.mkdir(directory);
+        return directory;
     }
 
     getReportJobDirectory(jobId: string, deviceId: string): string {
-        return `${this.apkPath}${this.path.sep}${jobId}${this.path.sep}report${this.path.sep}${deviceId}`;
-    }
-
-    getPandaLabMobileApk(): string {
-        const pandaLabMobileApk = `${this.workspacepath}${this.path.sep}panda-lab-mobile.apk`;
-        if (!this.fs.existsSync(pandaLabMobileApk)) {
-            // TODO DOWNLOAD
-            console.log(`AGENT MOBILE not exist in ${pandaLabMobileApk}`);
-        } else {
-            console.log(`AGENT MOBILE exist in ${pandaLabMobileApk}`);
-        }
-        return pandaLabMobileApk;
-    }
-
-    async downloadApk(jobId: string, url: string, filename: string): Promise<string> {
-        const directory = this.getJobDirectory(jobId);
+        let directory = `${this.apkPath}${this.path.sep}${jobId}${this.path.sep}report${this.path.sep}${deviceId}`;
         this.mkdir(directory);
-        return new Promise((resolve, reject) => {
-            const localFilePath = `${directory}${this.path.sep}${filename}`;
-            if (this.fs.existsSync(localFilePath)) {
+        return directory;
+    }
+
+    downloadFile(filePath: string, url: string): Observable<string> {
+        return from(new Promise<string>((resolve, reject) => {
+            if (this.fs.existsSync(filePath)) {
                 // file already downloaded
-                console.log(`File exist :  ${localFilePath}. Stop download apk.`);
-                resolve(localFilePath);
+                console.log(`File exist :  ${filePath}. Stop download apk.`);
+                resolve(filePath);
                 return;
             }
 
-            const file = this.fs.createWriteStream(localFilePath);
+            const file = this.fs.createWriteStream(filePath);
             const https = require('https');
             console.log(url);
             https.get(url, res => {
                 res.pipe(file);
                 file.on('finish', function () {
-                    console.log(`End download apk, path = ${localFilePath}`);
-                    resolve(localFilePath);
+                    console.log(`End download apk, path = ${filePath}`);
+                    resolve(filePath);
                 });
             }).on('error', function (err) {
-                console.error(`Error download apk, path = ${localFilePath}`, err);
+                console.error(`Error download apk, path = ${filePath}`, err);
                 reject(err);
             });
-
-        });
+        }));
     }
 
+    fileExist(file: string) {
+        return this.fs.existsSync(file)
+    }
 }
-
-export const workspace = new Workspace();

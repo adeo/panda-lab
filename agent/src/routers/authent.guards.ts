@@ -1,5 +1,5 @@
 import {NavigationGuard} from "vue-router";
-import {authentService} from "@/services/authent.service";
+import {Services} from "../services/services.provider";
 
 export const AuthentNotConfiguredGuard: NavigationGuard = async (to, from, next) => {
     const isConfigured = await isConfiguredAsync();
@@ -21,5 +21,5 @@ export const AuthentConfiguredGuard: NavigationGuard = async (to, from, next) =>
 };
 
 async function isConfiguredAsync(): Promise<boolean> {
-    return await authentService.agentToken !== null && authentService.isConnected;
+    return await Services.getInstance().authService.isConnected;
 }

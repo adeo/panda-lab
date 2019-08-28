@@ -88,7 +88,6 @@
     import {AdbStatusState, DeviceAdb} from "@/models/adb";
     import {DeviceLog, DeviceLogType} from "@/models/device";
     import {DeviceState} from "pandalab-commons";
-    import {deviceService} from "@/services/device.service";
     import {storageUtils} from "@/utils/storage.utils";
 
     @Component

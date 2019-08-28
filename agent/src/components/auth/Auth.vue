@@ -17,10 +17,9 @@
 <script lang="ts">
     import {Component, Vue} from "vue-property-decorator";
     import {Subscription} from "rxjs";
-    import {ConfigurationService} from "@/services/configuration.service";
-    import {authentService} from "@/services/authent.service";
     import * as firebase from "firebase";
     import * as firebaseui from 'firebaseui'
+    import {ConfigurationService} from "../../services/configuration.service";
 
     enum State {
         LOADING, ERROR

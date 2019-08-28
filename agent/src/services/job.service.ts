@@ -1,153 +1,114 @@
-import {AxiosInstance} from "axios";
-import * as firebase from 'firebase';
-
-import {API_HEADERS, API_URL} from "@/services/firebase.service";
+import {Artifact, FirebaseModel, Job, JobTask} from 'pandalab-commons';
+import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
+import {firebase} from '@firebase/app';
+import '@firebase/auth';
+import '@firebase/firestore';
+import {firestore} from "firebase";
 import {from, Observable} from "rxjs";
-import "rxjs-compat/add/operator/filter";
-import {Artifact, Job, JobTask} from 'pandalab-commons';
-import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
-import DocumentReference = firebase.firestore.DocumentReference;
-import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
+import {filter, flatMap, map, toArray} from "rxjs/operators";
+import DocumentSnapshot = firestore.DocumentSnapshot;
 
 
-const axios: AxiosInstance = require('axios');
+function toFirebaseModel<T extends FirebaseModel>(doc: DocumentSnapshot): T {
+    return {
+        ...doc.data(),
+        _ref: doc.ref,
+    } as FirebaseModel as T
+}
 
-class JobService {
+export class JobService {
 
-    public getArtifacts(applicationId: string, versionId: string): Observable<any[]> {
-        const query = firebase.firestore()
-            .collection('applications')
+
+    constructor(private firebaseRepo: FirebaseRepository) {
+
+    }
+
+    public getArtifacts(applicationId: string, versionId: string): Observable<Artifact[]> {
+        const query = this.firebaseRepo.getCollection(CollectionName.APPLICATIONS)
             .doc(applicationId)
-            .collection('versions')
+            .collection(CollectionName.VERSIONS)
             .doc(versionId)
-            .collection('artifacts')
+            .collection(CollectionName.ARTIFACTS)
             .get();
 
         return from(query)
-            .map(querySnapshot => querySnapshot.docs)
-            .flatMap(from)
-            .filter((doc: QueryDocumentSnapshot) => doc.data().type !== 'test')
-            .map((doc: QueryDocumentSnapshot) => {
-                return {
-                    ...doc.data(),
-                    _path: doc.ref.path,
-                    id: doc.id,
-                };
-            })
-            .toArray();
+            .pipe(
+                map(querySnapshot => querySnapshot.docs),
+                flatMap(from),
+                map(doc => <Artifact>toFirebaseModel(doc)),
+                filter((artifact: Artifact) => artifact.type !== 'test'),
+                toArray()
+            );
     }
 
-    public getJob(id: string) {
-        return from(firebase.firestore().collection('jobs').doc(id).get())
-            .map(async doc => {
-                const data = doc.data() as Job;
-                data._id = doc.id,
-                    data._path = doc.ref.path
-            })
-            .flatMap(from)
-    }
-
-    public getJobs(application: any, version: any) {
-        return this.getArtifacts(application, version)
-            .flatMap(from)
-            .map(artifact => artifact._path)
-            .flatMap(path => {
-                const jobs = firebase.firestore().collection('jobs').where('apk', '==', firebase.firestore().doc(path)).get();
-                return from(jobs);
-            })
-            .flatMap(snapshot => from(snapshot.docs))
-            .map(doc => {
-                return <Job>{
-                    ...doc.data(),
-                    _id: doc.id,
-                    _path: doc.ref.path,
-                };
-            })
-            .toArray()
-            .map(result => result.flat());
-    }
-
-    private getArtifact = async (data: any) => {
-        const documentReference = data as DocumentReference;
-        const documentSnapshot = await documentReference.get();
-        return <Artifact>{
-            ...documentSnapshot.data(),
-            _id: documentReference.id,
-            _path: documentReference.path,
-        }
-    };
-
-    public getAllJobs(): Observable<Job[]> {
-        return from(firebase.firestore().collection('jobs').get())
-            .map(value => value.docs)
-            .flatMap(from)
-            .map(async doc => {
-                const data = doc.data();
-                const jobsTasks = await firebase.firestore().collection('jobs-tasks').where('job', '==', doc.ref).get();
-                return <Job>{
-                    ...data,
-                    _id: doc.id,
-                    _path: doc.ref.path,
-                    apk: await this.getArtifact(data.apk),
-                    apkTest: await this.getArtifact(data.apk_test),
-                    totalTasks: jobsTasks.docs.length,
-                };
-            })
-            .flatMap(promise => from(promise))
-            .toArray();
-    }
-
-    public async createJob(applicationId: string, versionId: string, artifactId: string): Promise<string> {
-        const artifactDocumentReference = firebase.firestore()
-            .collection('applications')
-            .doc(applicationId)
-            .collection('versions')
-            .doc(versionId)
-            .collection('artifacts')
-            .doc(artifactId);
-
-
-        const devicesSnapshot = await firebase.firestore().collection('devices').get();
-        const devices = devicesSnapshot.docs.map(doc => doc.id);
-        const groups = []; // TODO select group;
-
-        const artifact = artifactDocumentReference.path;
-
-        const response = await axios.post(`${API_URL}/api/createJob`, {
-            artifact,
-            devices,
-            groups
-        }, {
-            headers: API_HEADERS
-        });
-        const data = response.data;
-        return data.jobId;
-    }
-
-    public getJobsTasks(jobId: string): Observable<JobTask[]> {
-        const jobReference = firebase.firestore().collection('jobs').doc(jobId);
-        const promise = firebase.firestore().collection('jobs-tasks').where('job', '==', jobReference).get();
-        return from(promise)
-            .map(query => query.docs
-                .map(doc => <JobTask>{
-                    ...doc.data(),
-                    _id: doc.id,
-                    _path: doc.ref.path,
-                }))
-    }
-
-    public getJobTask(taskId: string): Observable<JobTask> {
-        const promise = firebase.firestore().collection('jobs-tasks').doc(taskId).get();
-        return from(promise)
-            .map((doc: DocumentSnapshot) =>
-                <JobTask>{
-                    ...doc.data(),
-                    _id: doc.id,
-                    _path: doc.ref.path,
-                }
+    public getJob(id: string): Observable<Job> {
+        return from(this.firebaseRepo.getCollection(CollectionName.JOBS).doc(id).get())
+            .pipe(
+                map(doc => <Job>toFirebaseModel(doc))
             )
     }
 
-}
+    public getJobs(application: any, version: any): Observable<Job[]> {
+        return this.getArtifacts(application, version)
+            .pipe(
+                flatMap(from),
+                map((artifact: Artifact) => artifact._path),
+                flatMap(path => {
+                    return from(this.firebaseRepo.getCollection(CollectionName.JOBS)
+                        .where('apk', '==', firebase.firestore().doc(path)).get())
+                        .pipe(
+                            flatMap(result => from(result.docs))
+                        )
+                }),
+                map(doc => <Job>toFirebaseModel(doc)),
+                toArray()
+            );
+    }
 
-export const jobService = new JobService();
+
+    // public getAllJobs(): Observable<Job[]> {
+    //     return from(this.firebaseRepo.getCollection(CollectionName.JOBS).get())
+    //         .map(value => value.docs)
+    //         .flatMap(from)
+    //         .flatMap(doc => this.firebaseRepo.getCollection(CollectionName.JOBS_TASKS)
+    //             .where("job", '==', doc.ref))
+    //         .map(document => {
+    //
+    //         }
+    //
+    //
+    //     {
+    //         const data = doc.data();
+    //         const jobsTasks = await firebase.firestore().collection('jobs-tasks').where('job', '==', doc.ref).get();
+    //         return <FirebaseModel>{
+    //             ...data,
+    //             _ref: doc.ref,
+    //         };
+    //     }
+    // )
+    // .
+    //     flatMap(promise => from(promise))
+    //         .toArray();
+    // }
+
+
+    public getJobsTasks(jobId: string): Observable<JobTask[]> {
+        const jobReference = this.firebaseRepo.getCollection(CollectionName.JOBS).doc(jobId);
+        return from(this.firebaseRepo.getCollection(CollectionName.JOBS_TASKS)
+            .where('job', '==', jobReference).get())
+            .pipe(
+                flatMap(query => from(query.docs)),
+                map(doc => <JobTask>toFirebaseModel(doc)),
+                toArray()
+            );
+    }
+
+    public getJobTask(taskId: string): Observable<JobTask> {
+        return from(this.firebaseRepo.getCollection(CollectionName.JOBS_TASKS).doc(taskId).get())
+            .pipe(
+                map(doc => <JobTask>toFirebaseModel(doc))
+            );
+    }
+
+
+}

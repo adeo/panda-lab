@@ -3,9 +3,7 @@ import VueRx from 'vue-rx'
 import VueMaterial from 'vue-material'
 import 'vue-material/dist/vue-material.min.css'
 import App from './App.vue'
-import {workspace} from "@/node/workspace";
-import {jobSchedulers} from "@/node/job-schedulers";
-import {Services} from "@/services/services.provider";
+import {Services} from "./services/services.provider";
 
 
 Services.setup({
@@ -29,5 +27,3 @@ new Vue({
 
 // background process
 // Prepare workspace and watch jobs tasks
-workspace.prepare();
-jobSchedulers.watch();
