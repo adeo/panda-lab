@@ -19,7 +19,7 @@
     import {Subscription} from "rxjs";
     import * as firebase from "firebase";
     import * as firebaseui from 'firebaseui'
-    import {ConfigurationService} from "../../services/configuration.service";
+    import {ConfigurationService} from "../../services/agent.repository";
 
     enum State {
         LOADING, ERROR

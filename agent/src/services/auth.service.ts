@@ -1,4 +1,4 @@
-import {from, Observable} from "rxjs";
+import {BehaviorSubject, from, Observable} from "rxjs";
 import {flatMap, tap} from "rxjs/operators";
 import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
 import {firebase} from '@firebase/app';
@@ -12,15 +12,35 @@ export class FirebaseAuthService {
 
     private auth: FirebaseAuth;
     private functions: FirebaseFunctions;
+    private userBehaviour = new BehaviorSubject<UserLab>(null);
 
     constructor(private firebaseRepo: FirebaseRepository) {
         this.auth = this.firebaseRepo.firebase.auth();
         this.functions = this.firebaseRepo.firebase.functions();
+
+        this.auth.onAuthStateChanged(user => {
+            if (user) {
+                user.getIdTokenResult().then(value => {
+                    this.userBehaviour.next(
+                        {
+                            uuid: user.uid,
+                            role: value.claims.role
+                        }
+                    )
+                })
+            } else {
+                this.userBehaviour.next(null)
+            }
+        })
     }
 
 
     public get isConnected(): boolean {
         return this.auth.currentUser !== null;
+    }
+
+    listenUser(): Observable<UserLab> {
+        return this.userBehaviour
     }
 
     createDeviceToken(uid: string): Observable<string> {
@@ -72,4 +92,9 @@ export class FirebaseAuthService {
             tap(() => console.log('Firebase User credentials = ', JSON.stringify(firebase.auth().currentUser))),
         );
     }
+}
+
+export interface UserLab {
+    role: string,
+    uuid: string
 }

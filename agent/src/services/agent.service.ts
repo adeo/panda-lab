@@ -1,26 +1,46 @@
-import {merge, Observable, of, ReplaySubject, Timestamp, zip} from "rxjs";
+import {merge, Observable, of, ReplaySubject, Subscription, Timestamp, zip} from "rxjs";
 import {AdbRepository} from "./repositories/adb.repository";
 import {Guid} from "guid-typescript";
 import {catchError, first, flatMap, ignoreElements, map, tap, timeout, timestamp} from "rxjs/operators";
 import {DeviceLog, DeviceLogType} from "../models/device";
 import {FirebaseAuthService} from "./auth.service";
 import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
+import {AgentRepository, AgentStatus} from "./repositories/agent.repository";
 
 export class AgentService {
-    public UUID: string;
+    private listenDevicesSub: Subscription;
 
     constructor(private adbRepo: AdbRepository,
                 private authService: FirebaseAuthService,
-                private firebaseRepo: FirebaseRepository) {
-        const os = require('os');
-        this.UUID = `pandalab-agent-desktop-${os.userInfo().uid}-${os.userInfo().username}`;
+                private firebaseRepo: FirebaseRepository,
+                private agentRepo: AgentRepository) {
+
+
+        this.agentRepo.agentStatus.subscribe(value => {
+            switch (value) {
+                case AgentStatus.CONFIGURING:
+                case AgentStatus.NOT_LOGGED:
+                    if(this.listenDevicesSub){
+                        this.listenDevicesSub.unsubscribe();
+                        this.listenDevicesSub = null;
+                    }
+                    break;
+                case AgentStatus.READY:
+                    this.listenDevicesSub = this.listenDevices().subscribe();
+                    break
+            }
+        })
+    }
+
+    private listenDevices() : Observable<void>{
+
     }
 
 
     enroll(adbDeviceId: string): Observable<Timestamp<DeviceLog>> {
         const subject = new ReplaySubject();
         subject.next({log: 'Download and install service APK...', type: DeviceLogType.INFO});
-        const enrollObs : Observable<DeviceLog> = this.adbRepo.installOnlineApk(adbDeviceId, "https://pandalab.page.link/qbvQ")
+        const enrollObs: Observable<DeviceLog> = this.adbRepo.installOnlineApk(adbDeviceId, "https://pandalab.page.link/qbvQ")
             .pipe(
                 tap(() => subject.next({log: `Retrieve device uid...`, type: DeviceLogType.INFO})),
                 flatMap(() => this.getDeviceUID(adbDeviceId)),
@@ -47,7 +67,7 @@ export class AgentService {
     }
 
 
-    getDeviceUID(deviceId: string): Observable<string> {
+    private getDeviceUID(deviceId: string): Observable<string> {
         const transactionId = Guid.create().toString();
 
         const logcatObs = this.adbRepo.readAdbLogcat(deviceId, transactionId)

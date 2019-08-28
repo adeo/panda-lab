@@ -4,6 +4,8 @@ import {AdbRepository} from './repositories/adb.repository';
 import {FirebaseAuthService} from "./auth.service";
 import {JobService} from "./job.service";
 import {AgentService} from "./agent.service";
+import {AgentRepository} from "./repositories/agent.repository";
+import {WorkspaceRepository} from "./repositories/workspace.repository";
 
 export interface ServicesProvider {
     authService: FirebaseAuthService
@@ -76,7 +78,9 @@ class LocalServicesProvider implements ServicesProvider {
             case RuntimeEnv.ELECTRON_MAIN:
                 this.store = new ElectronStoreRepository();
                 const adbRepository = new AdbRepository();
-                this.agentService = new AgentService(adbRepository, this.authService, this.firebaseRepo);
+                const workspaceRepository = new WorkspaceRepository();
+                const agentRepository = new AgentRepository(workspaceRepository, this.authService);
+                this.agentService = new AgentService(adbRepository, this.authService, this.firebaseRepo, agentRepository);
                 break;
             case RuntimeEnv.WEB:
                 this.store = new WebStoreRepository();
