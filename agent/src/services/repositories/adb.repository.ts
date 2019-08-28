@@ -162,5 +162,9 @@ export class AdbRepository {
     installApk(deviceId: string, path: string): Observable<any> {
         return from(this.adbClient.install(deviceId, path))
     }
+
+    connectIp(ip: string): Observable<any> {
+        return from(this.adbClient.connect(ip, 5555))
+    }
 }
 

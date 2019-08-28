@@ -8,6 +8,7 @@ import {AgentRepository} from "./repositories/agent.repository";
 import {WorkspaceRepository} from "./repositories/workspace.repository";
 import {DevicesService} from "./devices.service";
 import {DevicesRepository} from "./repositories/devices.repository";
+import {SpoonRepository} from "./repositories/spoon.repository";
 
 export interface ServicesProvider {
     store: StoreRepository;
@@ -92,6 +93,11 @@ class LocalServicesProvider implements ServicesProvider {
                     agentRepository,
                     this.devicesService
                 );
+                const spoonRepo = new SpoonRepository(agentRepository,
+                    this.firebaseRepo,
+                    adbRepository,
+                    this.devicesService,
+                    this.jobsService);
                 break;
             case RuntimeEnv.WEB:
                 this.store = new WebStoreRepository();
