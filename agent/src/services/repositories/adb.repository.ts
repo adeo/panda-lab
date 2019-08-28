@@ -1,4 +1,4 @@
-import {BehaviorSubject, Observable} from 'rxjs';
+import {BehaviorSubject, from, Observable} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
 import {DeviceLog} from "../../models/device";
 
@@ -156,16 +156,11 @@ export class AdbRepository {
 
 
     isInstalled(deviceId: string, packageName: string): Observable<boolean> {
-        return new Observable(emitter => {
-            this.adbClient.isInstalled(deviceId, packageName)
-                .then(installed => {
-                    emitter.next(installed);
-                    emitter.complete();
-                })
-                .catch(err => {
-                    emitter.error(err);
-                });
-        });
+        return from(this.adbClient.isInstalled(deviceId, packageName) as Promise<boolean>);
+    }
+
+    installApk(deviceId: string, path: string): Observable<any> {
+        return from(this.adbClient.install(deviceId, path))
     }
 }
 

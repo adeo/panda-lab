@@ -3,6 +3,7 @@ import {DeviceLog} from './device';
 import {DeviceState} from 'pandalab-commons';
 
 export interface DeviceAdb {
+  uid: string;
   id: string;
   type: string;
   path: string;

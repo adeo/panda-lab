@@ -14,6 +14,7 @@
 //             const keys = Object.keys(json.results);
 //             const results: SpoonResult[] = [];
 //             for (let i = 0; i < keys.length; i++) {
+
 //                 const id = keys[i];
 //                 const value = json.results[id];
 //                 const deviceDetails = value.deviceDetails;

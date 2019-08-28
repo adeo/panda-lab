@@ -3,8 +3,13 @@ import '@firebase/auth';
 import '@firebase/firestore';
 import {firestore} from "firebase";
 import {FirebaseNamespace} from '@firebase/app-types';
-import {Observable} from "rxjs";
+import {from, Observable, throwError} from "rxjs";
+import {FirebaseModel} from "pandalab-commons";
+import {flatMap, map} from "rxjs/operators";
 import CollectionReference = firestore.CollectionReference;
+import DocumentSnapshot = firestore.DocumentSnapshot;
+import DocumentReference = firestore.DocumentReference;
+import Query = firestore.Query;
 
 
 export interface FirebaseConfig {
@@ -31,12 +36,19 @@ export class FirebaseRepository {
         return firebase.firestore().collection(name)
     }
 
+    getDocument<T>(ref: DocumentReference): Observable<T> {
+        return from(ref.get())
+            .pipe(
+                map(doc => this.toFirebaseModel<T>(doc))
+            )
+    }
+
     listenDocument<T>(name: CollectionName, documentId: string): Observable<T> {
         return new Observable(emitter => {
             const subs = this.getCollection(name).doc(documentId)
                 .onSnapshot(doc => {
                     if (doc.exists) {
-                        emitter.next(doc.data() as T);
+                        emitter.next(this.toFirebaseModel<T>(doc));
                     } else {
                         emitter.next(null);
                     }
@@ -46,16 +58,43 @@ export class FirebaseRepository {
     }
 
     listenCollection<T>(name: CollectionName): Observable<T[]> {
+        return this.listenQuery(this.getCollection(name));
+    }
+
+    getQuery<T>(query: Query): Observable<T[]> {
+        return from(query.get())
+            .pipe(
+                map(querySnapshot => querySnapshot.docs.map(doc => this.toFirebaseModel<T>(doc)))
+            )
+    }
+
+    listenQuery<T>(query: Query): Observable<T[]> {
         return new Observable(emitter => {
-            const subs = this.getCollection(name)
+            const subs = query
                 .onSnapshot(doc => {
-                    emitter.next(doc.docs.map(value => value.data() as T));
+                    emitter.next(doc.docs.map(doc => this.toFirebaseModel<T>(doc)));
                 }, emitter.error, emitter.complete);
             emitter.add(subs);
         });
     }
 
+    saveDocument<T extends FirebaseModel>(doc: T, merge: boolean = true): Observable<T> {
+        let ref = doc._ref;
+        if (ref == null)
+            return throwError("_ref not defined. can't save model")
 
+        let savedObj = Object.assign({}, ref);
+        delete savedObj['_ref'];
+        return from(ref.set(savedObj, {merge: merge}))
+            .pipe(flatMap(() => this.getDocument<T>(ref)))
+    }
+
+    private toFirebaseModel<T extends FirebaseModel>(doc: DocumentSnapshot): T {
+        return {
+            ...doc.data(),
+            _ref: doc.ref,
+        } as FirebaseModel as T
+    }
 }
 
 

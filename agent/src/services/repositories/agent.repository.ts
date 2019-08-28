@@ -75,6 +75,10 @@ export class AgentRepository {
         }
     }
 
+    public getAgentApk(): string{
+        return this.workspace.agentApkPath;
+    }
+
     private configureSpoonJar(): Observable<string> {  //TODO check file version & change url
         const spoonJarPath = this.workspace.spoonJarPath;
         if (!this.workspace.fileExist(spoonJarPath)) {

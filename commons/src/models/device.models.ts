@@ -1,6 +1,10 @@
 import {FirebaseModel} from "./firebase.models";
+import {firestore} from "firebase";
+import DocumentReference = firestore.DocumentReference;
 
 export interface Device extends FirebaseModel {
+    agent: DocumentReference;
+    status: DeviceStatus;
     serialId: string;
     name: string;
     ip: string;
@@ -15,13 +19,6 @@ export interface Device extends FirebaseModel {
     pictureIcon: string;
     processor: string;
 }
-
-export enum DeviceState {
-    UPDATED,
-    ENROLL,
-    NOT_ENROLL
-}
-
 
 export enum DeviceStatus {
     offline = "offline",

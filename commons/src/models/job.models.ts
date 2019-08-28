@@ -1,8 +1,8 @@
 import {FirebaseModel} from "./firebase.models";
 import {Spoon} from "./spoon.models";
-import * as firebase from "firebase";
-import DocumentReference = firebase.firestore.DocumentReference;
-import Timestamp = firebase.firestore.Timestamp;
+import {firestore} from "firebase";
+import DocumentReference = firestore.DocumentReference;
+import Timestamp = firestore.Timestamp;
 
 
 export enum JobStatus {

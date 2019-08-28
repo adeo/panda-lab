@@ -1,6 +1,6 @@
 import * as devicesData from "../../assets/data/devices-data-complete.json"
 
-class DevicesRepository {
+export class DevicesRepository {
 
 
     constructor() {
