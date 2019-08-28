@@ -2,7 +2,7 @@ import {BehaviorSubject, Observable, of} from "rxjs";
 import "rxjs-compat/add/operator/delay";
 import "rxjs-compat/add/operator/concat";
 import {WorkspaceRepository} from "./workspace.repository";
-import {FirebaseAuthService} from "../auth.service";
+import {FirebaseAuthService} from "../firebaseauth.service";
 import {map} from "rxjs/operators";
 
 

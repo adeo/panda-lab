@@ -1,7 +1,7 @@
 import {ElectronStoreRepository, StoreRepository, WebStoreRepository} from "./repositories/store.repository";
 import {FirebaseConfig, FirebaseRepository} from "./repositories/firebase.repository";
 import {AdbRepository} from './repositories/adb.repository';
-import {FirebaseAuthService} from "./auth.service";
+import {FirebaseAuthService} from "./firebaseauth.service";
 import {JobService} from "./job.service";
 import {AgentService} from "./agent.service";
 import {AgentRepository} from "./repositories/agent.repository";

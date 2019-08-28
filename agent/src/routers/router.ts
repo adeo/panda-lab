@@ -1,6 +1,6 @@
 import Vue from 'vue';
 import VueRouter, {RouteConfig} from 'vue-router';
-import {AuthentConfiguredGuard, AuthentNotConfiguredGuard} from "@/routers/authent.guards";
+import {AuthentConfiguredGuard, AuthentNotConfiguredGuard} from "../routers/authent.guards";
 import Home from "@/components/Home.vue";
 import Website from "@/components/Website.vue";
 import ListDevice from "@/components/ListDevice.vue";
@@ -10,6 +10,7 @@ import Applications from "@/components/Applications.vue";
 import Job from "@/components/Job.vue";
 import JobTaskDetail from "@/components/JobTaskDetail.vue";
 import Auth from "@/components/auth/Auth.vue";
+import Splash from "../components/auth/Splash.vue";
 
 Vue.use(VueRouter);
 
@@ -18,6 +19,13 @@ const AUTHENT_ROUTE: RouteConfig = {
     component: Auth,
     beforeEnter: AuthentNotConfiguredGuard
 };
+
+const SPLASH_ROUTE: RouteConfig = {
+    path: '/splash',
+    component: Splash
+    // beforeEnter: AuthentNotConfiguredGuard
+};
+
 
 const HOME_ROUTE: RouteConfig = {
     path: '/home',

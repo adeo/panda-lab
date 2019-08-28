@@ -4,6 +4,8 @@ import {app, BrowserWindow, protocol} from 'electron'
 import {createProtocol, installVueDevtools} from 'vue-cli-plugin-electron-builder/lib'
 import {Services} from "./services/services.provider";
 
+global['XMLHttpRequest'] = require('xmlhttprequest').XMLHttpRequest; //Fix firebase error
+
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // Keep a global reference of the window object, if you don't, the window will

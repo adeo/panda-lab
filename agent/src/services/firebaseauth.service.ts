@@ -10,7 +10,7 @@ import UserCredential = firebase.auth.UserCredential;
 
 export class FirebaseAuthService {
 
-    private auth: FirebaseAuth;
+    public auth: FirebaseAuth;
     private functions: FirebaseFunctions;
     private userBehaviour = new BehaviorSubject<UserLab>(null);
 

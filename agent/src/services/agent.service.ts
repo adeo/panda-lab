@@ -3,7 +3,7 @@ import {AdbRepository} from "./repositories/adb.repository";
 import {Guid} from "guid-typescript";
 import {catchError, first, flatMap, ignoreElements, map, tap, timeout, timestamp} from "rxjs/operators";
 import {DeviceLog, DeviceLogType} from "../models/device";
-import {FirebaseAuthService} from "./auth.service";
+import {FirebaseAuthService} from "./firebaseauth.service";
 import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
 import {AgentRepository, AgentStatus} from "./repositories/agent.repository";
 
