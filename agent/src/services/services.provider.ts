@@ -98,6 +98,7 @@ class LocalServicesProvider implements ServicesProvider {
                     adbRepository,
                     this.devicesService,
                     this.jobsService);
+                spoonRepo.setup();
                 break;
             case RuntimeEnv.WEB:
                 this.store = new WebStoreRepository();

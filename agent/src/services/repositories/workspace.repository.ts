@@ -1,4 +1,8 @@
-import {from, Observable} from "rxjs";
+import {AsyncSubject, from, Observable} from "rxjs";
+import {concatMap, filter, first, map} from "rxjs/operators";
+import "rxjs-compat/add/operator/multicast";
+import {doOnSubscribe} from "../../utils/rxjs";
+
 
 export class WorkspaceRepository {
 
@@ -22,6 +26,9 @@ export class WorkspaceRepository {
         this.apkPath = `${this.workspacePath}${this.path.sep}apk`;
         this.agentApkPath = `${this.workspacePath}${this.path.sep}panda-lab-mobile.apk`;
         this.spoonJarPath = `${this.workspacePath}${this.path.sep}spoon-runner.jar`;
+
+        this.downloadObs.connect()
+
     }
 
     private mkdir(pathDir: string) {
@@ -47,32 +54,52 @@ export class WorkspaceRepository {
         return directory;
     }
 
-    downloadFile(filePath: string, url: string): Observable<string> {
-        return from(new Promise<string>((resolve, reject) => {
-            if (this.fs.existsSync(filePath)) {
+    private downloadSubject = new AsyncSubject<{ url: string, filePath: string }>();
+
+    private downloadObs = this.downloadSubject.pipe(
+        concatMap(data => from(new Promise<{ error?: string, filePath: string }>((resolve, reject) => {
+            if (this.fs.existsSync(data.filePath)) {
                 // file already downloaded
-                console.log(`File exist :  ${filePath}. Stop download apk.`);
-                resolve(filePath);
+                console.log(`File exist :  ${data.filePath}. Stop download apk.`);
+                resolve({filePath: data.filePath});
                 return;
             }
 
-            const file = this.fs.createWriteStream(filePath);
+            const file = this.fs.createWriteStream(data.filePath);
             const https = require('https');
-            console.log(url);
-            https.get(url, res => {
+            console.log(data.url);
+            https.get(data.url, res => {
                 res.pipe(file);
                 file.on('finish', function () {
-                    console.log(`End download apk, path = ${filePath}`);
-                    resolve(filePath);
+                    console.log(`End download apk, path = ${data.filePath}`);
+                    resolve({filePath: data.filePath});
                 });
             }).on('error', function (err) {
-                console.error(`Error download apk, path = ${filePath}`, err);
-                reject(err);
+                console.error(`Error download apk, path = ${data.filePath}`, err);
+                resolve({error: `Error download apk`, filePath: data.filePath});
             });
-        }));
+        })))).multicast<{ error?: string, filePath: string }>(() => new AsyncSubject<{ error?: string, filePath: string }>()
+    );
+
+    downloadFile(filePath: string, url: string): Observable<string> {
+        return this.downloadObs.pipe(
+            doOnSubscribe(() => {
+                this.downloadSubject.next({url: url, filePath: filePath})
+            }),
+            filter(result => result.filePath === filePath),
+            first(),
+            map(result => {
+                if (result.error) {
+                    throw result.error
+                }
+                return result.filePath
+            })
+        );
     }
 
     fileExist(file: string) {
         return this.fs.existsSync(file)
     }
 }
+
+

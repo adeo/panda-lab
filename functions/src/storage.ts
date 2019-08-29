@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as util from "util";
+import {Artifact} from "pandalab-commons";
 
 const admin = require('firebase-admin');
 
@@ -75,7 +76,7 @@ async function extractApk(directory: string, filename: string) {
         buildType: buildType,
         type: type,
         timestamp: admin.firestore.FieldValue.serverTimestamp()
-    };
+    } as Artifact;
 
     if (manifest.versionCode) {
         appData['versionCode'] = manifest.versionCode;
