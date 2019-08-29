@@ -41,10 +41,10 @@
     import {from, of} from "rxjs";
     import * as firebase from "firebase";
     import {catchError, tap} from "rxjs/operators";
-    import {jobService} from "@/services/job.service";
     import DialogCreateJob from "@/components/DialogCreateJob.vue";
-    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "@/components/events";
+    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "../components/events";
     import "rxjs-compat/add/operator/scan";
+    import {Services} from "../services/services.provider";
     import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
 
     @Component({
@@ -55,6 +55,7 @@
         loading !: boolean;
         createJob: any = null;
 
+        private jobService = Services.getInstance().jobsService;
 
         onClickVersion(version: any) {
 
@@ -69,7 +70,7 @@
         }
 
         onClickDisplayJobs(application, version: any) {
-            jobService.getJobs(application.id, version.id)
+            this.jobService.getJobs(application.id, version.id)
                 .subscribe(console.log);
         }
 

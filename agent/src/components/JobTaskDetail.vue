@@ -66,12 +66,13 @@
     import "rxjs-compat/add/operator/map";
     import "rxjs-compat/add/operator/mergeMap";
     import "rxjs-compat/add/operator/toArray";
-    import {JobTask} from "pandalab-commons";
     import {Subscription} from "vue-rx-decorators";
-    import {jobService} from "@/services/job.service";
+    import {Services} from "../services/services.provider";
 
     @Component
     export default class JobTaskDetail extends Vue {
+
+        private jobService = Services.getInstance().jobsService;
 
         protected get jobId() {
             return this.$route.params.jobId;
@@ -83,7 +84,7 @@
 
         @Subscription()
         protected get jobTask() {
-            return jobService.getJobTask(this.taskId);
+            return this.jobService.getJobTask(this.taskId);
         }
 
     }

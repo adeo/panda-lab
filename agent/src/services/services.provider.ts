@@ -1,7 +1,7 @@
 import {ElectronStoreRepository, StoreRepository, WebStoreRepository} from "./repositories/store.repository";
 import {FirebaseConfig, FirebaseRepository} from "./repositories/firebase.repository";
 import {AdbRepository} from './repositories/adb.repository';
-import {FirebaseAuthService} from "./auth.service";
+import {FirebaseAuthService} from "./firebaseauth.service";
 import {JobsService} from "./jobs.service";
 import {AgentService} from "./agent.service";
 import {AgentRepository} from "./repositories/agent.repository";
@@ -82,7 +82,7 @@ class LocalServicesProvider implements ServicesProvider {
         this.devicesService = new DevicesService(this.firebaseRepo, new DevicesRepository());
 
         switch (runtimeEnv) {
-            case RuntimeEnv.ELECTRON_MAIN:
+            case RuntimeEnv.ELECTRON_MAIN: {
                 this.store = new ElectronStoreRepository();
                 const adbRepository = new AdbRepository();
                 const workspaceRepository = new WorkspaceRepository();
@@ -100,11 +100,11 @@ class LocalServicesProvider implements ServicesProvider {
                     this.jobsService);
                 spoonRepo.setup();
                 break;
-            case RuntimeEnv.WEB:
+            }
+            case RuntimeEnv.WEB: {
                 this.store = new WebStoreRepository();
                 break;
-
-
+            }
         }
 
     }

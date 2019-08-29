@@ -35,7 +35,8 @@
     "vue-property-decorator": "^8.1.0",
     "vue-router": "^3.1.2",
     "vue-rx": "^6.2.0",
-    "vue-rx-decorators": "0.0.8"
+    "vue-rx-decorators": "0.0.8",
+    "xmlhttprequest": "^1.8.0"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.10.0",

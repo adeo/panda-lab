@@ -4,6 +4,8 @@ import {app, BrowserWindow, protocol} from 'electron'
 import {createProtocol, installVueDevtools} from 'vue-cli-plugin-electron-builder/lib'
 import {Services} from "./services/services.provider";
 
+global['XMLHttpRequest'] = require('xmlhttprequest').XMLHttpRequest; //Fix firebase error
+
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -13,7 +15,7 @@ let win;
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: {secure: true, standard: true}}]);
 
-app.commandLine.appendSwitch('remote-debugging-port', '59221');
+app.commandLine.appendSwitch('remote-debugging-port', '59222');
 
 
 console.log("###########");
@@ -33,7 +35,7 @@ function createWindow() {
     // Create the browser window.
     win = new BrowserWindow({
         width: 1500, height: 800, webPreferences: {
-            nodeIntegration: true,
+            nodeIntegration: true
         }
     });
 

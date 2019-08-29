@@ -26,7 +26,7 @@ import {
     toArray
 } from "rxjs/operators";
 import {DeviceLog, DeviceLogType} from "../models/device";
-import {FirebaseAuthService} from "./auth.service";
+import {FirebaseAuthService} from "./firebaseauth.service";
 import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
 import {AgentRepository, AgentStatus} from "./repositories/agent.repository";
 import {DevicesService} from "./devices.service";
