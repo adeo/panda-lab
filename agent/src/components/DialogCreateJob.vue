@@ -31,12 +31,11 @@
     </div>
 </template>
 <script lang="ts">
-
     import {Component, Vue} from "vue-property-decorator";
-    import {jobService} from "@/services/job.service";
     import {ObservableMethod, Subscription} from "vue-rx-decorators";
     import {from, Subscription as RxSubscription} from "rxjs";
-    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "@/components/events";
+    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "../components/events";
+    import {Services} from "../services/services.provider";
 
     @Component
     export default class DialogCreateJob extends Vue {
@@ -60,6 +59,8 @@
         @ObservableMethod()
         private applicationVersion: ObservableMethod;
 
+        private jobService = Services.getInstance().jobsService;
+
         /**
          * This subscription retrieve all artifacts with application and version id.
          * This observable is updated when the ObservableMethod pplicationVersion is called
@@ -67,7 +68,7 @@
         @Subscription()
         protected get artifacts() {
             return this.applicationVersion
-                .flatMap(value => jobService.getArtifacts(value.application.id, value.version.id));
+                .flatMap(value => this.jobService.getArtifacts(value.application.id, value.version.id));
         }
 
         /**
@@ -137,7 +138,6 @@
                 this.createJobSubscription.unsubscribe();
             }
         }
-
     }
 
 </script>

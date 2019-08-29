@@ -31,15 +31,16 @@
     import {Observable} from "rxjs";
     import {Subscription,} from "vue-rx-decorators";
     import CreateJob from "@/components/CreateJob.vue";
-    import {CREATE_JOB_EVENT_DISPLAY} from "@/components/events";
-    import {jobService} from "@/services/job.service";
+    import {CREATE_JOB_EVENT_DISPLAY} from "../components/events";
     import {Job} from "pandalab-commons";
-
+    import {Services} from "../services/services.provider";
 
     @Component({
         components: {CreateJob}
     })
     export default class Jobs extends Vue {
+
+        private jobService = Services.getInstance().jobsService;
 
         protected onSelect(job: Job) {
             this.$router.push('/jobs/' + job._id);
@@ -52,7 +53,7 @@
 
         @Subscription()
         protected get jobs(): Observable<Job[]> {
-            return jobService.getAllJobs();
+            return this.jobService.getAllJobs();
         }
 
     }

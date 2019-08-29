@@ -2,15 +2,19 @@ import {ElectronStoreRepository, StoreRepository, WebStoreRepository} from "./re
 import {FirebaseConfig, FirebaseRepository} from "./repositories/firebase.repository";
 import {AdbRepository} from './repositories/adb.repository';
 import {FirebaseAuthService} from "./firebaseauth.service";
-import {JobService} from "./job.service";
+import {JobsService} from "./jobs.service";
 import {AgentService} from "./agent.service";
 import {AgentRepository} from "./repositories/agent.repository";
 import {WorkspaceRepository} from "./repositories/workspace.repository";
+import {DevicesService} from "./devices.service";
+import {DevicesRepository} from "./repositories/devices.repository";
 
 export interface ServicesProvider {
-    authService: FirebaseAuthService
-    jobService: JobService
-
+    store: StoreRepository;
+    firebaseRepo: FirebaseRepository;
+    authService: FirebaseAuthService;
+    jobsService: JobsService;
+    devicesService: DevicesService;
 
     agentService?: AgentService
 }
@@ -58,7 +62,8 @@ class LocalServicesProvider implements ServicesProvider {
     store: StoreRepository;
     firebaseRepo: FirebaseRepository;
     authService: FirebaseAuthService;
-    jobService: JobService;
+    jobsService: JobsService;
+    devicesService: DevicesService;
 
     agentService?: AgentService;
 
@@ -72,21 +77,27 @@ class LocalServicesProvider implements ServicesProvider {
 
         this.firebaseRepo = new FirebaseRepository(config);
         this.authService = new FirebaseAuthService(this.firebaseRepo);
-        this.jobService = new JobService(this.firebaseRepo);
+        this.jobsService = new JobsService(this.firebaseRepo);
+        this.devicesService = new DevicesService(this.firebaseRepo, new DevicesRepository());
 
         switch (runtimeEnv) {
-            case RuntimeEnv.ELECTRON_MAIN:
+            case RuntimeEnv.ELECTRON_MAIN: {
                 this.store = new ElectronStoreRepository();
                 const adbRepository = new AdbRepository();
                 const workspaceRepository = new WorkspaceRepository();
                 const agentRepository = new AgentRepository(workspaceRepository, this.authService);
-                this.agentService = new AgentService(adbRepository, this.authService, this.firebaseRepo, agentRepository);
+                this.agentService = new AgentService(
+                    adbRepository,
+                    this.authService, this.firebaseRepo,
+                    agentRepository,
+                    this.devicesService
+                );
                 break;
-            case RuntimeEnv.WEB:
+            }
+            case RuntimeEnv.WEB: {
                 this.store = new WebStoreRepository();
                 break;
-
-
+            }
         }
 
     }

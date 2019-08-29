@@ -46,6 +46,7 @@ const HOME_ROUTE: RouteConfig = {
 
 const routes: Array<RouteConfig> = [
     AUTHENT_ROUTE,
+    SPLASH_ROUTE,
     HOME_ROUTE,
 ];
 

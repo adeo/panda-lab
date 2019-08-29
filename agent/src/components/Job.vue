@@ -88,11 +88,13 @@
     import "rxjs-compat/add/operator/map";
     import "rxjs-compat/add/operator/mergeMap";
     import "rxjs-compat/add/operator/toArray";
-    import {jobService} from "@/services/job.service";
     import {JobTask} from "pandalab-commons";
+    import {Services} from "../services/services.provider";
 
     @Component
     export default class Job extends Vue {
+
+        private jobService = Services.getInstance().jobsService;
 
         protected get jobId() {
             return this.$route.params.jobId;
@@ -100,13 +102,13 @@
 
         @Subscription()
         protected get job() {
-            return jobService.getJob(this.jobId);
+            return this.jobService.getJob(this.jobId);
         }
 
 
         @Subscription()
         protected get jobsTasks(): Observable<JobTask[]> {
-            return jobService.getJobsTasks(this.jobId);
+            return this.jobService.getJobsTasks(this.jobId);
         }
 
         protected onDisplayJobTaskResult(jobTask: JobTask) {

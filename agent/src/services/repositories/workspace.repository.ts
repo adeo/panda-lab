@@ -3,7 +3,7 @@ import {from, Observable} from "rxjs";
 export class WorkspaceRepository {
 
     private readonly homeDir: string;
-    private readonly workspacepath: string;
+    private readonly workspacePath: string;
     private readonly apkPath: string;
     public readonly agentApkPath: string;
     public readonly spoonJarPath: string;
@@ -18,10 +18,10 @@ export class WorkspaceRepository {
         this.path = require('path');
         this.request = require('request');
 
-        this.workspacepath = `${this.homeDir}${this.path.sep}.pandalab`;
-        this.apkPath = `${this.workspacepath}${this.path.sep}apk`;
-        this.agentApkPath = `${this.workspacepath}${this.path.sep}panda-lab-mobile.apk`;
-        this.spoonJarPath = `${this.workspacepath}${this.path.sep}spoon-runner.jar`;
+        this.workspacePath = `${this.homeDir}${this.path.sep}.pandalab`;
+        this.apkPath = `${this.workspacePath}${this.path.sep}apk`;
+        this.agentApkPath = `${this.workspacePath}${this.path.sep}panda-lab-mobile.apk`;
+        this.spoonJarPath = `${this.workspacePath}${this.path.sep}spoon-runner.jar`;
     }
 
     private mkdir(pathDir: string) {
@@ -31,7 +31,7 @@ export class WorkspaceRepository {
     }
 
     prepare() {
-        this.mkdir(this.workspacepath);
+        this.mkdir(this.workspacePath);
         this.mkdir(this.apkPath);
     }
 
