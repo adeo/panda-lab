@@ -62,7 +62,6 @@ export class AgentService {
 
     private listenDevices(): Observable<void> {
 
-        const changeBehaviour = new BehaviorSubject();
 
         let listenAdbDeviceWithUid: Observable<DeviceAdb[]> = this.adbRepo.listenAdb().pipe(
             flatMap(from),
@@ -79,8 +78,9 @@ export class AgentService {
                 toArray())
         );
 
-        var hasChange = false;
-        var working = false;
+        const changeBehaviour = new BehaviorSubject("");
+        let hasChange = false;
+        let working = false;
 
         combineLatest(
             this.deviceService.listenAgentDevices(this.agentRepo.UUID),
@@ -145,7 +145,7 @@ export class AgentService {
             tap(() => {
                 working = false;
                 if (hasChange) {
-                    this.changeBehaviour.next();
+                    changeBehaviour.next("");
                 }
             }),
         )
