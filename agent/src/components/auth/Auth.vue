@@ -7,17 +7,23 @@
     import {Component, Vue} from "vue-property-decorator";
     import {Services} from "../../services/services.provider";
     import {firebase} from '@firebase/app';
-    import firebaseui from 'firebaseui'
+    import * as firebaseui from 'firebaseui'
 
     @Component
     export default class Auth extends Vue {
 
-        private firebaseAuth = Services.getInstance().authService.auth;
+        private firebaseAuth;
+
+        constructor() {
+            super();
+            this.firebaseAuth = Services.getInstance().authService.auth;
+        }
 
         mounted() {
             let uiConfig = {
                 callbacks: {
                     signInSuccessWithAuthResult: function(authResult, redirectUrl) {
+                        console.log("Oui");
                         return true;
                     },
                     uiShown: function() {
@@ -25,7 +31,7 @@
                         // Hide the loader.
                     }
                 },
-                signInSuccessUrl: '/',
+                signInSuccessUrl: '/splash',
                 signInOptions: [
                     {
                         provider: firebase.auth.GoogleAuthProvider.PROVIDER_ID,
@@ -35,6 +41,7 @@
                     firebase.auth.EmailAuthProvider.PROVIDER_ID
                 ]
             };
+
             let ui = new firebaseui.auth.AuthUI(this.firebaseAuth);
             ui.start('#firebaseui-auth-container', uiConfig);
         }

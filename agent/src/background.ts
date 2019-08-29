@@ -15,7 +15,7 @@ let win;
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: {secure: true, standard: true}}]);
 
-app.commandLine.appendSwitch('remote-debugging-port', '59221');
+app.commandLine.appendSwitch('remote-debugging-port', '59222');
 
 
 console.log("###########");
@@ -35,7 +35,7 @@ function createWindow() {
     // Create the browser window.
     win = new BrowserWindow({
         width: 1500, height: 800, webPreferences: {
-            nodeIntegration: true,
+            nodeIntegration: true
         }
     });
 

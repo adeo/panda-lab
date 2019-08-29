@@ -103,7 +103,7 @@
          */
         onSubmit() {
             this.loading = true;
-            const createJob = jobService.createJob(this.application.id, this.version.id, this.artifactSelected.id);
+            const createJob = this.jobService.createJob(this.application.id, this.version.id, this.artifactSelected.id);
             this.createJobSubscription = from(createJob)
                 .delay(3000)
                 .subscribe(jobId => {
