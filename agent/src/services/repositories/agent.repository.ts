@@ -27,7 +27,7 @@ export class AgentRepository {
                 return
             }
 
-            if (user && user.role === ADMIN || user.role === DESKTOP_AGENT) {
+            if (user && (user.role === ADMIN || user.role === DESKTOP_AGENT)) {
                 this.agentStatus.next(AgentStatus.CONFIGURING);
                 let configureObs;
                 if (user.role === ADMIN) {
@@ -75,7 +75,7 @@ export class AgentRepository {
         }
     }
 
-    public getAgentApk(): string{
+    public getAgentApk(): string {
         return this.workspace.agentApkPath;
     }
 

@@ -1,4 +1,4 @@
-import {BehaviorSubject, from, Observable} from "rxjs";
+import {BehaviorSubject, from, Observable, of} from "rxjs";
 import {flatMap, tap} from "rxjs/operators";
 import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
 import {firebase} from '@firebase/app';
@@ -36,7 +36,7 @@ export class FirebaseAuthService {
 
 
     public get isConnected(): boolean {
-        return this.auth.currentUser !== null;
+        return this.auth ! == null && this.auth.currentUser !== null;
     }
 
     listenUser(): Observable<UserLab> {
@@ -59,20 +59,8 @@ export class FirebaseAuthService {
         });
     }
 
-    createAgentToken(uuid: string): Observable<UserCredential> {
-        return new Observable<string>(emitter => {
-            console.log('Create agent token with uid = ', uuid);
-            this.functions.httpsCallable('createAgent')({
-                uid: uuid,
-            })
-                .then((result) => {
-                    emitter.next(result.data.token);
-                    emitter.complete();
-                })
-                .catch(error => {
-                    emitter.error(error);
-                });
-        }).pipe(
+    signInWithAgentToken(agentToken: string, agentUUID: string): Observable<UserCredential> {
+        return of(agentToken).pipe(
             tap(async () => {
                 await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
             }),
@@ -82,9 +70,9 @@ export class FirebaseAuthService {
             tap(userCredentials => console.log('Firebase User credentials = ', JSON.stringify(userCredentials))),
             flatMap(async (userCredentials) => {
                 await firebase.auth().currentUser!.updateProfile({
-                    displayName: uuid,
+                    displayName: agentUUID,
                 });
-                await this.firebaseRepo.getCollection(CollectionName.AGENTS).doc(uuid).set({
+                await this.firebaseRepo.getCollection(CollectionName.AGENTS).doc(agentUUID).set({
                     finalize: true,
                 }, {merge: true});
                 return userCredentials;

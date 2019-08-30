@@ -4,8 +4,6 @@ import {app, BrowserWindow, protocol} from 'electron'
 import {createProtocol, installVueDevtools} from 'vue-cli-plugin-electron-builder/lib'
 import {Services} from "./services/services.provider";
 
-global['XMLHttpRequest'] = require('xmlhttprequest').XMLHttpRequest; //Fix firebase error
-
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -15,13 +13,12 @@ let win;
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: {secure: true, standard: true}}]);
 
-app.commandLine.appendSwitch('remote-debugging-port', '59222');
-
+app.commandLine.appendSwitch('remote-debugging-port', '59221');
 
 console.log("###########");
 console.log("ANDROID HOME", process.env.ANDROID_HOME);
 
-Services.setup({
+let config = {
     apiKey: process.env.VUE_APP_API_KEY,
     authDomain: process.env.VUE_APP_AUTH_DOMAIN,
     projectId: process.env.VUE_APP_PROJECT_ID,
@@ -29,15 +26,18 @@ Services.setup({
     messagingSenderId: process.env.VUE_APP_MESSAGING_SENDER_ID,
     storageBucket: process.env.VUE_APP_STORAGE_BUCKET,
     apiURL: process.env.VUE_APP_API_URL
-});
+};
+Services.setup(config);
 
 function createWindow() {
     // Create the browser window.
     win = new BrowserWindow({
         width: 1500, height: 800, webPreferences: {
-            nodeIntegration: true
+            nodeIntegration: true,
         }
     });
+
+
 
     if (process.env.WEBPACK_DEV_SERVER_URL) {
         // Load the url of the dev server if in development mode

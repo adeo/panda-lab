@@ -41,7 +41,9 @@ admin.firestore().collection('user-security')
                 admin.auth().setCustomUserClaims(change.doc.data().uid, {role: change.doc.data().role})
                     .then(() => {
                         console.log(`Claims for user ${change.doc.data().uid} updated with success`)
-                    })
+                    }).catch(reason => {
+                        console.error("can't add claim", reason)
+                })
             }
         });
     });
@@ -74,7 +76,7 @@ function createCustomToken(uid: string, role: string, parentUid: string): Promis
 }
 
 function saveUserSecurity(uid: string, role: string) {
-    admin.firestore().collection('user-security').doc(uid).set({
+    return admin.firestore().collection('user-security').doc(uid).set({
         uid: uid,
         role: role,
         createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -87,7 +89,7 @@ function saveUserSecurity(uid: string, role: string) {
 
 exports.createMobileAgent = functions.https.onCall((data: any, context: CallableContext) => {
     console.log("createMobileAgent() data = ", data);
-    const token = context.auth!.token as DecodedIdToken;
+    const token : DecodedIdToken = context.auth!.token;
     if (token.role === DESKTOP_AGENT) {
         return createCustomToken(data.uid, MOBILE_AGENT, context.auth!.uid);
     } else {
@@ -98,7 +100,7 @@ exports.createMobileAgent = functions.https.onCall((data: any, context: Callable
 
 exports.createAgent = functions.https.onCall(async (data: any, context: CallableContext) => {
     console.log("createMobileAgent() data = ", data);
-    const token = context.auth!.token as DecodedIdToken;
+    const token : DecodedIdToken = context.auth!.token;
     if (token.role === ADMIN) {
         await admin.firestore().collection('agents').doc(data.uid).set({
             uid: data.uid,
@@ -127,10 +129,10 @@ exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, conte
     admin.firestore().collection("user-security")
         .where('role', '==', ADMIN).get()
         .then(snapshot => {
-            if (snapshot.empty) {
-                saveUserSecurity(user.uid, ADMIN);
+            if (snapshot.docs.length === 0) {
+                return saveUserSecurity(user.uid, ADMIN);
             } else {
-                saveUserSecurity(user.uid, GUEST);
+                return saveUserSecurity(user.uid, GUEST);
             }
         })
         .catch(err => {

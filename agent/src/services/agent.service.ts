@@ -82,7 +82,7 @@ export class AgentService {
         let hasChange = false;
         let working = false;
 
-        combineLatest(
+        return combineLatest(
             this.deviceService.listenAgentDevices(this.agentRepo.UUID),
             listenAdbDeviceWithUid,
             changeBehaviour,
@@ -151,6 +151,9 @@ export class AgentService {
         )
     }
 
+    public getAgentUUID() : string{
+        return this.agentRepo.UUID;
+    }
 
     enroll(adbDeviceId: string): Observable<Timestamp<DeviceLog>> {
         const subject = new ReplaySubject();

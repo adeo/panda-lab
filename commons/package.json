@@ -9,11 +9,11 @@
     "build": "cti create ./src && tsc"
   },
   "dependencies": {
-    "firebase": "^6.4.0"
+    "firebase": "^6.5.0"
   },
   "devDependencies": {
     "create-ts-index": "^1.10.2",
-    "typescript": "^3.5.2"
+    "typescript": "^3.5.3"
   },
   "private": true,
   "engines": {

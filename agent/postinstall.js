@@ -7,15 +7,15 @@ const fs = require('fs');
 const packagesPatch = [
     {
         file: './node_modules/adbkit',
-        module: './lib/adb'
+        main: './lib/adb'
     },
     {
         file: './node_modules/adbkit-logcat',
-        module: './lib/logcat'
+        main: './lib/logcat'
     },
     {
         file: './node_modules/adbkit-monkey',
-        module: './lib/monkey'
+        main: './lib/monkey'
     }
 ];
 
@@ -23,7 +23,8 @@ const packagesPatch = [
 packagesPatch.forEach(
     patch => {
         const packageJson = require(patch.file + '/package.json');
-        packageJson.module = patch.module;
+        packageJson.main = patch.main;
+        packageJson.module = patch.main;
         fs.writeFileSync(patch.file + '/package.json', JSON.stringify(packageJson));
     }
 );

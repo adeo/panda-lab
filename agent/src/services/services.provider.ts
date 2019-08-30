@@ -9,8 +9,11 @@ import {WorkspaceRepository} from "./repositories/workspace.repository";
 import {DevicesService} from "./devices.service";
 import {DevicesRepository} from "./repositories/devices.repository";
 import {SpoonRepository} from "./repositories/spoon.repository";
+import {firebase} from "@firebase/app";
 
 export interface ServicesProvider {
+    config: ServicesConfiguration;
+
     store: StoreRepository;
     firebaseRepo: FirebaseRepository;
     authService: FirebaseAuthService;
@@ -53,10 +56,11 @@ export interface ServicesConfiguration extends FirebaseConfig {
 
 class RemoteServicesProvider {
     static newInstance(): ServicesProvider {
-        return require('electron').remote.app["serviceProvider"]
+        const remote = require('electron').remote as any;
+        firebase.initializeApp(Services.getInstance().config);
+        return remote.app.serviceProvider
     }
 }
-
 
 class LocalServicesProvider implements ServicesProvider {
 
@@ -68,7 +72,7 @@ class LocalServicesProvider implements ServicesProvider {
 
     agentService?: AgentService;
 
-    private constructor(config: ServicesConfiguration) {
+    private constructor(public config: ServicesConfiguration) {
         console.log("Service provider initialized");
 
         let runtimeEnv = getRuntimeEnv();
@@ -97,7 +101,8 @@ class LocalServicesProvider implements ServicesProvider {
                     this.firebaseRepo,
                     adbRepository,
                     this.devicesService,
-                    this.jobsService);
+                    this.jobsService,
+                    workspaceRepository);
                 spoonRepo.setup();
                 break;
             }
@@ -133,7 +138,7 @@ export const getRuntimeEnv = () => {
 };
 
 
-enum RuntimeEnv {
+export enum RuntimeEnv {
     ELECTRON_MAIN,
     ELECTRON_RENDERER,
     WEB
