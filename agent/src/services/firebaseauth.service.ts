@@ -1,5 +1,5 @@
-import {BehaviorSubject, from, Observable, zip} from "rxjs";
-import {flatMap, tap} from "rxjs/operators";
+import {BehaviorSubject, from, Observable} from "rxjs";
+import {flatMap, map} from "rxjs/operators";
 import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
 import {firebase} from '@firebase/app';
 import '@firebase/auth';
@@ -20,7 +20,6 @@ export class FirebaseAuthService {
 
         this.auth.onAuthStateChanged(user => {
             if (user) {
-                console.log("firebase user logged", user.uid);
                 user.getIdTokenResult().then(value => {
                     this.userBehaviour.next(
                         {
@@ -37,7 +36,7 @@ export class FirebaseAuthService {
 
 
     public get isConnected(): boolean {
-        return this.auth ! == null && this.auth.currentUser !== null;
+        return this.userBehaviour.getValue() != null
     }
 
     listenUser(): Observable<UserLab> {
@@ -62,20 +61,14 @@ export class FirebaseAuthService {
 
     signInWithAgentToken(agentToken: string, agentUUID: string): Observable<UserCredential> {
         return from(firebase.auth().signInWithCustomToken(agentToken)).pipe(
-            tap(userCredentials => console.log('Firebase User credentials = ', JSON.stringify(userCredentials))),
-            flatMap((userCredentials) => {
-                return zip(firebase.auth().currentUser!.updateProfile({
-                        displayName: agentUUID,
-                    }), this.firebaseRepo.getCollection(CollectionName.AGENTS).doc(agentUUID).set({
-                        finalize: true,
-                    }, {merge: true}), (v1, v2) => {
-                        return userCredentials
-                    }
-                );
-            }),
-            tap(() => console.log('Firebase User credentials = ', JSON.stringify(firebase.auth().currentUser))),
-        )
-            ;
+            flatMap((userCredentials) => from(firebase.auth().currentUser!.updateProfile({displayName: agentUUID}))
+                .pipe(
+                    flatMap(() => from(this.firebaseRepo.getCollection(CollectionName.AGENTS).doc(agentUUID).set({finalize: true,}, {merge: true}))),
+                    map(() => userCredentials)
+                )
+            )
+        );
+
     }
 }
 

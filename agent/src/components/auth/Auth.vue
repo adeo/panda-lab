@@ -10,6 +10,8 @@
     import '@firebase/functions'
     import '@firebase/auth'
     import * as firebaseui from 'firebaseui'
+    import {from} from "rxjs";
+    import {flatMap} from "rxjs/operators";
     import UserCredential = firebase.auth.UserCredential;
 
     @Component
@@ -34,8 +36,6 @@
         }
 
         mounted() {
-            console.log("mounted");
-
             const vue = this;
 
             let uiConfig = {
@@ -44,20 +44,14 @@
                         console.log("user logged");
                         if (getRuntimeEnv() == RuntimeEnv.ELECTRON_RENDERER) {
                             const agentService = Services.getInstance().agentService;
-                            firebase.functions().httpsCallable('createAgent')({
+                            from(firebase.functions().httpsCallable('createAgent')({
                                 uid: agentService.getAgentUUID(),
-                            }).then((result) => {
-                                let token = result.data.token;
-                                console.log("token created");
-                                return Services.getInstance().authService.signInWithAgentToken(token, agentService.getAgentUUID()).toPromise()
-                            })
-                                .then(value => {
-                                    console.log('agent logged');
-                                    return vue.$router.push({path: '/splash'})
-                                })
-                                .catch(error => {
+                            })).pipe(flatMap(result => Services.getInstance().authService.signInWithAgentToken(result.data.token, agentService.getAgentUUID())))
+                                .subscribe(value => {
+                                    vue.$router.push({path: '/splash'})
+                                }, error => {
                                     console.error("error", error);
-                                    return vue.$router.push({path: '/'})
+                                    vue.$router.push({path: '/'})
                                 });
                             return false;
                         } else {

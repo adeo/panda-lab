@@ -6,11 +6,11 @@
   "scripts": {
     "preinstall": "cd ../commons && npm install",
     "prebuild": "node protobuf.js",
-    "serve": "prebuild && vue-cli-service serve",
-    "build": "prebuild && vue-cli-service build",
+    "serve": "npm run prebuild && vue-cli-service serve",
+    "build": "npm run prebuild && vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "electron:build": "prebuild && vue-cli-service electron:build",
-    "electron:serve": "prebuild && vue-cli-service electron:serve",
+    "electron:build": "npm run prebuild && vue-cli-service electron:build",
+    "electron:serve": "npm run prebuild && vue-cli-service electron:serve",
     "postinstall": "node postinstall.js && electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
   },
