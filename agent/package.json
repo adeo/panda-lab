@@ -21,6 +21,7 @@
     "core-js": "^2.6.9",
     "electron-store": "^4.0.0",
     "firebase": "^6.5.0",
+    "firebase-admin": "^8.2.0",
     "firebaseui": "^4.1.0",
     "guid-typescript": "^1.0.9",
     "pandalab-commons": "file:../commons",

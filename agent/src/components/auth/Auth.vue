@@ -10,7 +10,6 @@
     import '@firebase/functions'
     import '@firebase/auth'
     import * as firebaseui from 'firebaseui'
-    import {router} from "../../routers/router";
     import UserCredential = firebase.auth.UserCredential;
 
     @Component
@@ -35,7 +34,9 @@
         }
 
         mounted() {
-            console.log("mounted")
+            console.log("mounted");
+
+            const vue = this;
 
             let uiConfig = {
                 callbacks: {
@@ -47,16 +48,16 @@
                                 uid: agentService.getAgentUUID(),
                             }).then((result) => {
                                 let token = result.data.token;
-                                console.log("token created", token);
-                                return Services.getInstance().authService.signInWithAgentToken(token, agentService.getAgentUUID())
+                                console.log("token created");
+                                return Services.getInstance().authService.signInWithAgentToken(token, agentService.getAgentUUID()).toPromise()
                             })
                                 .then(value => {
                                     console.log('agent logged');
-                                    return router.push({path: '/splach'})
+                                    return vue.$router.push({path: '/splash'})
                                 })
                                 .catch(error => {
                                     console.error("error", error);
-                                    return router.push({path: '/'})
+                                    return vue.$router.push({path: '/'})
                                 });
                             return false;
                         } else {
@@ -79,7 +80,7 @@
                     firebase.auth.EmailAuthProvider.PROVIDER_ID
                 ]
             };
-            let ui = new firebaseui.auth.AuthUI(firebase.auth());
+            let ui = firebaseui.auth.AuthUI.getInstance() ? firebaseui.auth.AuthUI.getInstance() : new firebaseui.auth.AuthUI(firebase.auth());
             ui.start('#firebaseui-auth-container', uiConfig);
         }
     }

@@ -37,10 +37,14 @@ export class Services {
         switch (getRuntimeEnv()) {
             case RuntimeEnv.ELECTRON_MAIN:
             case RuntimeEnv.WEB:
+                // if (getRuntimeEnv() == RuntimeEnv.ELECTRON_MAIN) {
+                //     (global as any).WebSocket = require('ws');
+                //     (global as any).XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+                // }
                 Services.instance = LocalServicesProvider.newInstance(config);
                 break;
             case RuntimeEnv.ELECTRON_RENDERER:
-                Services.instance = RemoteServicesProvider.newInstance();
+                Services.instance = RemoteServicesProvider.newInstance(config);
                 break;
         }
         if (getRuntimeEnv() == RuntimeEnv.ELECTRON_MAIN) {
@@ -55,9 +59,9 @@ export interface ServicesConfiguration extends FirebaseConfig {
 }
 
 class RemoteServicesProvider {
-    static newInstance(): ServicesProvider {
+    static newInstance(config: ServicesConfiguration): ServicesProvider {
         const remote = require('electron').remote as any;
-        firebase.initializeApp(Services.getInstance().config);
+        firebase.initializeApp(config);
         return remote.app.serviceProvider
     }
 }

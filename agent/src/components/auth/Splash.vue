@@ -17,6 +17,9 @@
 <script lang="ts">
     import {Component, Vue} from "vue-property-decorator";
     import {Subscription} from "rxjs";
+    import {Services} from "../../services/services.provider";
+    import {AgentService} from "../../services/agent.service";
+    import {AgentStatus} from "../../services/repositories/agent.repository";
     // import {ConfigurationService} from "../../services/agent.repository";
 
     enum State {
@@ -26,19 +29,48 @@
     @Component
     export default class Splash extends Vue  {
 
-        private readonly configurationService = new ConfigurationService();
         protected StateEnum = State;
         protected state: State = State.LOADING;
         private subscription?: Subscription;
         private configurationMessage: string = "Loading...";
+        private agentService: AgentService;
+
+
+        constructor(props) {
+            super(props);
+            this.agentService = Services.getInstance().agentService
+        }
+
+
+        mounted(){
+            this.subscription = this.agentService.listenAgentStatus()
+                .subscribe((status: AgentStatus) => {
+                    switch (status) {
+                        case AgentStatus.CONFIGURING:
+                            this.configurationMessage = "Loading..";
+                            this.$router.push({path : '/home'});
+                            break;
+                        case AgentStatus.NOT_LOGGED:
+                            this.configurationMessage = "Device lab not logged";
+                            this.$router.push({path : '/'});
+                            break;
+                        case AgentStatus.READY:
+                            this.configurationMessage = "Device lab ready";
+                            this.$router.push({path : '/home'});
+                            break;
+                    }
+                    console.log('agent status', this.configurationMessage)
+
+                })
+        }
 
         destroyed() {
             this.cancelSubscription();
         }
 
-        protected onRetry() {
-            this.configure();
-        }
+        // protected onRetry() {
+        //     this.configure();
+        // }
 
         private cancelSubscription() {
             if (this.subscription) {
@@ -46,23 +78,23 @@
             }
         }
 
-        private configure() {
-            this.cancelSubscription();
-            this.state = State.LOADING;
-            this.subscription = this.configurationService.configure().subscribe(
-                msg => {
-                    console.log(msg);
-                    this.configurationMessage = msg;
-                    this.$forceUpdate();
-                }, error => {
-                    this.state = State.ERROR;
-                    console.error(`App createAgentToken() error`, error);
-                }, () => {
-                    this.$router.replace('/home');
-                    console.log(`App createAgentToken() finish()`);
-                }
-            );
-        }
+        // private configure() {
+        //     this.cancelSubscription();
+        //     this.state = State.LOADING;
+        //     this.subscription = this.configurationService.configure().subscribe(
+        //         msg => {
+        //             console.log(msg);
+        //             this.configurationMessage = msg;
+        //             this.$forceUpdate();
+        //         }, error => {
+        //             this.state = State.ERROR;
+        //             console.error(`App createAgentToken() error`, error);
+        //         }, () => {
+        //             this.$router.replace('/home');
+        //             console.log(`App createAgentToken() finish()`);
+        //         }
+        //     );
+        // }
     }
 </script>
 

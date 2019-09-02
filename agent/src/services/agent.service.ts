@@ -60,6 +60,11 @@ export class AgentService {
         })
     }
 
+
+    listenAgentStatus() : Observable<AgentStatus>{
+        return this.agentRepo.agentStatus
+    }
+
     private listenDevices(): Observable<void> {
 
 

@@ -23,19 +23,16 @@ export class AgentRepository {
 
         this.authService.listenUser().subscribe(user => {
             //agent is configuring we ignore user change
+            console.log("user update", user);
+
             if (this.agentStatus.getValue() === AgentStatus.CONFIGURING) {
                 return
             }
 
-            if (user && (user.role === ADMIN || user.role === DESKTOP_AGENT)) {
+            if (user && user.role === DESKTOP_AGENT) {
+                console.log("start configuration");
                 this.agentStatus.next(AgentStatus.CONFIGURING);
-                let configureObs;
-                if (user.role === ADMIN) {
-                    configureObs = this.configureNewAgent();
-                } else {
-                    configureObs = this.configure()
-                }
-                configureObs.subscribe(log => {
+                this.configure().subscribe(log => {
                     console.log(log);
                 }, error => {
                     console.error("can't configure agent", error);
@@ -48,14 +45,6 @@ export class AgentRepository {
                 this.agentStatus.next(AgentStatus.NOT_LOGGED)
             }
         })
-    }
-
-    public configureNewAgent(): Observable<string> {
-        return of('Create agent token').concat(
-            this.authService.createAgentToken(this.UUID).pipe(map(() => "Agent token configured")),
-            this.configure()
-        )
-
     }
 
     public configure(): Observable<string> {

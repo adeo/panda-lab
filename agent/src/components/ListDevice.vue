@@ -82,13 +82,12 @@
     import {Component, Vue} from 'vue-property-decorator';
     import {Subscription} from 'vue-rx-decorators';
     import 'rxjs/Rx';
-    import {adbService} from "@/services/agent.service";
     import {flatMap, map} from "rxjs/operators";
     import {from, Subscription as Sub, Timestamp} from "rxjs";
-    import {AdbStatusState, DeviceAdb} from "@/models/adb";
-    import {DeviceLog, DeviceLogType} from "@/models/device";
-    import {DeviceState} from "pandalab-commons";
-    import {storageUtils} from "@/utils/storage.utils";
+    import {AdbStatusState, DeviceAdb} from "../models/adb";
+    import {DeviceLog, DeviceLogType} from "../models/device";
+    import {Services} from "../services/services.provider";
+    import {DevicesService} from "../services/devices.service";
 
     @Component
     export default class ListDevice extends Vue {
@@ -108,10 +107,17 @@
 
         autoEnrollSwitch: boolean = this.getAutoEnrollButtonState();
         enableTcpIpSwitch: boolean = this.getEnableTcpIpButtonState();
+        private devicesService: DevicesService;
+
+        constructor(props) {
+            super(props);
+            this.devicesService = Services.getInstance().devicesService;
+        }
+
 
         @Subscription()
         protected get devices() {
-            return adbService
+            return this.devicesService
                 .listenAdb()
                 .do(devices => {
                     console.log(`Total devices : ${devices.length}`);

@@ -1,4 +1,4 @@
-import {BehaviorSubject, from, Observable, of} from "rxjs";
+import {BehaviorSubject, from, Observable, zip} from "rxjs";
 import {flatMap, tap} from "rxjs/operators";
 import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
 import {firebase} from '@firebase/app';
@@ -20,6 +20,7 @@ export class FirebaseAuthService {
 
         this.auth.onAuthStateChanged(user => {
             if (user) {
+                console.log("firebase user logged", user.uid);
                 user.getIdTokenResult().then(value => {
                     this.userBehaviour.next(
                         {
@@ -60,25 +61,21 @@ export class FirebaseAuthService {
     }
 
     signInWithAgentToken(agentToken: string, agentUUID: string): Observable<UserCredential> {
-        return of(agentToken).pipe(
-            tap(async () => {
-                await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-            }),
-            tap(token => console.log(`Agent token created ${token}`)),
-            //tap(token => this.agentToken = token),
-            flatMap(token => from(firebase.auth().signInWithCustomToken(token))),
+        return from(firebase.auth().signInWithCustomToken(agentToken)).pipe(
             tap(userCredentials => console.log('Firebase User credentials = ', JSON.stringify(userCredentials))),
-            flatMap(async (userCredentials) => {
-                await firebase.auth().currentUser!.updateProfile({
-                    displayName: agentUUID,
-                });
-                await this.firebaseRepo.getCollection(CollectionName.AGENTS).doc(agentUUID).set({
-                    finalize: true,
-                }, {merge: true});
-                return userCredentials;
+            flatMap((userCredentials) => {
+                return zip(firebase.auth().currentUser!.updateProfile({
+                        displayName: agentUUID,
+                    }), this.firebaseRepo.getCollection(CollectionName.AGENTS).doc(agentUUID).set({
+                        finalize: true,
+                    }, {merge: true}), (v1, v2) => {
+                        return userCredentials
+                    }
+                );
             }),
             tap(() => console.log('Firebase User credentials = ', JSON.stringify(firebase.auth().currentUser))),
-        );
+        )
+            ;
     }
 }
 
