@@ -5,16 +5,18 @@
   "private": true,
   "scripts": {
     "preinstall": "cd ../commons && npm install",
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
+    "prebuild": "node protobuf.js",
+    "serve": "prebuild && vue-cli-service serve",
+    "build": "prebuild && vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "electron:build": "vue-cli-service electron:build",
-    "electron:serve": "vue-cli-service electron:serve",
+    "electron:build": "prebuild && vue-cli-service electron:build",
+    "electron:serve": "prebuild && vue-cli-service electron:serve",
     "postinstall": "node postinstall.js && electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
   },
   "main": "index.js",
   "dependencies": {
+    "@google-cloud/firestore": "2.2.7",
     "adbkit": "^2.11.1",
     "axios": "^0.19.0",
     "bufferutil": "^4.0.1",
@@ -54,6 +56,9 @@
     "typescript": "^3.5.3",
     "vue-cli-plugin-electron-builder": "^1.4.0",
     "vue-template-compiler": "^2.6.10"
+  },
+  "engines": {
+    "node": "8"
   },
   "eslintConfig": {
     "root": true,
