@@ -10,7 +10,7 @@ import {StoreRepository} from "./repositories/store.repository";
 
 export class FirebaseAuthService {
 
-    private static AGENT_TOKEN_KEY = "agent_token";
+    private static AGENT_TOKEN_KEY = "agent_tokend";
 
     public auth: FirebaseAuth;
     private functions: FirebaseFunctions;
@@ -22,7 +22,6 @@ export class FirebaseAuthService {
 
         this.auth.onAuthStateChanged(user => {
             if (user) {
-                console.log("firebase user logged", user.uid);
                 user.getIdTokenResult().then(value => {
                     this.userBehaviour.next(
                         {

@@ -13,6 +13,8 @@
     import "rxjs-compat/add/operator/mergeMap";
     import {FirebaseAuthService} from "../../services/firebaseauth.service";
     import {AgentService} from "../../services/agent.service";
+    import {from} from "rxjs";
+    import {flatMap} from "rxjs/operators";
     import UserCredential = firebase.auth.UserCredential;
 
     @Component
