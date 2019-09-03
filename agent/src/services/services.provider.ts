@@ -85,7 +85,6 @@ class LocalServicesProvider implements ServicesProvider {
         }
 
         this.firebaseRepo = new FirebaseRepository(config);
-        this.authService = new FirebaseAuthService(this.firebaseRepo);
         this.jobsService = new JobsService(this.firebaseRepo);
         this.devicesService = new DevicesService(this.firebaseRepo, new DevicesRepository());
 
@@ -94,6 +93,7 @@ class LocalServicesProvider implements ServicesProvider {
                 this.store = new ElectronStoreRepository();
                 const adbRepository = new AdbRepository();
                 const workspaceRepository = new WorkspaceRepository();
+                this.authService = new FirebaseAuthService(this.firebaseRepo, this.store);
                 const agentRepository = new AgentRepository(workspaceRepository, this.authService);
                 this.agentService = new AgentService(
                     adbRepository,
@@ -112,6 +112,7 @@ class LocalServicesProvider implements ServicesProvider {
             }
             case RuntimeEnv.WEB: {
                 this.store = new WebStoreRepository();
+                this.authService = new FirebaseAuthService(this.firebaseRepo, this.store);
                 break;
             }
         }

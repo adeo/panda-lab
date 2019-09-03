@@ -1,6 +1,4 @@
 module.exports = {
-    // configureWebpack: config => {
-    // },
     pluginOptions: {
         electronBuilder: {
             chainWebpackMainProcess: config => {

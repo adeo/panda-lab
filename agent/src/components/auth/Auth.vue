@@ -10,55 +10,71 @@
     import '@firebase/functions'
     import '@firebase/auth'
     import * as firebaseui from 'firebaseui'
+    import "rxjs-compat/add/operator/mergeMap";
+    import {FirebaseAuthService} from "../../services/firebaseauth.service";
+    import {AgentService} from "../../services/agent.service";
     import UserCredential = firebase.auth.UserCredential;
 
     @Component
     export default class Auth extends Vue {
 
+        private authService: FirebaseAuthService;
+        private agentService: AgentService;
 
         constructor() {
             super();
-
-            // const services = LocalServicesProvider.newInstance({
-            //     apiKey: process.env.VUE_APP_API_KEY,
-            //     authDomain: process.env.VUE_APP_AUTH_DOMAIN,
-            //     projectId: process.env.VUE_APP_PROJECT_ID,
-            //     databaseURL: process.env.VUE_APP_DATABASE_URL,
-            //     messagingSenderId: process.env.VUE_APP_MESSAGING_SENDER_ID,
-            //     storageBucket: process.env.VUE_APP_STORAGE_BUCKET,
-            //     apiURL: process.env.VUE_APP_API_URL
-            // })
-            //
-            // this.firebaseAuth = services.authService.auth;
-
+            this.authService = Services.getInstance().authService;
+            this.agentService = Services.getInstance().agentService;
         }
 
         mounted() {
-            console.log("mounted");
+            if (this.authService.hasAgentToken) {
+                console.log('Agent token already exist, restore connection. Agent token = ', this.authService.agentToken);
+                this.signInWithAgentToken(this.authService.agentToken)
+                    .catch(reason => {
+                        console.error('signInWithAgentToken with agent token', reason);
+                        this.connectWithFirebaseUI();
+                    });
+            } else {
+                console.log('Agent token not exist, connection with Firebase UI');
+                this.connectWithFirebaseUI();
+            }
+        }
 
+        private async signInWithAgentToken(token: string) {
+            console.log("token created ", token);
+            console.log("agent uuid created ", this.agentService.getAgentUUID());
+            await Services.getInstance().authService.signInWithAgentToken(token, this.agentService.getAgentUUID()).toPromise();
+            await this.$router.push({path: '/splash'});
+        }
+
+        /**
+         * After connection in FirebaseUI, generated agent and signInWithAgentToken
+         */
+        private async onSignInSuccessWithAuthResult(): Promise<void> {
+            try {
+                const result = await firebase.functions().httpsCallable('createAgent')({
+                    uid: this.agentService.getAgentUUID(),
+                });
+                console.log("onSignInSuccessWithAuthResult", result);
+                await this.signInWithAgentToken(result.data.token);
+            } catch (e) {
+                console.error(e);
+                this.$router.push({path: '/'});
+            }
+        }
+
+        /**
+         * Connection with Custom Email or Gmail address
+         */
+        private connectWithFirebaseUI() {
             const vue = this;
-
             let uiConfig = {
                 callbacks: {
                     signInSuccessWithAuthResult: function (authResult: UserCredential, redirectUrl) {
                         console.log("user logged");
                         if (getRuntimeEnv() == RuntimeEnv.ELECTRON_RENDERER) {
-                            const agentService = Services.getInstance().agentService;
-                            firebase.functions().httpsCallable('createAgent')({
-                                uid: agentService.getAgentUUID(),
-                            }).then((result) => {
-                                let token = result.data.token;
-                                console.log("token created");
-                                return Services.getInstance().authService.signInWithAgentToken(token, agentService.getAgentUUID()).toPromise()
-                            })
-                                .then(value => {
-                                    console.log('agent logged');
-                                    return vue.$router.push({path: '/splash'})
-                                })
-                                .catch(error => {
-                                    console.error("error", error);
-                                    return vue.$router.push({path: '/'})
-                                });
+                            vue.onSignInSuccessWithAuthResult();
                             return false;
                         } else {
                             return true;
@@ -83,8 +99,9 @@
             let ui = firebaseui.auth.AuthUI.getInstance() ? firebaseui.auth.AuthUI.getInstance() : new firebaseui.auth.AuthUI(firebase.auth());
             ui.start('#firebaseui-auth-container', uiConfig);
         }
-    }
 
+
+    }
 </script>
 <style>
 

@@ -3,7 +3,7 @@ import {Services} from "../services/services.provider";
 
 export const AuthentNotConfiguredGuard: NavigationGuard = async (to, from, next) => {
     const isConfigured = await isConfiguredAsync();
-    console.log(`AuthentConfiguredGuard() isConfigured = ${isConfigured}`);
+    console.log(`AuthentNotConfiguredGuard() isConfigured = ${isConfigured}`);
     if (!isConfigured) {
         next();
     } else {
@@ -13,6 +13,7 @@ export const AuthentNotConfiguredGuard: NavigationGuard = async (to, from, next)
 
 export const AuthentConfiguredGuard: NavigationGuard = async (to, from, next) => {
     const isConfigured = await isConfiguredAsync();
+    console.log(`AuthentConfiguredGuard() isConfigured = ${isConfigured}`);
     if (!isConfigured) {
         next('/');
     } else {
@@ -20,6 +21,6 @@ export const AuthentConfiguredGuard: NavigationGuard = async (to, from, next) =>
     }
 };
 
-async function isConfiguredAsync(): Promise<boolean> {
-    return await Services.getInstance().authService.isConnected;
+function isConfiguredAsync(): Promise<boolean> {
+    return Services.getInstance().authService.isConnected();
 }

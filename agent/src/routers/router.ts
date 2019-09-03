@@ -23,7 +23,6 @@ const AUTHENT_ROUTE: RouteConfig = {
 const SPLASH_ROUTE: RouteConfig = {
     path: '/splash',
     component: Splash
-    // beforeEnter: AuthentNotConfiguredGuard
 };
 
 
@@ -31,6 +30,7 @@ const HOME_ROUTE: RouteConfig = {
     path: '/home',
     component: Home,
     beforeEnter: AuthentConfiguredGuard,
+
     children: [
         {path: '', component: Website,},
         {path: '/listDevice', component: ListDevice,},

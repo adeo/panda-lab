@@ -41,7 +41,6 @@
             this.agentService = Services.getInstance().agentService
         }
 
-
         mounted(){
             this.subscription = this.agentService.listenAgentStatus()
                 .subscribe((status: AgentStatus) => {
