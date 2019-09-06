@@ -1,18 +1,22 @@
 package com.leroymerlin.pandalab
 
+import android.app.Application
 import android.content.Context
 import com.leroymerlin.pandalab.globals.pandalab.PandaLabManager
 import com.leroymerlin.pandalab.globals.pandalab.impl.PandaLabManagerImpl
-import com.leroymerlin.pandroid.dagger.PandroidModule
-import com.leroymerlin.pandroid.log.LogWrapper
 import dagger.Module
 import dagger.Provides
 import javax.inject.Singleton
 
-@Module(includes = [PandroidModule::class])
-class PandaLabModule {
+@Module
+class PandaLabModule(val context: Application) {
 
     @Singleton
     @Provides
-    fun provideLabPandaManager(context: Context, logWrapper: LogWrapper): PandaLabManager = PandaLabManagerImpl(context, logWrapper)
+    fun provideContext(): Context = this.context
+
+    @Singleton
+    @Provides
+    fun provideLabPandaManager(context: Context): PandaLabManager =
+        PandaLabManagerImpl(context)
 }

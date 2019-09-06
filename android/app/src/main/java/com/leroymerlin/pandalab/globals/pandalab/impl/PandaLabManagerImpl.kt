@@ -1,36 +1,66 @@
 package com.leroymerlin.pandalab.globals.pandalab.impl
 
-import android.app.Activity
 import android.content.Context
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.messaging.FirebaseMessaging
 import com.leroymerlin.pandalab.BuildConfig
 import com.leroymerlin.pandalab.globals.model.Device
 import com.leroymerlin.pandalab.globals.pandalab.PandaLabManager
+import com.leroymerlin.pandalab.globals.utils.DeviceIdentifier
 import com.leroymerlin.pandalab.globals.utils.UtilsPhone
-import com.leroymerlin.pandroid.log.LogWrapper
+import durdinapps.rxfirebase2.RxFirebaseAuth
+import durdinapps.rxfirebase2.RxFirestore
 import io.reactivex.Completable
-import io.reactivex.Single
 import java.sql.Timestamp
 
-class PandaLabManagerImpl(private var context: Context, private var logWrapper: LogWrapper) : PandaLabManager {
+class PandaLabManagerImpl(private var context: Context) :
+    PandaLabManager {
 
+
+    private var deviceId: DeviceIdentifier =
+        DeviceIdentifier(context)
     private val TAG = "PandaLabManagerImpl"
 
     private var auth: FirebaseAuth = FirebaseAuth.getInstance()
     private var db: FirebaseFirestore = FirebaseFirestore.getInstance()
 
-    companion object {
-        const val DEVICE_DB = "devices"
+    override fun updateDevice(): Completable {
+        val deviceDoc = getDeviceDocument()
+        return RxFirestore.getDocument(deviceDoc)
+            .map { data -> data.getDocumentReference("agent") }
+            .map { agentDoc -> getDevice(agentDoc) }
+            .flatMapCompletable { RxFirestore.setDocument(deviceDoc, it, SetOptions.merge()) }
     }
 
-    private fun getDevice(agentId: String): Device {
+    override fun enroll(token: String, agentId: String): Completable {
+        val deviceDoc = getDeviceDocument()
+        this.auth.signOut()
+
+
+        return RxFirebaseAuth.signInWithCustomToken(this.auth, token)
+            .map { getDevice(this.db.collection("agents").document(agentId)) }
+            .flatMapCompletable { RxFirestore.setDocument(deviceDoc, it, SetOptions.merge()) }
+            .andThen(subscribeToFirebaseTopic(this.getDeviceId()))
+
+
+    }
+
+
+    override fun isLogged(): Boolean {
+        return this.auth.currentUser?.let { true } ?: false
+    }
+
+    private fun getDeviceDocument() = this.db.collection("devices").document(getDeviceId())
+
+    private fun getDevice(agentDoc: DocumentReference): Device {
         return Device(
             UtilsPhone.getPhoneSerialId(this.context)!!,
             UtilsPhone.getPhoneModel(),
-            UtilsPhone.getPhoneIp(),
+            UtilsPhone.getPhoneIp(true),
             UtilsPhone.getPhoneModel(),
             UtilsPhone.getPhoneProduct(),
             UtilsPhone.getPhoneDevice(),
@@ -39,70 +69,27 @@ class PandaLabManagerImpl(private var context: Context, private var logWrapper: 
             UtilsPhone.getPhoneAndroidVersion(),
             BuildConfig.VERSION_NAME,
             Timestamp(System.currentTimeMillis()).time,
-            this.db.collection("agents").document(agentId)
+            agentDoc
         )
     }
 
-    override fun updateDevice(
-        key: String,
-        agentId: String
-    ): Completable {
-        return Completable.create { emitter ->
-            db.collection(DEVICE_DB)
-                .document(key)
-                .set(getDevice(agentId))
-                .addOnSuccessListener {
-                    logWrapper.d(TAG, "Device added in firestore with ID: $key")
-                    emitter.onComplete()
-                }
-                .addOnFailureListener { error ->
-                    logWrapper.e(TAG, "Error adding device in firestore", error)
-                    emitter.onError(error)
-                }
-        }
+    override fun getDeviceId(): String {
+        return deviceId.getValue()
     }
 
-    override fun subscribeToFirebaseTopic(serialId: String): Completable {
+    private fun subscribeToFirebaseTopic(serialId: String): Completable {
         return Completable.create {
             FirebaseMessaging.getInstance().subscribeToTopic(serialId)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        logWrapper.d(TAG, "Subscription to $serialId firebase topic is sucessful")
+                        Log.d(TAG, "Subscription to $serialId firebase topic is sucessful")
                         it.onComplete()
                     } else {
-                        logWrapper.e(TAG, "Subscription to $serialId firebase topic has failed")
+                        Log.e(TAG, "Subscription to $serialId firebase topic has failed")
                         it.onError(task.exception!!)
                     }
                 }
         }
     }
 
-    override fun loginToFirebase(activity: Activity, firebaseToken: String): Single<FirebaseUser> {
-        return Single.create {
-            auth.signInWithCustomToken(firebaseToken)
-                .addOnCompleteListener(activity) { task ->
-                    if (task.isSuccessful) {
-                        logWrapper.d(TAG, "signInAnonymously:success")
-                        it.onSuccess(auth.currentUser!!)
-                    } else {
-                        logWrapper.e(TAG, "signInAnonymously:failure", task.exception)
-                        it.onError(Exception(task.exception))
-                    }
-                }
-        }
-    }
-
-    override fun getCurrentUser(): FirebaseUser? {
-        return auth.currentUser
-    }
-
-//    private fun isGooglePlayServicesAvailable(context: Context): Boolean {
-//        val googleApiAvailability: GoogleApiAvailability = GoogleApiAvailability.getInstance()
-//        val status: Int = googleApiAvailability.isGooglePlayServicesAvailable(context)
-//
-//        if (status != ConnectionResult.SUCCESS) {
-//            return false
-//        }
-//        return true
-//    }
 }

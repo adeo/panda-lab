@@ -15,11 +15,11 @@
             android:supportsRtl="true"
             android:theme="@style/AppTheme"
             tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".GenerateUniqueId">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-            </intent-filter>
-        </activity>
+<!--        <activity android:name=".GenerateUniqueId">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.MAIN"/>-->
+<!--            </intent-filter>-->
+<!--        </activity>-->
         <activity android:name=".home.HomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -35,6 +35,11 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
         </service>
+        <receiver android:name=".GenerateUniqueIdReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="com.leroymerlin.pandalab.INTENT.GET_ID"/>
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
