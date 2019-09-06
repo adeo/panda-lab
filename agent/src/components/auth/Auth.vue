@@ -13,8 +13,6 @@
     import "rxjs-compat/add/operator/mergeMap";
     import {FirebaseAuthService} from "../../services/firebaseauth.service";
     import {AgentService} from "../../services/agent.service";
-    import {from} from "rxjs";
-    import {flatMap} from "rxjs/operators";
     import UserCredential = firebase.auth.UserCredential;
 
     @Component
@@ -30,25 +28,17 @@
         }
 
         mounted() {
-            if (this.authService.hasAgentToken) {
-                console.log('Agent token already exist, restore connection. Agent token = ', this.authService.agentToken);
-                this.signInWithAgentToken(this.authService.agentToken)
-                    .catch(reason => {
-                        console.error('signInWithAgentToken with agent token', reason);
+            this.authService.isConnected()
+                .then(async isLogged => {
+                    if (isLogged) {
+                        await this.$router.push({path: '/splash'})
+                    } else {
+                        console.log("not logged, show ui");
                         this.connectWithFirebaseUI();
-                    });
-            } else {
-                console.log('Agent token not exist, connection with Firebase UI');
-                this.connectWithFirebaseUI();
-            }
+                    }
+                })
         }
 
-        private async signInWithAgentToken(token: string) {
-            console.log("token created ", token);
-            console.log("agent uuid created ", this.agentService.getAgentUUID());
-            await Services.getInstance().authService.signInWithAgentToken(token, this.agentService.getAgentUUID()).toPromise();
-            await this.$router.push({path: '/splash'});
-        }
 
         /**
          * After connection in FirebaseUI, generated agent and signInWithAgentToken
@@ -65,6 +55,14 @@
                 this.$router.push({path: '/'});
             }
         }
+
+        private async signInWithAgentToken(token: string) {
+            console.log("token created ", token);
+            console.log("agent uuid created ", this.agentService.getAgentUUID());
+            await Services.getInstance().authService.signInWithAgentToken(token, this.agentService.getAgentUUID()).toPromise();
+            await this.$router.push({path: '/splash'});
+        }
+
 
         /**
          * Connection with Custom Email or Gmail address
