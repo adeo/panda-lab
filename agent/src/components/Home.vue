@@ -12,7 +12,7 @@
                         <md-icon>home</md-icon>
                     </md-button>
                 </router-link>
-                <router-link to="/listDevice">
+                <router-link to="/agentDevices">
                     <md-button class="md-icon-button toolbar-devices-button">
                         <md-icon>phone_android</md-icon>
                     </md-button>

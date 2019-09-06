@@ -44,10 +44,10 @@
         mounted(){
             this.subscription = this.agentService.listenAgentStatus()
                 .subscribe((status: AgentStatus) => {
+                    console.log("agent status", status)
                     switch (status) {
                         case AgentStatus.CONFIGURING:
                             this.configurationMessage = "Loading..";
-                            this.$router.push({path : '/home'});
                             break;
                         case AgentStatus.NOT_LOGGED:
                             this.configurationMessage = "Device lab not logged";
@@ -55,7 +55,7 @@
                             break;
                         case AgentStatus.READY:
                             this.configurationMessage = "Device lab ready";
-                            this.$router.push({path : '/home'});
+                            this.$router.push({path : '/agentDevices'});
                             break;
                     }
                     console.log('agent status', this.configurationMessage)
