@@ -73,17 +73,19 @@ class JobService {
             apk: artifactDoc.ref as any as DocumentReference,
             apk_test: artifactTestDoc.ref as any as DocumentReference,
             completed: false,
-            status: JobStatus.pending
+            status: JobStatus.pending,
         } as Job;
 
         const jobRef = await admin.firestore().collection('jobs').add(createdJob);
 
+        const timeoutInMillis = ((job.timeoutInSecond || 60 * 60) * 1000);
         await Promise.all(new Array(taskCount).fill(0).map(
             async () => {
                 const taskObj = {
                     job: admin.firestore().collection('jobs').doc(jobRef.id) as any as DocumentReference,
                     devices: finalDevices,
                     status: TaskStatus.pending,
+                    timeout: admin.firestore.Timestamp.fromMillis(admin.firestore.Timestamp.now().seconds * 1000 + timeoutInMillis)
                 } as JobTask;
                 return await admin.firestore().collection('jobs-tasks').add(taskObj);
             }

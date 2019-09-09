@@ -26,6 +26,7 @@ export class AdbRepository {
         // Get for the first time the list of connected devices
         this.adbClient.listDevicesWithPaths()
             .then(devices => {
+                console.log(devices);
                 adbService.updateDevicesFlux(devices);
                 adbService.updateAdbStatusFlux(AdbStatusState.STARTED);
             })
