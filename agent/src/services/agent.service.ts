@@ -6,7 +6,7 @@ import {
     BehaviorSubject,
     combineLatest,
     concat,
-    ConnectableObservable,
+    EMPTY,
     from,
     merge,
     Observable,
@@ -23,7 +23,6 @@ import {
     flatMap,
     ignoreElements,
     map,
-    multicast,
     startWith,
     tap,
     timeout,
@@ -141,7 +140,8 @@ export class AgentService {
                         }
                     });
                     result.firebaseDevices.forEach(device => {
-                        const deviceData = devicesData.find(a => a.adbDevice.uid === device._ref.id);
+                        const deviceData = devicesData.find(a => a.adbDevice.uid == device._ref.id);
+                        console.log("deviceData", deviceData)
                         if (!deviceData) {
                             device.status = DeviceStatus.offline;
                             devicesData.push(
@@ -266,12 +266,22 @@ export class AgentService {
                         return {uuid: uuid, token: token}
                     }))),
                 tap(() => subject.next({log: 'Launch of the service...', type: DeviceLogType.INFO})),
-                flatMap(result => this.adbRepo.launchActivityWithToken(adbDeviceId, 'com.leroymerlin.pandalab/.home.HomeActivity', result.token, result.uuid)
+
+
+                flatMap(result => this.adbRepo.sendBroadcastWithData(adbDeviceId, "com.leroymerlin.pandalab/.AgentReceiver",
+                    'com.leroymerlin.pandalab.INTENT.ENROLL', {
+                        'token_id': result.token,
+                        'agent_id': this.getAgentUUID()
+                    })
                     .pipe(map(() => result))),
                 tap(() => subject.next({log: 'Wait for the device in database...', type: DeviceLogType.INFO})),
                 flatMap(result => this.firebaseRepo.listenDocument(CollectionName.DEVICES, result.uuid)),
                 first(device => device !== null),
-                ignoreElements(),
+                tap(() => {
+                    subject.next({log: 'Device enrolled ...', type: DeviceLogType.INFO})
+                    subject.complete()
+                }),
+                flatMap(() => EMPTY),
             ) as Observable<DeviceLog>;
 
         return merge(subject, enrollObs)
@@ -285,17 +295,20 @@ export class AgentService {
 
     private getDeviceUID(deviceId: string): Observable<string> {
         const transactionId = Guid.create().toString();
-
         const logcatObs = this.adbRepo.readAdbLogcat(deviceId, transactionId)
             .pipe(
+                map(message => {
+                    let parse = JSON.parse(message);
+                    console.log("device Id", parse.device_id);
+                    return parse.device_id
+                }),
                 first(),
                 timeout(5000)
             );
 
-        const sendTransaction = this.adbRepo.launchActivityWithToken(deviceId,
-            'com.leroymerlin.pandalab/.GenerateUniqueId',
-            transactionId,
-            this.getAgentUUID());
+        const sendTransaction = this.adbRepo.sendBroadcastWithData(deviceId,
+            "com.leroymerlin.pandalab/.AgentReceiver",
+            "com.leroymerlin.pandalab.INTENT.GET_ID", {"transaction_id": transactionId});
 
         return this.adbRepo.isInstalled(deviceId, 'com.leroymerlin.pandalab')
             .pipe(
@@ -305,7 +318,7 @@ export class AgentService {
                     }
                     return zip(logcatObs, sendTransaction)
                 }),
-                map(values => JSON.parse(values[0]).device_id as string)
+                map(values => values[0])
             )
     }
 }

@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as util from "util";
 import {Artifact} from "pandalab-commons";
+import {FileData} from "../../commons/src/models/storage.models";
 
 const admin = require('firebase-admin');
 
@@ -100,3 +101,21 @@ async function extractApk(directory: string, filename: string) {
 }
 
 
+export const GET_FILE_DATA = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", `Not authorized to access file data`);
+    }
+
+    const filePath = data.path;
+    const fileRef = admin.storage().bucket().file(filePath);
+    const metadatas = await fileRef.getMetadata();
+    const metadata = metadatas[0];
+
+    const url = await fileRef.getSignedUrl({expires: Date.now() + 1000 * 60 * 60, action: "read"});
+    return <FileData>{
+        downloadUrl: url[0],
+        createdAt: new Date(metadata.timeCreated).getTime(),
+        updatedAt: new Date(metadata.updated).getTime()
+    }
+
+});

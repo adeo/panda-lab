@@ -29,25 +29,12 @@ class HomeActivity : AppCompatActivity() {
     @Inject
     lateinit var pandaLabManager: PandaLabManager
 
-    companion object {
-        const val DEVICE_TOKEN = "token"
-        const val AGENT_ID = "agentId"
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
         PandaLabApplication.getApp(this).component.inject(this)
         initView()
 
-        intent.getStringExtra(DEVICE_TOKEN)
-            ?.let {
-                val agentId = intent.getStringExtra(AGENT_ID)
-                enroll(it, agentId)
-            }
-            ?: also {
-                Toast.makeText(this, getString(R.string.errorToken), Toast.LENGTH_LONG).show()
-            }
 
         if (PackageManager.PERMISSION_GRANTED != ContextCompat.checkSelfPermission(
                 this,
@@ -123,7 +110,11 @@ class HomeActivity : AppCompatActivity() {
         }
 
         update_button.setOnClickListener {
-            pandaLabManager.updateDevice().subscribe({
+            pandaLabManager.updateDevice().doOnSubscribe {
+                sync_progress?.visibility = View.VISIBLE
+            }.doOnTerminate {
+                sync_progress?.visibility = View.GONE
+            }.subscribe({
                 Log.i(tag, "device updated")
             }, {
                 Log.e(tag, "can't update device", it)

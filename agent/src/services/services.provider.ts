@@ -94,7 +94,7 @@ class LocalServicesProvider implements ServicesProvider {
                 const adbRepository = new AdbRepository();
                 const workspaceRepository = new WorkspaceRepository();
                 this.authService = new FirebaseAuthService(this.firebaseRepo, this.store);
-                const agentRepository = new AgentRepository(workspaceRepository, this.authService);
+                const agentRepository = new AgentRepository(workspaceRepository, this.authService, this.firebaseRepo, this.store);
                 this.agentService = new AgentService(
                     adbRepository,
                     this.authService, this.firebaseRepo,

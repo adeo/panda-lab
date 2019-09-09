@@ -82,7 +82,7 @@ class PandaLabPlugin implements Plugin<Project> {
                         type: UploadApkTask,
                         group: PANDA_LAB_GROUP,
                         //assembleProvider support old version of android plugin
-                        dependsOn: ["setupPandaLab", hasProperty("assembleProvider") ? variant.assembleProvider.name : variant.assemble.name]
+                        dependsOn: ["setupPandaLab", variant.hasProperty("assembleProvider") ? variant.assembleProvider.name : variant.assemble.name]
                 ) {
                     UploadApkTask upTask ->
                         upTask.appName = bddAppName

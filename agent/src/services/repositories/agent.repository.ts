@@ -1,9 +1,13 @@
-import {BehaviorSubject, Observable, of} from "rxjs";
+import {BehaviorSubject, from, Observable, of} from "rxjs";
 import "rxjs-compat/add/operator/delay";
 import "rxjs-compat/add/operator/concat";
 import {WorkspaceRepository} from "./workspace.repository";
 import {FirebaseAuthService} from "../firebaseauth.service";
-import {map} from "rxjs/operators";
+import {flatMap, map, tap} from "rxjs/operators";
+import {FirebaseRepository} from "./firebase.repository";
+import {StoreRepository} from "./store.repository";
+import {FileData} from "pandalab-commons";
+import HttpsCallableResult = firebase.functions.HttpsCallableResult;
 
 
 export class AgentRepository {
@@ -14,7 +18,9 @@ export class AgentRepository {
 
 
     constructor(private workspace: WorkspaceRepository,
-                private authService: FirebaseAuthService) {
+                private authService: FirebaseAuthService,
+                private firebaseRepo: FirebaseRepository,
+                private storeRepo: StoreRepository) {
         const os = require('os');
         this.UUID = `pandalab-agent-desktop-${os.userInfo().uid}-${os.userInfo().username}`;
 
@@ -54,12 +60,25 @@ export class AgentRepository {
     }
 
     private configureMobileApk(): Observable<string> {
-        const pandaLabMobileApk = this.workspace.agentApkPath; //TODO check file version & change url
-        if (!this.workspace.fileExist(pandaLabMobileApk)) {
-            return this.workspace.downloadFile(pandaLabMobileApk, 'https://pandalab.page.link/qbvQ')
-        } else {
-            return of(pandaLabMobileApk)
-        }
+        return from(this.firebaseRepo.firebase.functions().httpsCallable("getFileData")({path: 'config/android-agent.apk'}))
+            .pipe(
+                flatMap((result: HttpsCallableResult) => {
+                    const value = result.data as FileData;
+                    const currentDate = parseInt(this.storeRepo.load("agent_last_date", "0"));
+                    const update = currentDate < value.updatedAt;
+                    console.log("update", update, "exist ?", this.workspace.fileExist(this.workspace.agentApkPath))
+
+                    if (update || !this.workspace.fileExist(this.workspace.agentApkPath)) {
+                        console.log("update local agent apk");
+                        this.workspace.delete(this.workspace.agentApkPath);
+                        return this.workspace.downloadFile(this.workspace.agentApkPath, value.downloadUrl)
+                            .pipe(tap(this.storeRepo.save("agent_last_date", String(value.updatedAt))))
+                    } else {
+                        return of(this.workspace.agentApkPath)
+                    }
+
+                })
+            )
     }
 
     public getAgentApk(): string {
