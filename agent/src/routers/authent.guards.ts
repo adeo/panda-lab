@@ -7,7 +7,7 @@ export const AuthentNotConfiguredGuard: NavigationGuard = async (to, from, next)
     if (!isConfigured) {
         next();
     } else {
-        next('/home');
+        next('/splash');
     }
 };
 

@@ -7,10 +7,11 @@ import '@firebase/functions';
 import {FirebaseAuth} from '@firebase/auth-types';
 import {FirebaseFunctions} from '@firebase/functions-types';
 import {StoreRepository} from "./repositories/store.repository";
+import UserCredential = firebase.auth.UserCredential;
 
 export class FirebaseAuthService {
 
-    private static AGENT_TOKEN_KEY = "agent_tokend";
+    private static AGENT_TOKEN_KEY = "agent_token";
 
     public auth: FirebaseAuth;
     private functions: FirebaseFunctions;
@@ -20,8 +21,34 @@ export class FirebaseAuthService {
         this.auth = this.firebaseRepo.firebase.auth();
         this.functions = this.firebaseRepo.firebase.functions();
 
+
+        this.setup()
+
+    }
+
+    private async setup() {
+        const refreshData = this.storeRepository.load(FirebaseAuthService.AGENT_TOKEN_KEY, null);
+        if (refreshData) {
+            try {
+                console.info("try to restore session");
+                let oldToken = JSON.parse(refreshData);
+                const result = await this.firebaseRepo.firebase.functions().httpsCallable("refreshCustomToken")(oldToken);
+                const newToken = result.data.token;
+                const user = await this.auth.signInWithCustomToken(newToken);
+                this.saveToken(newToken, oldToken.uid);
+                console.log("session restored", user.user.uid);
+
+            } catch (e) {
+                console.error("can't restore session", e)
+            }
+
+        }
+
+
+        console.log('start listening');
         this.auth.onAuthStateChanged(user => {
             if (user) {
+                console.log('firebase user logged');
                 user.getIdTokenResult().then(value => {
                     this.userBehaviour.next(
                         {
@@ -32,7 +59,7 @@ export class FirebaseAuthService {
                 })
             } else {
                 console.log("firebase user is not logged");
-                this.userBehaviour.next(null);
+                this.userBehaviour.next({role: null, uuid: null});
             }
         });
     }
@@ -42,22 +69,14 @@ export class FirebaseAuthService {
      * This method check is a user is loaded in firebase auth and if a agent token is already generated
      */
     public async isConnected(): Promise<boolean> {
-        return this.userBehaviour.getValue() !== null && this.hasAgentToken;
+        return this.userBehaviour
+            .pipe(
+                filter(value => value != null),
+                map(user => user.uuid != null),
+                first(),
+            ).toPromise()
     }
 
-    /**
-     * Check if an agent token is stored
-     */
-    public get hasAgentToken(): boolean {
-        return this.agentToken !== null;
-    }
-
-    /**
-     * Get agent token. The default value is null
-     */
-    public get agentToken(): string | null {
-        return this.storeRepository.load(FirebaseAuthService.AGENT_TOKEN_KEY, null);
-    }
 
     /**
      * SignOut at FirebaseAuth and remove agent token in store
@@ -89,22 +108,24 @@ export class FirebaseAuthService {
 
     signInWithAgentToken(agentToken: string, agentUUID: string): Observable<UserLab> {
         console.log("signInWithAgentToken : agent token = " + agentToken + " agent uuid = " + agentUUID);
+
         return from(firebase.auth().signInWithCustomToken(agentToken))
             .pipe(
-                map(async (userCredentials) => {
-                    try {
-                        await firebase.auth().currentUser!.updateProfile({displayName: agentUUID});
-                        await this.firebaseRepo.getCollection(CollectionName.AGENTS).doc(agentUUID).set({finalize: true}, {merge: true});
-                        return userCredentials;
-                    } catch (e) {
-                        console.error(e);
-                        return userCredentials;
-                    }
+                flatMap((userCredentials: UserCredential) => userCredentials.user.updateProfile({displayName: agentUUID})),
+                flatMap(() => this.firebaseRepo.getCollection(CollectionName.AGENTS).doc(agentUUID).update('finalize', true)),
+                tap(() => {
+                    console.log("save token");
+                    this.saveToken(agentToken, agentUUID);
                 }),
-                tap(() => console.log('Firebase User credentials = ', JSON.stringify(firebase.auth().currentUser))),
-                tap(() => this.storeRepository.save(FirebaseAuthService.AGENT_TOKEN_KEY, agentToken)),
-                flatMap(() => this.listenUser().pipe(filter(value1 => value1 !== null), first())),
+                flatMap(() => this.listenUser().pipe(filter(value1 => value1 != null && value1.uuid === agentUUID), first()))
             );
+    }
+
+    private saveToken(token: string, uid: string) {
+        this.storeRepository.save(FirebaseAuthService.AGENT_TOKEN_KEY, JSON.stringify({
+            token: token,
+            uid: uid
+        }))
     }
 }
 

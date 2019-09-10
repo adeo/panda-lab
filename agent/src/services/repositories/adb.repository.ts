@@ -1,6 +1,7 @@
 import {BehaviorSubject, from, Observable} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
-import {DeviceLog} from "../../models/device";
+import {DeviceLog, DeviceLogType} from "../../models/device";
+import {timeout} from "rxjs/operators";
 
 export class AdbRepository {
 
@@ -146,6 +147,7 @@ export class AdbRepository {
         return new Observable(emitter => {
             this.adbClient.startActivity(deviceId, {component: activityName, extras: {token, agentId}})
                 .then(() => {
+                    emitter.next({log: activityName + " started", type: DeviceLogType.INFO})
                     emitter.complete();
                 })
                 .catch(err => {
@@ -178,6 +180,7 @@ export class AdbRepository {
 
     connectIp(ip: string): Observable<any> {
         return from(this.adbClient.connect(ip, 5555))
+            .pipe(timeout(10000))
     }
 }
 

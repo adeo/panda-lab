@@ -4,14 +4,40 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.support.v4.content.ContextCompat.checkSelfPermission
-import com.leroymerlin.pandalab.BuildConfig
-import com.leroymerlin.pandroid.utils.DeviceUtils
-import com.leroymerlin.pandroid.utils.NetworkUtils
+import androidx.core.content.ContextCompat.checkSelfPermission
+import java.net.Inet4Address
+import java.net.Inet6Address
+import java.net.NetworkInterface
+import java.util.*
+
 
 class UtilsPhone {
     companion object {
-        fun getPhoneIp() = NetworkUtils.getIPAddress(true)
+        fun getPhoneIp(useIPv4: Boolean): String {
+            try {
+                val interfaces = Collections.list(NetworkInterface.getNetworkInterfaces())
+                for (intf in interfaces) {
+                    val addrs = Collections.list(intf.getInetAddresses())
+                    for (addr in addrs) {
+                        if (!addr.isLoopbackAddress()) {
+                            val sAddr = addr.getHostAddress().toUpperCase()
+                            if (useIPv4) {
+                                if (addr is Inet4Address)
+                                    return sAddr
+                            } else {
+                                if (addr is Inet6Address) {
+                                    val delim = sAddr.indexOf('%') // drop ip6 port suffix
+                                    return if (delim < 0) sAddr else sAddr.substring(0, delim)
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (ex: Exception) {
+            }
+            // for now eat exceptions
+            return ""
+        }
 
         fun getPhoneModel() = Build.MODEL
 
@@ -45,7 +71,11 @@ class UtilsPhone {
 
                 if (serialNumber == "")
                     serialNumber = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        if (checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+                        if (checkSelfPermission(
+                                context,
+                                Manifest.permission.READ_PHONE_STATE
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
                             Build.getSerial()
                         } else {
                             Build.SERIAL

@@ -1,3 +1,6 @@
+import {Timestamp} from "rxjs";
+import {ActionType, AgentDeviceData} from "../services/agent.service";
+
 export interface DeviceLog {
     log: string;
     type: DeviceLogType;
@@ -8,14 +11,13 @@ export enum DeviceLogType {
     ERROR
 }
 
-export interface DeviceData {
-    deviceFullName: string;
-    deviceName: string;
-    deviceCode: string;
-    deviceBrand: string;
-    devicePictureUrl: string;
-    deviceProcessor: string;
-    deviceOtherCode: string;
+
+export interface DeviceVue {
+    id: string,
+    type: string,
+    enrolled: boolean,
+    logError: boolean,
+    log: Timestamp<DeviceLog>,
+    actionType: ActionType,
+    data: AgentDeviceData
 }
-
-

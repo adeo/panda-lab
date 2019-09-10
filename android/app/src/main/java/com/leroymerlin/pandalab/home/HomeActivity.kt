@@ -4,31 +4,27 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.support.v4.app.ActivityCompat
-import android.support.v4.content.ContextCompat
 import android.util.Log
+import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.leroymerlin.pandalab.BuildConfig
-import com.leroymerlin.pandalab.DeviceIdentifier
+import com.leroymerlin.pandalab.PandaLabApplication
 import com.leroymerlin.pandalab.R
-import com.leroymerlin.pandalab.globals.model.Device
 import com.leroymerlin.pandalab.globals.pandalab.PandaLabManager
 import com.leroymerlin.pandalab.globals.utils.UtilsPhone
-import com.leroymerlin.pandroid.app.PandroidActivity
-import com.leroymerlin.pandroid.event.opener.ActivityOpener
 import io.reactivex.disposables.Disposable
 import kotlinx.android.synthetic.main.activity_home.*
-import java.sql.Timestamp
 import javax.inject.Inject
 
 
-class HomeActivity : PandroidActivity<ActivityOpener>() {
+class HomeActivity : AppCompatActivity() {
 
     private val tag = "HomeActivity"
 
     private var disposable: Disposable? = null
-
-    private var deviceId: String? by DeviceIdentifier(this)
 
     @Inject
     lateinit var pandaLabManager: PandaLabManager
@@ -41,13 +37,13 @@ class HomeActivity : PandroidActivity<ActivityOpener>() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
-
+        PandaLabApplication.getApp(this).component.inject(this)
         initView()
 
         intent.getStringExtra(DEVICE_TOKEN)
             ?.let {
                 val agentId = intent.getStringExtra(AGENT_ID)
-                subscribeToPushNotificationAndLoginToFirebase(it, agentId)
+                enroll(it, agentId)
             }
             ?: also {
                 Toast.makeText(this, getString(R.string.errorToken), Toast.LENGTH_LONG).show()
@@ -55,10 +51,14 @@ class HomeActivity : PandroidActivity<ActivityOpener>() {
 
         if (PackageManager.PERMISSION_GRANTED != ContextCompat.checkSelfPermission(
                 this,
-                android.Manifest.permission.READ_PHONE_STATE
+                Manifest.permission.READ_PHONE_STATE
             )
         ) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_PHONE_STATE), 101)
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.READ_PHONE_STATE),
+                101
+            )
         }
     }
 
@@ -78,45 +78,34 @@ class HomeActivity : PandroidActivity<ActivityOpener>() {
         }
     }
 
-    override fun onStart() {
-        super.onStart()
-
-        val currentUser = pandaLabManager.getCurrentUser()
-        if (currentUser != null) {
-            logWrapper.w(tag, currentUser.uid)
-        }
-    }
-
-    private fun subscribeToPushNotificationAndLoginToFirebase(firebaseToken: String, agentId: String) {
+    private fun enroll(
+        firebaseToken: String,
+        agentId: String
+    ) {
         dispose()
-        disposable = pandaLabManager.subscribeToFirebaseTopic(UtilsPhone.getPhoneSerialId(this)!!)
+        disposable = pandaLabManager.enroll(firebaseToken, agentId)
             .doOnError {
-                logWrapper.e(tag, it.message)
+                Log.e(tag, it.message)
             }
             .onErrorComplete()
-            .andThen(pandaLabManager.loginToFirebase(this, firebaseToken))
-            .flatMapCompletable {
-                pandaLabManager.updateDevice(it.uid, agentId)
-            }
             .doOnSubscribe {
-                sync_progress.spin()
+                sync_progress.visibility = View.VISIBLE
             }.doOnComplete {
-                sync_progress.stopSpinning()
+                sync_progress.visibility = View.GONE
             }.doOnError {
-                sync_progress.stopSpinning()
                 Toast.makeText(this, getString(R.string.errorNetwork), Toast.LENGTH_LONG).show()
             }.doOnTerminate {
                 disposable = null
             }.subscribe({
-                logWrapper.w(tag, "Device successfully added to firestore")
+                Log.w(tag, "Device successfully added to firestore")
             }, { error ->
-                logWrapper.e(tag, "Error during adding device to firestore: ${error.message}")
+                Log.e(tag, "Error during adding device to firestore: ${error.message}")
             })
     }
 
     private fun initView() {
         lastConnexion.text = "0"
-        ip.text = UtilsPhone.getPhoneIp()
+        ip.text = UtilsPhone.getPhoneIp(true)
         serialId.text = UtilsPhone.getPhoneSerialId(this)
         androidVersion.text = UtilsPhone.getPhoneAndroidVersion()
         currentServiceVersion.text = BuildConfig.VERSION_NAME
@@ -126,14 +115,19 @@ class HomeActivity : PandroidActivity<ActivityOpener>() {
         manufacturer.text = UtilsPhone.getPhoneManufacturer()
         brand.text = UtilsPhone.getPhoneBrand()
 
-        enroll.text = if (this.deviceId == null) {
+
+        enroll.text = if (!pandaLabManager.isLogged()) {
             getString(R.string.no_enroll)
         } else {
-            getString(R.string.enroll_with_identifier, this.deviceId)
+            getString(R.string.enroll_with_identifier, this.pandaLabManager.getDeviceId())
         }
 
         update_button.setOnClickListener {
-            // TODO
+            pandaLabManager.updateDevice().subscribe({
+                Log.i(tag, "device updated")
+            }, {
+                Log.e(tag, "can't update device", it)
+            })
         }
     }
 

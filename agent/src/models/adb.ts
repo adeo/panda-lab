@@ -1,13 +1,13 @@
 import {Timestamp} from 'rxjs';
 import {DeviceLog} from './device';
-import {DeviceState} from 'pandalab-commons';
+import {DeviceStatus} from 'pandalab-commons';
 
 export interface DeviceAdb {
   uid: string;
   id: string;
   type: string;
   path: string;
-  deviceState: DeviceState;
+  deviceState: DeviceStatus;
   deviceLogs: Array<Timestamp<DeviceLog>>;
 }
 

@@ -42,7 +42,7 @@ admin.firestore().collection('user-security')
                     .then(() => {
                         console.log(`Claims for user ${change.doc.data().uid} updated with success`)
                     }).catch(reason => {
-                        console.error("can't add claim", reason)
+                    console.error("can't add claim", reason)
                 })
             }
         });
@@ -58,7 +58,7 @@ const ADMIN = "admin";
 // const USER = "user";
 const GUEST = "guest";
 
-function createCustomToken(uid: string, role: string, parentUid: string): Promise<any> {
+function createCustomToken(uid: string, role: string, parentUid: string): Promise<{ token: string }> {
     return admin
         .auth()
         .createCustomToken(uid, <DeveloperClaims>{
@@ -67,13 +67,33 @@ function createCustomToken(uid: string, role: string, parentUid: string): Promis
         })
         .then(function (customToken) {
             console.log(`Custom token generated = [${customToken}], uid = [${uid}}, role = [${role}]`);
-            return {token: customToken};
+            const data = {token: customToken};
+            return admin.firestore().collection("token-security").doc(uid).set({
+                ...data,
+                role: role,
+                parentUid: parentUid
+            }).then(() => data)
         })
         .catch(function (error) {
             console.error("createCustomToken() error", error);
             throw new functions.https.HttpsError("failed-token", error);
         });
 }
+
+function refreshCustomToken(uid: string, oldToken: string): Promise<{ token: string }> {
+    return admin.firestore().collection("token-security").doc(uid).get()
+        .then(value => {
+            let data = value.data();
+            if (value.exists && data && data.token === oldToken) {
+                return createCustomToken(uid, data.role, data.parentUid)
+            } else {
+                return Promise.reject("Can't found token")
+            }
+        })
+
+
+}
+
 
 function saveUserSecurity(uid: string, role: string) {
     return admin.firestore().collection('user-security').doc(uid).set({
@@ -83,13 +103,13 @@ function saveUserSecurity(uid: string, role: string) {
     });
 }
 
-// exports.generate_custom_jwt_token = functions.https.onCall((data, context) => {
-//     return createCustomToken(data.uid, MOBILE_AGENT);
-// });
+exports.refreshCustomToken = functions.https.onCall((data, context) => {
+    return refreshCustomToken(data.uid, data.token);
+});
 
 exports.createMobileAgent = functions.https.onCall((data: any, context: CallableContext) => {
     console.log("createMobileAgent() data = ", data);
-    const token : DecodedIdToken = context.auth!.token;
+    const token: DecodedIdToken = context.auth!.token;
     if (token.role === DESKTOP_AGENT) {
         return createCustomToken(data.uid, MOBILE_AGENT, context.auth!.uid);
     } else {
@@ -100,7 +120,7 @@ exports.createMobileAgent = functions.https.onCall((data: any, context: Callable
 
 exports.createAgent = functions.https.onCall(async (data: any, context: CallableContext) => {
     console.log("createMobileAgent() data = ", data);
-    const token : DecodedIdToken = context.auth!.token;
+    const token: DecodedIdToken = context.auth!.token;
     if (token.role === ADMIN) {
         await admin.firestore().collection('agents').doc(data.uid).set({
             uid: data.uid,

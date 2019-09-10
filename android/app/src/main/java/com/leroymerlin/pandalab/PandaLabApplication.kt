@@ -1,19 +1,23 @@
 package com.leroymerlin.pandalab
 
-import com.leroymerlin.pandroid.PandroidApplication
-import com.leroymerlin.pandroid.dagger.BaseComponent
-import com.leroymerlin.pandroid.dagger.PandroidModule
+import android.app.Application
+import android.content.Context
 
-class PandaLabApplication: PandroidApplication() {
+class PandaLabApplication : Application() {
 
-    override fun createBaseComponent(): BaseComponent {
+    companion object {
+
+        fun getApp(context: Context): PandaLabApplication {
+            return context.applicationContext as PandaLabApplication
+        }
+    }
+
+    val component: PandaLabComponent by lazy { createBaseComponent() }
+
+    private fun createBaseComponent(): PandaLabComponent {
         return DaggerPandaLabComponent.builder()
-            .pandroidModule(PandroidModule(this))
-            .pandaLabModule(PandaLabModule())
+            .pandaLabModule(PandaLabModule(this))
             .build()
     }
 
-    override fun onCreate() {
-        super.onCreate()
-    }
 }

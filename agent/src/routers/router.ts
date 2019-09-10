@@ -3,7 +3,6 @@ import VueRouter, {RouteConfig} from 'vue-router';
 import {AuthentConfiguredGuard, AuthentNotConfiguredGuard} from "../routers/authent.guards";
 import Home from "@/components/Home.vue";
 import Website from "@/components/Website.vue";
-import ListDevice from "@/components/ListDevice.vue";
 import Jobs from "@/components/Jobs.vue";
 import Device from "@/components/Device.vue";
 import Applications from "@/components/Applications.vue";
@@ -11,6 +10,7 @@ import Job from "@/components/Job.vue";
 import JobTaskDetail from "@/components/JobTaskDetail.vue";
 import Auth from "@/components/auth/Auth.vue";
 import Splash from "../components/auth/Splash.vue";
+import AgentDevices from "../components/agent/AgentDevices.vue";
 
 Vue.use(VueRouter);
 
@@ -33,7 +33,7 @@ const HOME_ROUTE: RouteConfig = {
 
     children: [
         {path: '', component: Website,},
-        {path: '/listDevice', component: ListDevice,},
+        {path: '/agentDevices', component: AgentDevices,},
         {path: '/jobs', component: Jobs,},
         {path: '/jobs/:jobId', component: Job},
         {path: '/jobs/:jobId/tasks/:taskId', component: JobTaskDetail},

@@ -1,47 +1,54 @@
+'use strict';
+
+
+import {Guid} from "guid-typescript";
 import {
     BehaviorSubject,
     combineLatest,
+    concat,
+    ConnectableObservable,
     from,
     merge,
     Observable,
     of,
-    onErrorResumeNext,
     ReplaySubject,
     Subscription,
     Timestamp,
     zip
 } from "rxjs";
-import {AdbRepository} from "./repositories/adb.repository";
-import {Guid} from "guid-typescript";
 import {
     catchError,
-    filter,
+    endWith,
     first,
     flatMap,
     ignoreElements,
     map,
+    multicast,
+    startWith,
     tap,
     timeout,
     timestamp,
     toArray
 } from "rxjs/operators";
+import {DeviceAdb} from "../models/adb";
 import {DeviceLog, DeviceLogType} from "../models/device";
-import {FirebaseAuthService} from "./firebaseauth.service";
+import {Device, DeviceStatus} from 'pandalab-commons';
 import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
 import {AgentRepository, AgentStatus} from "./repositories/agent.repository";
+import {AdbRepository} from "./repositories/adb.repository";
+import {FirebaseAuthService} from "./firebaseauth.service";
 import {DevicesService} from "./devices.service";
-import {DeviceAdb} from "../models/adb";
-import {DeviceStatus} from "pandalab-commons";
-import {EMPTY} from "rxjs/src/internal/observable/empty";
+import {StoreRepository} from "./repositories/store.repository";
 
 export class AgentService {
     private listenDevicesSub: Subscription;
 
-    constructor(private adbRepo: AdbRepository,
+    constructor(public adbRepo: AdbRepository,
                 private authService: FirebaseAuthService,
                 private firebaseRepo: FirebaseRepository,
                 private agentRepo: AgentRepository,
-                private deviceService: DevicesService) {
+                private deviceService: DevicesService,
+                private storeRepo: StoreRepository) {
 
 
         this.agentRepo.agentStatus.subscribe(value => {
@@ -61,107 +68,192 @@ export class AgentService {
     }
 
 
-    listenAgentStatus() : Observable<AgentStatus>{
+    get autoEnroll(): boolean {
+        return this.storeRepo.load("auto-enroll", "true") == "true"
+    }
+
+    set autoEnroll(value: boolean) {
+        this.storeRepo.save("auto-enroll", "" + value);
+        //this.notifyChange()
+    }
+
+    get enableTCP(): boolean {
+        return this.storeRepo.load("enableTCP", "true") == "true"
+    }
+
+    set enableTCP(value: boolean) {
+        this.storeRepo.save("enableTCP", "" + value);
+        //this.notifyChange()
+    }
+
+
+    listenAgentStatus(): Observable<AgentStatus> {
         return this.agentRepo.agentStatus
     }
 
-    private listenDevices(): Observable<void> {
+    //private changeBehaviour = new BehaviorSubject("");
+    private agentDevicesData: BehaviorSubject<AgentDeviceData[]> = new BehaviorSubject<AgentDeviceData[]>([]);
 
-
-        let listenAdbDeviceWithUid: Observable<DeviceAdb[]> = this.adbRepo.listenAdb().pipe(
-            flatMap(from),
-            flatMap((device: DeviceAdb) => {
-                    return this.getDeviceUID(device.id)
-                        .pipe(
-                            onErrorResumeNext(() => of("")),
-                            map(value => {
-                                device.uid = value;
-                                return device
-                            })
-                        )
-                },
-                toArray())
-        );
-
-        const changeBehaviour = new BehaviorSubject("");
-        let hasChange = false;
-        let working = false;
-
-        return combineLatest(
-            this.deviceService.listenAgentDevices(this.agentRepo.UUID),
-            listenAdbDeviceWithUid,
-            changeBehaviour,
-            (firebaseDevices, adbDevices) => {
-                if (working) {
-                    hasChange = true;
-                }
-                return {firebaseDevices: firebaseDevices, adbDevices: adbDevices}
-            }
-        ).pipe(
-            //lock listening
-            filter(() => !working),
-            tap(() => working = true),
-
-            flatMap(result => {
-                const actions: DeviceActionModel[] = result.adbDevices.map(adbDevice => {
-                    return <DeviceActionModel>{
-                        action: DeviceAction.enroll,
-                        adbDevice: adbDevice
-                    }
-                });
-                result.firebaseDevices.forEach(device => {
-                    const action = actions.find(a => a.adbDevice.uid === device._ref.id);
-                    if (!action) {
-                        device.status = DeviceStatus.offline;
-                        actions.push(
-                            <DeviceActionModel>{
-                                action: DeviceAction.try_connect,
-                                firebaseDevice: device
-                            }
-                        )
-                    } else {
-                        action.firebaseDevice = device;
-                        if (device.status == DeviceStatus.offline) {
-                            device.status = DeviceStatus.available;
-                            action.action = DeviceAction.update_status;
-                        } else {
-                            action.action = DeviceAction.none;
-                        }
-                    }
-                });
-                return from(actions)
-            }),
-
-            flatMap(action => {
-                switch (action.action) {
-                    case DeviceAction.enroll:
-                        return this.enroll(action.adbDevice.id);
-                    case DeviceAction.update_status:
-                        return this.deviceService.updateDevice(action.firebaseDevice);
-                    case DeviceAction.try_connect:
-                        return this.deviceService.updateDevice(action.firebaseDevice)
-                            .pipe(flatMap(() => this.adbRepo.connectIp(action.firebaseDevice.ip)));
-                    case DeviceAction.none:
-                        return EMPTY
-                }
-            }),
-            toArray(),
-            //unlock listening
-            tap(() => {
-                working = false;
-                if (hasChange) {
-                    changeBehaviour.next("");
-                }
-            }),
-        )
+    public listenAgentDevices(): Observable<AgentDeviceData[]> {
+        return this.agentDevicesData;
     }
 
-    public getAgentUUID() : string{
+    // private notifyChange() {
+    //     this.changeBehaviour.next("")
+    // }
+
+    private listenDevices(): Observable<AgentDeviceData[]> {
+        console.log("listenDevices started");
+        let listenAdbDeviceWithUid: Observable<DeviceAdb[]> = this.adbRepo.listenAdb().pipe(
+            flatMap(devices => {
+                    console.log("devices", devices.length);
+                    return from(devices)
+                        .pipe(
+                            flatMap((device: DeviceAdb) => this.getDeviceUID(device.id)
+                                .pipe(
+                                    catchError(() => of("")),
+                                    map(value => {
+                                        device.uid = value;
+                                        return device
+                                    })
+                                )),
+                            toArray()
+                        )
+                }
+            ));
+        let listenAgentDevices = this.deviceService.listenAgentDevices(this.agentRepo.UUID);
+
+
+        return combineLatest([
+            listenAgentDevices,
+            listenAdbDeviceWithUid
+        ])
+            .pipe(
+                map(value => <any>{firebaseDevices: value[0], adbDevices: value[1]}),
+                map(result => {
+                    console.log("adbDevices", result.adbDevices.length);
+                    console.log("firebaseDevices", result.firebaseDevices.length);
+
+                    const devicesData: AgentDeviceData[] = result.adbDevices.map(adbDevice => {
+                        return <AgentDeviceData>{
+                            actionType: this.autoEnroll ? ActionType.enroll : ActionType.none,
+                            adbDevice: adbDevice
+                        }
+                    });
+                    result.firebaseDevices.forEach(device => {
+                        const deviceData = devicesData.find(a => a.adbDevice.uid === device._ref.id);
+                        if (!deviceData) {
+                            device.status = DeviceStatus.offline;
+                            devicesData.push(
+                                <AgentDeviceData>{
+                                    actionType: this.enableTCP && device.ip ? ActionType.try_connect : ActionType.none,
+                                    firebaseDevice: device
+                                }
+                            )
+                        } else {
+                            deviceData.firebaseDevice = device;
+                            if (device.status == DeviceStatus.offline) {
+                                device.status = DeviceStatus.available;
+                                deviceData.actionType = ActionType.update_status;
+                            } else {
+                                deviceData.actionType = ActionType.none;
+                            }
+                        }
+                    });
+                    return devicesData
+                }),
+                map(devicesData => {
+                        const currentDevicesData = this.agentDevicesData.getValue();
+                        return devicesData.map((deviceData: AgentDeviceData) => {
+                            let currentDeviceData = currentDevicesData.find((cData: AgentDeviceData) =>
+                                (cData.adbDevice && deviceData.adbDevice && cData.adbDevice.id === deviceData.adbDevice.id) ||
+                                (cData.firebaseDevice && deviceData.firebaseDevice && cData.firebaseDevice._ref.id === deviceData.firebaseDevice._ref.id)
+                            );
+                            if (currentDeviceData && currentDeviceData.action && !currentDeviceData.action.isStopped) {
+                                return currentDeviceData;
+                            } else {
+                                switch (deviceData.actionType) {
+                                    case ActionType.enroll:
+                                        console.log("enroll device", deviceData.adbDevice.id);
+                                        deviceData.action = this.startAction(this.enrollAction(deviceData.adbDevice.id));
+                                        break;
+                                    case ActionType.update_status:
+                                        deviceData.action = this.startAction(this.updateDeviceAction(deviceData.firebaseDevice, "save device status"));
+                                        break;
+                                    case ActionType.try_connect:
+                                        deviceData.action = this.startAction(this.tryToConnectAction(deviceData));
+
+                                        break;
+                                    case ActionType.none:
+
+                                        break
+                                }
+                                return deviceData;
+                            }
+                        });
+                    }
+                ),
+                tap(data => {
+                    console.log("agentDevicesData count", data.length);
+                    this.agentDevicesData.next(data)
+                })
+            );
+    }
+
+    public getAgentUUID(): string {
         return this.agentRepo.UUID;
     }
 
-    enroll(adbDeviceId: string): Observable<Timestamp<DeviceLog>> {
-        const subject = new ReplaySubject();
+
+    private startAction(action: Observable<Timestamp<DeviceLog>>): BehaviorSubject<Timestamp<DeviceLog>[]> {
+        const subject = new BehaviorSubject<Timestamp<DeviceLog>[]>([]);
+        action.pipe(
+            catchError(err => {
+                console.warn("Action error", err);
+                return of(<DeviceLog>{log: err, type: DeviceLogType.ERROR})
+            }),
+            map((log: Timestamp<DeviceLog>) => {
+                let logs = subject.getValue();
+                logs.push(log);
+                console.log(" - action log : " + log.value.log);
+                return logs;
+            }))
+            .subscribe(subject);
+        return subject;
+    }
+
+    private tryToConnectAction(device: AgentDeviceData): Observable<Timestamp<DeviceLog>> {
+        return concat(
+            this.updateDeviceAction(device.firebaseDevice, "save device status"),
+            this.adbRepo.connectIp(device.firebaseDevice.ip)
+                .pipe(
+                    startWith(<DeviceLog>{
+                        log: "try to connect to ip " + device.firebaseDevice.ip,
+                        type: DeviceLogType.INFO
+                    }),
+                    endWith(<DeviceLog>{log: "connected to device", type: DeviceLogType.INFO}),
+                    catchError(err => {
+                        console.warn("Can't connect to device on " + device.firebaseDevice.ip, err);
+                        device.firebaseDevice.ip = "";
+                        return this.updateDeviceAction(device.firebaseDevice, "Remove device ip");
+                    }),
+                    timestamp(),
+                )
+        )
+    }
+
+    private updateDeviceAction(device: Device, message: string): Observable<Timestamp<DeviceLog>> {
+        return this.deviceService.updateDevice(device)
+            .pipe(
+                ignoreElements(),
+                startWith(<DeviceLog>{log: message, type: DeviceLogType.INFO}),
+                endWith(<DeviceLog>{log: "update success", type: DeviceLogType.INFO}),
+                timestamp()
+            )
+    }
+
+    private enrollAction(adbDeviceId: string): Observable<Timestamp<DeviceLog>> {
+        const subject = new ReplaySubject<DeviceLog>();
         subject.next({log: 'Install service APK...', type: DeviceLogType.INFO});
 
         const enrollObs: Observable<DeviceLog> = this.adbRepo.installApk(adbDeviceId, this.agentRepo.getAgentApk())
@@ -179,13 +271,13 @@ export class AgentService {
                 tap(() => subject.next({log: 'Wait for the device in database...', type: DeviceLogType.INFO})),
                 flatMap(result => this.firebaseRepo.listenDocument(CollectionName.DEVICES, result.uuid)),
                 first(device => device !== null),
-                ignoreElements<>()
-            );
+                ignoreElements(),
+            ) as Observable<DeviceLog>;
 
         return merge(subject, enrollObs)
             .pipe(
                 timeout(50000),
-                catchError(error => of({log: 'Error: ' + error, type: DeviceLogType.ERROR})),
+                catchError(error => of(<DeviceLog>{log: 'Error: ' + error, type: DeviceLogType.ERROR})),
                 timestamp()
             )
     }
@@ -203,7 +295,7 @@ export class AgentService {
         const sendTransaction = this.adbRepo.launchActivityWithToken(deviceId,
             'com.leroymerlin.pandalab/.GenerateUniqueId',
             transactionId,
-            this.UUID);
+            this.getAgentUUID());
 
         return this.adbRepo.isInstalled(deviceId, 'com.leroymerlin.pandalab')
             .pipe(
@@ -218,14 +310,17 @@ export class AgentService {
     }
 }
 
-interface DeviceActionModel {
+export interface AgentDeviceData {
 
-    action: DeviceAction
+    actionType: ActionType,
     adbDevice: DeviceAdb,
     firebaseDevice: Device,
+    action: BehaviorSubject<Timestamp<DeviceLog>[]>
+
 }
 
-enum DeviceAction {
+
+export enum ActionType {
     enroll,
     try_connect,
     update_status,

@@ -23,8 +23,6 @@ export class AgentRepository {
 
         this.authService.listenUser().subscribe(user => {
             //agent is configuring we ignore user change
-            console.log("user update", user);
-
             if (this.agentStatus.getValue() === AgentStatus.CONFIGURING) {
                 return
             }
@@ -38,7 +36,7 @@ export class AgentRepository {
                     console.error("can't configure agent", error);
                     this.agentStatus.next(AgentStatus.NOT_LOGGED);
                 }, () => {
-                    console.error("agent configured");
+                    console.log("agent configured");
                     this.agentStatus.next(AgentStatus.READY)
                 })
             } else {
