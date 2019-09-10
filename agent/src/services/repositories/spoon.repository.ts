@@ -1,18 +1,17 @@
 import {AgentRepository, AgentStatus} from "./agent.repository";
-import {BehaviorSubject, combineLatest, from, Observable, of, Subscription, zip} from "rxjs";
+import {BehaviorSubject, combineLatest, empty, from, Observable, of, OperatorFunction, Subscription, zip} from "rxjs";
 import {CollectionName, FirebaseRepository} from "./firebase.repository";
 import {AdbRepository} from "./adb.repository";
 import {DevicesService} from "../devices.service";
-import {filter, flatMap, last, map, tap, toArray} from "rxjs/operators";
-import {Device, DeviceStatus, JobTask} from 'pandalab-commons';
+import {catchError, filter, first, flatMap, map, onErrorResumeNext, switchMapTo, tap} from "rxjs/operators";
+import {Artifact, Device, DeviceStatus, Job, JobTask, TaskStatus} from 'pandalab-commons';
 import {JobsService} from "../jobs.service";
 import {WorkspaceRepository} from "./workspace.repository";
-import {TaskStatus} from "pandalab-commons/src/models/job.models";
-import {DeviceAdb} from "../../models/adb";
+
+const exec = require('util').promisify(require('child_process').exec);
 
 export class SpoonRepository {
     private statusSub: Subscription;
-
 
     constructor(private agentRepo: AgentRepository,
                 private firebaseRepo: FirebaseRepository,
@@ -41,207 +40,260 @@ export class SpoonRepository {
         })
     }
 
-
     private listenJobs(): Observable<any> {
-        const jobsTasksQuery = this.firebaseRepo.getCollection(CollectionName.JOBS_TASKS)
-            .where("status", "==", TaskStatus.pending);
-        const devicesQuery = this.firebaseRepo.getCollection(CollectionName.DEVICES)
-            .where("status", "==", DeviceStatus.available);
-        // .where("agent", '==', this.agentRepo.UUID);
-        // const devicesObservable = this.devicesService.listenAgentDevices(this.agentRepo.UUID);
-        const devicesObservable = this.firebaseRepo.listenQuery<Device>(devicesQuery);
-        const jobsTasksObservable = this.firebaseRepo.listenQuery<JobTask>(jobsTasksQuery);
         const notifier = new BehaviorSubject<any>(null);
+        const tasksQuery = this.firebaseRepo.getCollection(CollectionName.JOBS_TASKS).where('status', '==', TaskStatus.pending);
+        const tasksAsync = this.firebaseRepo.listenQuery<JobTask>(tasksQuery)
+            .pipe(
+                map(tasks => {
+                    return tasks.filter(task => {
+                        return task.device !== undefined;
+                    });
+                }),
+            );
+        const availableDevicesAsync = this.devicesService.listenAgentDevices(this.agentRepo.UUID)
+            .pipe(
+                map(devices => {
+                    return devices.filter(device => device.status === DeviceStatus.available);
+                }),
+            );
+
+
         let working = false;
         let notify = false;
-        return combineLatest(
-            devicesObservable,
-            jobsTasksObservable,
-            notifier,
-            (devices, tasks) => {
-                console.log(`Devices = ${devices.length}, working = ${working}`);
-                if (working) {
-                    notify = true;
-                }
-                return {
-                    devices,
-                    tasks
-                };
+
+        const resetWorking = () => {
+            working = false;
+            if (notify) {
+                notifier.next(null);
             }
-        ).pipe(
+        };
+
+        return combineLatest(availableDevicesAsync, tasksAsync, notifier, (availableDevices, tasks) => {
+            if (working) {
+                notify = true;
+            }
+
+            return {
+                availableDevices,
+                tasks
+            };
+        }).pipe(
             filter(() => !working),
-            flatMap(infos => {
-                console.log(infos);
-                const availableDevicesObservable = of(infos.devices as Device[])
-                    .pipe(
-                        flatMap(devices => from<Device[]>(devices)),
-                        filter(device => {
-                            console.log('device available => ', device.status);
-                            return device.status === DeviceStatus.available;
-                        }),
-                        toArray(),
-                    );
+            flatMap(tupleDevicesTasks => {
+                const availableDevices = tupleDevicesTasks.availableDevices;
+                const tasks = tupleDevicesTasks.tasks;
 
-                const taskDevicesObservable = of(infos.tasks as JobTask[]).pipe(
-                    filter(value => value.length > 0),
-                    map(tasks => {
-                        if (tasks.length > 1) {
-                            notify = true;
-                        }
-                        return tasks[0];
-                    }),
-                    flatMap(task => {
-                        return from(task.devices).pipe(
-                            flatMap(deviceId => {
-                                const deviceReference = this.firebaseRepo.getCollection(CollectionName.DEVICES).doc(deviceId);
-                                return this.firebaseRepo.getDocument<Device>(deviceReference);
-                            }),
-                            toArray(),
-                            map(devices => {
-                                return {
-                                    task,
-                                    devices,
-                                }
-                            })
-                        );
-                    }),
-                );
+                const findDevice = (deviceId: string) => {
+                    return availableDevices.find(value => value._ref.id === deviceId);
+                };
 
-                return zip(availableDevicesObservable, taskDevicesObservable, (availableDevices, taskDevices) => {
-                    return {
-                        availableDevices,
-                        taskDevices
-                    };
-                }).pipe(
-                    map(value => {
-                        const availableDevices: Device[] = value.availableDevices;
-                        const task = value.taskDevices.task;
-                        const devices: Device[] = value.taskDevices.devices;
+                if (tasks.length == 0) {
+                    console.log(`tasks is empty`);
+                    return of();
+                }
 
-                        const devicesToRun = devices
-                            .filter(device => availableDevices
-                                .find(availableDevice => device._ref.id === availableDevice._ref.id) !== null
-                            );
-
-                        console.log('devicesToRun : ', devicesToRun.length);
+                return from(tasks).pipe(
+                    first(task => !!findDevice(task.device.id)),
+                    tap(() => working = true),
+                    map(task => {
                         return {
                             task,
-                            devicesToRun,
+                            device: findDevice(task.device.id),
+                        };
+                    }),
+                    flatMap(tuple => {
+                        if (this.adbRepo.isConnected(tuple.device.serialId)) {
+                            return of(tuple);
+                        } else {
+                            return this.saveDeviceStatus(tuple.device, DeviceStatus.offline)
+                                .pipe(
+                                    switchMapTo(of({
+                                        ...tuple,
+                                        error: `Device is offline`,
+                                    }))
+                                );
                         }
                     }),
-                    flatMap(infos => {
-                        console.log('######################');
-                        return this.adbRepo.listenAdb()
+                    flatMap((tuple: any) => {
+                        if (tuple.error) {
+                            return this.saveJobTaskStatus(tuple.task, TaskStatus.error, tuple.error);
+                        }
+                        console.log('run = ', tuple);
+                        return this.saveDeviceStatus(tuple.device, DeviceStatus.booked)
                             .pipe(
-                                flatMap(value => from<DeviceAdb[]>(value)),
-                                flatMap((deviceAdb: DeviceAdb) => {
-                                    return this.firebaseRepo.getDocument<Device>(this.firebaseRepo.getCollection(CollectionName.DEVICES).doc(deviceAdb.uid));
-                                }),
-                                toArray(),
-                                map((devicesAdb: Device[]) => {
-                                    return {
-                                        ...infos,
-                                        devicesAdb,
-                                    }
-                                })
+                                switchMapTo(this.runTest(tuple.task, tuple.device)),
+                                switchMapTo(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
+                                onErrorResumeNext(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
                             );
                     }),
-                    tap(async infos => {
-                        console.log('ICI');
-                        const task: JobTask = infos.task as JobTask;
-                        const devicesToRun: Device[] = infos.devicesToRun as Device[];
-                        const devicesAdb: Device[] = infos.devicesAdb as Device[];
-                        working = true;
-                        await this.perform(task, devicesToRun, devicesAdb);
-                        working = false;
-                        if (notify) {
-                            notifier.next(null);
-                        }
-                    }),
                 );
-            })
+            }),
+            tap(
+                () => {
+                    resetWorking();
+                },
+                (error) => {
+                    console.error(error);
+                    resetWorking();
+                }
+            ),
+            catchError(() => empty())
         );
     }
 
-    async perform(task: JobTask, deviceToRun: Device[], deviceAdb: Device[]) {
-        // TODO RUN ALL DEVICE
-        const device = deviceToRun[0];
-        try {
-            console.log('perform task device', device);
-            await device._ref.set({status: device.status}, {merge: true});
-            console.log('Device updated to working : ', device._ref.id);
-
-            task.status = TaskStatus.running;
-            await task._ref.set({status: task.status}, {merge: true});
-            console.log('Task updated to running : ', task._ref.id);
-
-            const errorDeviceNotPlugged = async () => {
-                await task._ref.set(
-                    {
-                        status: TaskStatus.error,
-                        error: `Skip the device is not connected`,
-                        completed: true,
-                    },
-                    {merge: true}
-                );
-            };
-            const runSpoon = async (device: Device) => {
-                console.log(device._ref.id);
-                console.log(task.job.id);
-                const exec = require('util').promisify(require('child_process').exec);
-                const reportDirectory = this.workspace.getReportJobDirectory(task.job.id, device._ref.id);
-                const fileDebug = `/Users/mehdisli/.pandalab/demo-1.1.18-debug.apk`;
-                const fileTest = `/Users/mehdisli/.pandalab/demo-1.1.18-debug-test.apk`;
-
-                const spoonCommands = [
-                    `java -jar ${this.workspace.spoonJarPath}`,
-                    `--apk ${fileDebug}`,
-                    `--test-apk ${fileTest}`,
-                    `--sdk ${process.env.ANDROID_HOME}`,
-                    `--output ${reportDirectory}`,
-                    `-serial ${device.serialId}`,
-                ];
-                const cmd = spoonCommands.join(' ');
-                console.log(`Run : ${cmd}`);
-                const {stdout, stderr} = await exec(cmd, {shell: true});
-                console.log('stdout:', stdout);
-                console.log('stderr:', stderr);
-                console.log(`End download apk for job : ${task.job.id}`);
-
-                const fs = require('fs');
-                const jsonContent = fs.readFileSync(`${reportDirectory}/result.json`);
-                await task._ref.set(
-                    {
-                        status: TaskStatus.success,
-                        result: jsonContent,
-                        error: null,
-                    },
-                    {
-                        merge: true
-                    }
-                );
-            };
-
-            const isConnected = deviceAdb.findIndex(value => value.serialId === device.serialId);
-            if (!isConnected) {
-                await errorDeviceNotPlugged();
-            } else {
-                await runSpoon(device);
-            }
-
-            task.status = TaskStatus.success;
-            await task._ref.set({status: task.status}, {merge: true});
-            console.log('Task updated to success : ', task._ref.id);
-        } catch (e) {
-            task.status = TaskStatus.error;
-            task.error = e.message;
-            await task._ref.set({status: task.error, error: task.error}, {merge: true});
-            console.log('Task updated to error : ', task._ref.id);
-        } finally {
-            device.status = DeviceStatus.available;
-            await device._ref.set({status: device.status}, {merge: true});
-        }
-
+    runTest(task: JobTask, device: Device): Observable<JobTask> {
+        console.log(`run test, [jobId = ${task._ref.id}, deviceId = ${task.device.id}]`);
+        return this.getJob(task)
+            .pipe(
+                flatMap(job => this.getJobArtifacts(job)),
+                flatMap(perform => this.downloadArtifacts(perform)),
+                map(perform => {
+                    return <Perform>{
+                        ...perform,
+                        task,
+                        device,
+                    };
+                }),
+                flatMap(perform => {
+                    return this.saveJobTaskStatus(perform.task, TaskStatus.running)
+                        .pipe(
+                            flatMap(() => this.runCommand(perform)),
+                            switchMapTo(this.saveJobTaskStatus(perform.task, TaskStatus.success)),
+                            catchError(err => {
+                                console.error(err);
+                                return this.saveJobTaskStatus(perform.task, TaskStatus.error, err.message);
+                            }),
+                        );
+                }),
+            );
 
     }
+
+    private getJob(task: JobTask): Observable<Job> {
+        return this.jobsService.getJob(task.job.id);
+    }
+
+    private getArtifact(documentReference: any) {
+        console.log(`getArtifact: ${documentReference.id}`);
+        return this.firebaseRepo.getDocument<Artifact>(documentReference);
+    }
+
+    private getJobArtifacts(job: Job): Observable<Perform> {
+        console.log('getJobArtifacts');
+        return zip(this.getArtifact(job.apk), this.getArtifact(job.apk_test), (artifact, testArtifact) => {
+            return <Perform>{
+                job,
+                artifact,
+                testArtifact
+            };
+        });
+    }
+
+    private downloadArtifacts(info: any): Observable<Perform> {
+        console.log('downloadArtifacts');
+        const job: Job = info.job;
+        const artifact: Artifact = info.artifact;
+        const testArtifact: Artifact = info.testArtifact;
+        const apkDirectory = this.workspace.getApkDirectory();
+
+        function getFilenameArtifact(artifact: Artifact): string {
+            return artifact.path.split('/').slice(-1)[0];
+        }
+
+        const artifactPath = `${apkDirectory}${this.workspace.path.sep}${getFilenameArtifact(artifact)}`;
+        const artifactUrl = ''; // TODO
+        const testArtifactPath = `${apkDirectory}${this.workspace.path.sep}${getFilenameArtifact(testArtifact)}`;
+        const testArtifactUrl = ''; // TODO
+
+        console.log(artifactPath);
+        console.log(testArtifactPath);
+
+        const result = of(<Perform>{
+            job,
+            artifact,
+            testArtifact,
+            artifactPath,
+            testArtifactPath
+        });
+
+        return this.downloadApk(artifactPath, artifactUrl)
+            .pipe(
+                switchMapTo(this.downloadApk(testArtifactPath, testArtifactUrl)),
+                switchMapTo(result),
+                tap(result => console.log(`RESULT = ${result}`)),
+            );
+    }
+
+    private downloadApk(path: string, url: string): Observable<string> {
+        return of(path);
+        // return this.workspace.downloadFile(path, url);
+    }
+
+    private runCommand(perform: Perform): Observable<void> {
+        console.log('runCommand');
+        return from(this.runCommandPromise(perform));
+    }
+
+    private async runCommandPromise(perform: Perform): Promise<void> {
+        console.log('runCommandPromise');
+        const reportDirectory = this.workspace.getReportJobDirectory(perform.job._ref.id, perform.device._ref.id);
+        const spoonCommands = [
+            `java -jar ${this.workspace.spoonJarPath}`,
+            `--apk ${perform.artifactPath}`,
+            `--test-apk ${perform.testArtifactPath}`,
+            `--sdk ${process.env.ANDROID_HOME}`,
+            `--output ${reportDirectory}`,
+            `-serial ${perform.device.serialId}`,
+        ];
+
+        const cmd = spoonCommands.join(' ');
+        console.log(`Run : ${cmd}`);
+        const {stdout, stderr} = await exec(cmd, {shell: true});
+        console.log('stdout:', stdout);
+        console.log('stderr:', stderr);
+        console.log(`End download apk for job : ${perform.job._ref.id}`);
+
+        const fs = require('fs');
+        const json = fs.readFileSync(`${reportDirectory}/result.json`);
+
+        this.adbRepo.listenAdb();
+
+        // TODO UPLOAD TO BUCKET
+    }
+
+    private saveJobTaskStatus(jobTask: JobTask, status: TaskStatus, errorMessage: string = null): Observable<JobTask> {
+        console.log(`saveJobTaskStatus ${jobTask._ref.id} - ${status}`);
+        jobTask.status = status;
+        jobTask.error = errorMessage;
+        return from(jobTask._ref.set({
+            status: jobTask.status,
+            error: jobTask.error
+        }, {merge: true})).pipe(switchMapTo(of(jobTask)));
+        // return this.firebaseRepo.saveDocument<JobTask>(jobTask);
+    }
+
+    private saveDeviceStatus(device: Device, deviceStatus: DeviceStatus): Observable<Device> {
+        console.log('saveDeviceStatus');
+        device.status = deviceStatus;
+        return from(device._ref.set({status: device.status}, {merge: true})).pipe(switchMapTo(of(device)));
+        // firebase error, DocumentReference.set() called with invalid data
+        // return this.firebaseRepo.saveDocument<Device>(device);
+    }
+
+}
+
+export function flatMapIterate<T>(): OperatorFunction<T[], T> {
+    return flatMap(values => from<T[]>(values));
+}
+
+
+interface Perform {
+    device: Device;
+    task: JobTask;
+    job: Job;
+    artifact: Artifact;
+    testArtifact: Artifact;
+    artifactPath: string;
+    testArtifactPath: string;
 }
