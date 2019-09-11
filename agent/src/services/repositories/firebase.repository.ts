@@ -4,13 +4,14 @@ import '@firebase/firestore';
 import '@firebase/messaging';
 import {firestore} from "firebase";
 import {FirebaseNamespace} from '@firebase/app-types';
-import {from, Observable, throwError} from "rxjs";
+import {from, Observable, of, throwError} from "rxjs";
 import {FirebaseModel} from "pandalab-commons";
-import {flatMap, map} from "rxjs/operators";
+import {catchError, flatMap, map} from "rxjs/operators";
 import CollectionReference = firestore.CollectionReference;
 import DocumentSnapshot = firestore.DocumentSnapshot;
 import DocumentReference = firestore.DocumentReference;
 import Query = firestore.Query;
+import {tryCatch} from "rxjs/internal-compatibility";
 
 
 export interface FirebaseConfig {
@@ -81,12 +82,18 @@ export class FirebaseRepository {
     saveDocument<T extends FirebaseModel>(doc: T, merge: boolean = true): Observable<T> {
         let ref = doc._ref;
         if (ref == null)
-            return throwError("_ref not defined. can't save model")
+            return throwError("_ref not defined. can't save model");
 
         let savedObj = Object.assign({}, doc);
         delete savedObj['_ref'];
         return from(ref.set(savedObj, {merge: merge}))
-            .pipe(flatMap(() => this.getDocument<T>(ref)))
+            .pipe(
+                flatMap(() => this.getDocument<T>(ref)),
+                catchError(err => {
+                    console.error(err);
+                    return of(doc);
+                }),
+            );
     }
 
 

@@ -76,6 +76,14 @@ export class AdbRepository {
         })
     }
 
+    isConnected(serialId: string): boolean {
+        const devices = this.listDevices.value;
+        if (devices === null || devices.length === 0) {
+            return false;
+        }
+        return devices.find(value => value.uid === serialId) !== null;
+    }
+
     private updateDevicesFlux(devices: DeviceAdb[]) {
         devices = devices.filter(value => value.type != 'offline');
         this.listDevices.next(devices);
@@ -91,6 +99,10 @@ export class AdbRepository {
             .pipe(
                 debounceTime(1000)
             )
+    }
+
+    snapshotDeviceAdb(): Array<DeviceAdb> {
+        return this.listDevices.getValue();
     }
 
     listenAdbStatus(): Observable<AdbStatus> {

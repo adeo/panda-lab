@@ -42,6 +42,10 @@ export class WorkspaceRepository {
         this.mkdir(this.apkPath);
     }
 
+    getApkDirectory(): string {
+        return this.apkPath;
+    }
+
     getJobDirectory(jobId: string): string {
         let directory = `${this.apkPath}${this.path.sep}${jobId}`;
         this.mkdir(directory);
