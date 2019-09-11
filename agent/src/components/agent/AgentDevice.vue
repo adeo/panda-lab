@@ -1,3 +1,4 @@
+import {ActionType} from "../../services/agent.service";
 import {DeviceLogType} from "../../models/device";
 import {AdbStatusState} from "../models/adb";
 import {ActionType} from "../services/agent.service";
@@ -29,7 +30,7 @@ import {DeviceLogType} from "../models/device";
             <md-button class="devices-button md-raised md-primary"
                        v-if="!device.enrolled"
                        :disabled="device.action && !device.action.isStopped"
-                       v-on:click="enroll(device)">
+                       v-on:click="enroll()">
                 Enroll
             </md-button>
             <div class="devices-status"
@@ -43,8 +44,9 @@ import {DeviceLogType} from "../models/device";
     import {Timestamp} from "rxjs";
     import {DeviceLog, DeviceLogType} from "../../models/device";
     import {DeviceAdb} from "../../models/adb";
-    import {ActionType, AgentDeviceData} from "../../services/agent.service";
+    import {ActionType, AgentDeviceData, AgentService} from "../../services/agent.service";
     import {DeviceStatus} from "pandalab-commons";
+    import {Services} from "../../services/services.provider";
 
     @Component
     export default class AgentDevices extends Vue {
@@ -60,9 +62,12 @@ import {DeviceLogType} from "../models/device";
         private deviceStatus: string;
         private used: boolean;
         private actionTypeLabel: string = "";
+        private agentService: AgentService;
 
         constructor(props) {
             super(props);
+
+            this.agentService = Services.getInstance().agentService;
             let deviceId: string = (this.data.adbDevice && this.data.adbDevice.uid) ? this.data.adbDevice.uid : this.data.firebaseDevice ? this.data.firebaseDevice._ref.id : this.data.adbDevice.id;
             this.device = {
                 name: this.data.firebaseDevice ? this.data.firebaseDevice.name : this.data.adbDevice.type,
@@ -142,8 +147,13 @@ import {DeviceLogType} from "../models/device";
             }
         }
 
-        enroll(device: DeviceAdb) {
-
+        enroll() {
+            this.agentService.addManualAction({
+                actionType: ActionType.enroll,
+                adbDevice: this.data.adbDevice,
+                firebaseDevice: this.data.firebaseDevice,
+                action: null
+            });
         }
 
         getDateFromTimestamp(timestamp: number): string {

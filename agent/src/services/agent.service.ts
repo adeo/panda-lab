@@ -42,6 +42,7 @@ import {doOnSubscribe} from "../utils/rxjs";
 
 export class AgentService {
     private listenDevicesSub: Subscription;
+    private manualActions: AgentDeviceData[] = [];
 
     constructor(public adbRepo: AdbRepository,
                 private authService: FirebaseAuthService,
@@ -102,7 +103,12 @@ export class AgentService {
         this.changeBehaviour.next("")
     }
 
-    tcpIdCache = new Map<string, number>()
+
+    public addManualAction(data: AgentDeviceData) {
+        this.manualActions.push(data);
+    }
+
+    tcpIdCache = new Map<string, number>();
 
     private listenDevices(): Observable<AgentDeviceData[]> {
         let listenAdbDeviceWithUid: Observable<DeviceAdb[]> = this.adbRepo.listenAdb().pipe(
@@ -192,13 +198,17 @@ export class AgentService {
                 map(devicesData => {
                         const currentDevicesData = this.agentDevicesData.getValue();
                         return devicesData.map((deviceData: AgentDeviceData) => {
-                            let currentDeviceData = currentDevicesData.find((cData: AgentDeviceData) =>
-                                (cData.adbDevice && deviceData.adbDevice && cData.adbDevice.id === deviceData.adbDevice.id) ||
-                                (cData.firebaseDevice && deviceData.firebaseDevice && cData.firebaseDevice._ref.id === deviceData.firebaseDevice._ref.id)
-                            );
+                            let currentDeviceData = this.findDataInList(currentDevicesData, deviceData);
                             if (currentDeviceData && currentDeviceData.action && !currentDeviceData.action.isStopped) {
                                 return currentDeviceData;
+
+
                             } else {
+
+                                let index = this.findIndexDataInList(this.manualActions, deviceData);
+                                if (index >= 0) {
+                                    deviceData = this.manualActions.splice(index, 1)[0]
+                                }
                                 switch (deviceData.actionType) {
                                     case ActionType.enroll:
                                         console.log("enroll device", deviceData.adbDevice.id);
@@ -227,6 +237,16 @@ export class AgentService {
                     this.agentDevicesData.next(data)
                 })
             );
+    }
+
+    private findIndexDataInList(currentDevicesData: AgentDeviceData[], deviceData: AgentDeviceData): number {
+        return currentDevicesData.findIndex((cData: AgentDeviceData) => (cData.adbDevice && deviceData.adbDevice && cData.adbDevice.id === deviceData.adbDevice.id) ||
+            (cData.firebaseDevice && deviceData.firebaseDevice && cData.firebaseDevice._ref.id === deviceData.firebaseDevice._ref.id));
+    }
+
+    private findDataInList(currentDevicesData: AgentDeviceData[], deviceData: AgentDeviceData) {
+        let index = this.findIndexDataInList(currentDevicesData, deviceData);
+        return index >= 0 ? currentDevicesData[index] : null
     }
 
     public getAgentUUID(): string {
