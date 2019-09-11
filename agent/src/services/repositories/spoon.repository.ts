@@ -3,10 +3,11 @@ import {BehaviorSubject, combineLatest, empty, from, Observable, of, OperatorFun
 import {CollectionName, FirebaseRepository} from "./firebase.repository";
 import {AdbRepository} from "./adb.repository";
 import {DevicesService} from "../devices.service";
-import {catchError, filter, first, flatMap, map, onErrorResumeNext, switchMapTo, tap} from "rxjs/operators";
+import {catchError, filter, first, flatMap, map, onErrorResumeNext, switchMapTo, tap, timeout} from "rxjs/operators";
 import {Artifact, Device, DeviceStatus, Job, JobTask, TaskStatus} from 'pandalab-commons';
 import {JobsService} from "../jobs.service";
 import {WorkspaceRepository} from "./workspace.repository";
+import Timestamp = firebase.firestore.Timestamp;
 
 const exec = require('util').promisify(require('child_process').exec);
 
@@ -119,13 +120,25 @@ export class SpoonRepository {
                         if (tuple.error) {
                             return this.saveJobTaskStatus(tuple.task, TaskStatus.error, tuple.error);
                         }
-                        console.log('run = ', tuple);
-                        return this.saveDeviceStatus(tuple.device, DeviceStatus.booked)
-                            .pipe(
-                                switchMapTo(this.runTest(tuple.task, tuple.device)),
-                                switchMapTo(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
-                                onErrorResumeNext(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
-                            );
+
+                        const timeInSeconds = tuple.task.timeout.seconds;
+                        const nowInSecond = Math.round(Date.now() / 1000);
+
+                        const timeoutInSeconds = timeInSeconds - nowInSecond;
+                        if (timeoutInSeconds <= 0) {
+                            // is expired
+                            return this.saveJobTaskStatus(tuple.task, TaskStatus.error, 'timeout');
+                        } else {
+                            console.log('run = ', tuple);
+                            return this.saveDeviceStatus(tuple.device, DeviceStatus.booked)
+                                .pipe(
+                                    switchMapTo(this.runTest(tuple.task, tuple.device)),
+                                    switchMapTo(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
+                                    onErrorResumeNext(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
+                                    timeout(timeoutInSeconds),
+                                );
+                        }
+
                     }),
                 );
             }),
