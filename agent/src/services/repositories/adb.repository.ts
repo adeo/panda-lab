@@ -1,7 +1,7 @@
 import {BehaviorSubject, from, Observable} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
 import {DeviceLog, DeviceLogType} from "../../models/device";
-import {timeout} from "rxjs/operators";
+import {debounceTime, timeout} from "rxjs/operators";
 
 export class AdbRepository {
 
@@ -10,9 +10,11 @@ export class AdbRepository {
     private request: any;
     private readonly listDevices: BehaviorSubject<Array<DeviceAdb>>;
     private readonly adbStatus: BehaviorSubject<AdbStatus>;
+    private adb: any;
 
     constructor() {
-        this.adbClient = require('adbkit').createClient();
+        this.adb = require('adbkit');
+        this.adbClient = this.adb.createClient();
         this.request = require('request');
         this.Readable = require('stream').Readable;
         this.listDevices = new BehaviorSubject(new Array<DeviceAdb>());
@@ -94,6 +96,9 @@ export class AdbRepository {
 
     listenAdb(): Observable<Array<DeviceAdb>> {
         return this.listDevices
+            .pipe(
+                debounceTime(1000)
+            )
     }
 
     snapshotDeviceAdb(): Array<DeviceAdb> {
@@ -113,6 +118,7 @@ export class AdbRepository {
 
     readAdbLogcat(deviceId: string, filter?: string): Observable<string> {
         return new Observable(emitter => {
+            console.log("listen device", deviceId, filter)
             this.adbClient.openLogcat(deviceId)
                 .then(logcat => {
                     let logcatFilter = logcat;
@@ -120,8 +126,12 @@ export class AdbRepository {
                         logcatFilter = logcat.excludeAll()
                             .include(filter)
                     }
-                    logcatFilter.on('entry', emitter.next);
-                    logcatFilter.on('error', emitter.error)
+                    logcatFilter.on('entry', (entry) => {
+                        emitter.next(entry.message)
+                    });
+                    logcatFilter.on('error', (error) => {
+                        emitter.error(error)
+                    })
 
                 })
                 .catch(err => {
@@ -135,6 +145,25 @@ export class AdbRepository {
         return new Observable(emitter => {
             this.adbClient.startActivity(deviceId, {component: activityName})
                 .then(() => {
+                    emitter.complete();
+                })
+                .catch(err => {
+                    emitter.error(err);
+                });
+        });
+    }
+
+    sendBroadcastWithData(deviceId: string, broadcastName: string, actionName: string, data: { [key:string]:string; }): Observable<DeviceLog> {
+        return new Observable(emitter => {
+            const args = ['am', 'broadcast', '-a', actionName, '-n', broadcastName];
+            Object.keys(data).forEach((key) => {
+                args.push("--es", key, data[key])
+            });
+            console.log("sendBroadcastWithData", args.join(" "))
+            this.adbClient.shell(deviceId, args)
+                .then(this.adb.util.readAll)
+                .then(function (output) {
+                    emitter.next({log: `[${deviceId}] ${output.toString().trim()}`, type: DeviceLogType.INFO})
                     emitter.complete();
                 })
                 .catch(err => {
@@ -168,7 +197,6 @@ export class AdbRepository {
                 });
         });
     }
-
 
     isInstalled(deviceId: string, packageName: string): Observable<boolean> {
         return from(this.adbClient.isInstalled(deviceId, packageName) as Promise<boolean>);

@@ -1,7 +1,8 @@
-import {AsyncSubject, from, Observable} from "rxjs";
+import {AsyncSubject, BehaviorSubject, from, Observable, Subject} from "rxjs";
 import {concatMap, filter, first, map} from "rxjs/operators";
 import "rxjs-compat/add/operator/multicast";
 import {doOnSubscribe} from "../../utils/rxjs";
+
 
 
 export class WorkspaceRepository {
@@ -27,7 +28,6 @@ export class WorkspaceRepository {
         this.agentApkPath = `${this.workspacePath}${this.path.sep}panda-lab-mobile.apk`;
         this.spoonJarPath = `${this.workspacePath}${this.path.sep}spoon-runner.jar`;
 
-        this.downloadObs.connect()
 
     }
 
@@ -58,37 +58,42 @@ export class WorkspaceRepository {
         return directory;
     }
 
-    private downloadSubject = new AsyncSubject<{ url: string, filePath: string }>();
+    private downloadSubjectEmitter = new Subject<{ url: string, filePath: string }>();
 
-    private downloadObs = this.downloadSubject.pipe(
-        concatMap(data => from(new Promise<{ error?: string, filePath: string }>((resolve, reject) => {
-            if (this.fs.existsSync(data.filePath)) {
-                // file already downloaded
-                console.log(`File exist :  ${data.filePath}. Stop download apk.`);
-                resolve({filePath: data.filePath});
-                return;
-            }
+    private downloadSubjectReceiver = new Subject<{ error?: string, filePath: string }>();
 
-            const file = this.fs.createWriteStream(data.filePath);
-            const https = require('https');
-            console.log(data.url);
-            https.get(data.url, res => {
-                res.pipe(file);
-                file.on('finish', function () {
-                    console.log(`End download apk, path = ${data.filePath}`);
+    private sub = this.downloadSubjectEmitter.pipe(
+        concatMap(data => {
+
+            return from(new Promise<{ error?: string, filePath: string }>((resolve, reject) => {
+                if (this.fs.existsSync(data.filePath)) {
+                    // file already downloaded
+                    console.log(`File exist :  ${data.filePath}. Stop download apk.`);
                     resolve({filePath: data.filePath});
+                    return;
+                }
+                console.log(`Start downloading file, path = ${data.url}`);
+
+                const file = this.fs.createWriteStream(data.filePath);
+                const https = require('https');
+                console.log(data.url);
+                https.get(data.url, res => {
+                    res.pipe(file);
+                    file.on('finish', function () {
+                        console.log(`End download apk, path = ${data.filePath}`);
+                        resolve({filePath: data.filePath});
+                    });
+                }).on('error', function (err) {
+                    console.error(`Error download apk, path = ${data.filePath}`, err);
+                    resolve({error: `Error download apk`, filePath: data.filePath});
                 });
-            }).on('error', function (err) {
-                console.error(`Error download apk, path = ${data.filePath}`, err);
-                resolve({error: `Error download apk`, filePath: data.filePath});
-            });
-        })))).multicast<{ error?: string, filePath: string }>(() => new AsyncSubject<{ error?: string, filePath: string }>()
-    );
+            }))
+        })).subscribe(this.downloadSubjectReceiver);
 
     downloadFile(filePath: string, url: string): Observable<string> {
-        return this.downloadObs.pipe(
+        return this.downloadSubjectReceiver.pipe(
             doOnSubscribe(() => {
-                this.downloadSubject.next({url: url, filePath: filePath})
+                this.downloadSubjectEmitter.next({url: url, filePath: filePath})
             }),
             filter(result => result.filePath === filePath),
             first(),
@@ -103,6 +108,12 @@ export class WorkspaceRepository {
 
     fileExist(file: string) {
         return this.fs.existsSync(file)
+    }
+
+    delete(path: string) {
+        if (this.fileExist(path)) {
+            this.fs.unlinkSync(path)
+        }
     }
 }
 

@@ -1,3 +1,8 @@
+import com.google.auth.oauth2.GoogleCredentials
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
+import com.google.firebase.cloud.StorageClient
+
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
@@ -47,3 +52,45 @@ dependencies {
 }
 
 apply plugin: 'com.google.gms.google-services'
+
+import com.google.auth.oauth2.GoogleCredentials
+import com.google.firebase.cloud.StorageClient
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
+import groovy.json.JsonSlurper
+import com.android.build.gradle.api.ApkVariantOutput
+
+project.afterEvaluate {
+
+    def debugVariant = android.applicationVariants.find { variant -> variant.name == "debug" && variant.outputs.first() instanceof ApkVariantOutput }
+
+    task('uploadAgentApk', dependsOn: ["assembleDebug"]) {
+
+    }.doLast {
+
+        def serviceAccountFile = project.rootProject.file('../.config/firebase-adminsdk.json')
+        FileInputStream serviceAccount =
+                new FileInputStream(serviceAccountFile)
+
+        def account = new JsonSlurper().parse(serviceAccountFile)
+
+        def pid = account['project_id']?.toString() ?: ""
+        def bucketUrl = "${pid}.appspot.com"
+        def credentials = GoogleCredentials.fromStream(serviceAccount)
+        FirebaseOptions options = new FirebaseOptions.Builder()
+                .setCredentials(credentials)
+                .setProjectId(pid)
+                .setStorageBucket(bucketUrl)
+                .build()
+
+        try {
+            FirebaseApp.initializeApp(options)
+        } catch (e) {
+            project.logger.debug("FirebaseApp already initialized", e)
+        }
+
+        project.logger.warn("uploaded file : ${debugVariant.outputs.first().outputFile}")
+        StorageClient.getInstance().bucket()
+                .create("config/android-agent.apk", debugVariant.outputs.first().outputFile.newInputStream())
+    }
+}

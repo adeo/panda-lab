@@ -24,7 +24,7 @@ export interface FirebaseConfig {
 }
 
 export class FirebaseRepository {
-    firebase: FirebaseNamespace;
+    public firebase: FirebaseNamespace;
 
     constructor(config: FirebaseConfig) {
         firebase.initializeApp(config);
@@ -84,7 +84,7 @@ export class FirebaseRepository {
         if (ref == null)
             return throwError("_ref not defined. can't save model");
 
-        let savedObj = Object.assign({}, ref);
+        let savedObj = Object.assign({}, doc);
         delete savedObj['_ref'];
         return from(ref.set(savedObj, {merge: merge}))
             .pipe(

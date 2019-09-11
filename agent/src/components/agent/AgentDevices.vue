@@ -50,7 +50,7 @@ import {DeviceLogType} from "../models/device";
 <script lang="ts">
     import {Component, Vue} from 'vue-property-decorator';
     import {Subscription} from 'vue-rx-decorators';
-    import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
+    import {AdbStatus, AdbStatusState} from "../../models/adb";
     import {DeviceLog, DeviceLogType, DeviceVue} from "../../models/device";
     import {Services} from "../../services/services.provider";
     import {DevicesService} from "../../services/devices.service";
@@ -89,7 +89,7 @@ import {DeviceLogType} from "../models/device";
             this.autoEnrollSwitch = this.agentService.autoEnroll;
         }
 
-        mounted(){
+        mounted() {
             let devicesDataObs = this.agentService.listenAgentDevices();
             this.$subscribeTo(devicesDataObs, (devicesData: AgentDeviceData[]) => {
                 console.log("devicesData updated")
@@ -97,12 +97,12 @@ import {DeviceLogType} from "../models/device";
                 this.devicesVue = devicesData.map((data: AgentDeviceData) => {
                     let lastLog = this.getLastLog(data);
                     return <DeviceVue>{
-                        id: data.adbDevice && data.adbDevice.uid ? data.adbDevice.uid : data.firebaseDevice ? data.firebaseDevice._ref.id : data.adbDevice.id,
+                        id: (data.adbDevice && data.adbDevice.uid) ? data.adbDevice.uid : data.firebaseDevice ? data.firebaseDevice._ref.id : data.adbDevice.id,
                         type: data.adbDevice ? data.adbDevice.type + " / " + data.adbDevice.path : 'unknown',
                         enrolled: (data.adbDevice != null && data.firebaseDevice != null),
                         logError: lastLog ? lastLog.value.type == DeviceLogType.ERROR : false,
                         log: lastLog,
-                        actionType: !data.action.isStopped ? data.actionType : ActionType.none,
+                        actionType: (data.action && !data.action.isStopped) ? data.actionType : ActionType.none,
                         data: data
                     }
                 });
@@ -122,7 +122,7 @@ import {DeviceLogType} from "../models/device";
 
         autoEnrollActivation() {
             this.agentService.autoEnroll = this.autoEnrollSwitch
-            console.log('autoEnroll',this.autoEnrollSwitch )
+            console.log('autoEnroll', this.autoEnrollSwitch)
         }
 
         enableTcpIpActivaton() {
@@ -139,11 +139,7 @@ import {DeviceLogType} from "../models/device";
         }
 
 
-
-
-
     }
-
 
 
 </script>

@@ -2,7 +2,7 @@ import {Change, EventContext} from "firebase-functions";
 import {UserRecord} from "firebase-functions/lib/providers/auth";
 import {DocumentSnapshot} from "firebase-functions/lib/providers/firestore";
 import {API_FUNCTION} from "./api";
-import {ANALYSE_APK, CLEAN_ARTIFACT} from "./storage";
+import {ANALYSE_APK, CLEAN_ARTIFACT, GET_FILE_DATA} from "./storage";
 import * as admin from "firebase-admin";
 import {jobService} from "./job/job.service";
 import {CallableContext} from "firebase-functions/lib/providers/https";
@@ -83,7 +83,7 @@ function createCustomToken(uid: string, role: string, parentUid: string): Promis
 function refreshCustomToken(uid: string, oldToken: string): Promise<{ token: string }> {
     return admin.firestore().collection("token-security").doc(uid).get()
         .then(value => {
-            let data = value.data();
+            const data = value.data();
             if (value.exists && data && data.token === oldToken) {
                 return createCustomToken(uid, data.role, data.parentUid)
             } else {
@@ -102,6 +102,7 @@ function saveUserSecurity(uid: string, role: string) {
         createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 }
+
 
 exports.refreshCustomToken = functions.https.onCall((data, context) => {
     return refreshCustomToken(data.uid, data.token);
@@ -183,4 +184,5 @@ exports.onRemoveJob = functions.firestore.document('jobs/{jobId}').onDelete(asyn
 
 exports.analyse_apk = ANALYSE_APK;
 exports.clean_artifact = CLEAN_ARTIFACT;
+exports.getFileData = GET_FILE_DATA;
 exports.api = API_FUNCTION;

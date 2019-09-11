@@ -59,7 +59,6 @@ import {DeviceLogType} from "../models/device";
             if (actionLogs) {
                 this.deviceLogs = this.device.data.action.getValue().map(value => value.value)
                 this.$subscribeTo(actionLogs, (logs: Timestamp<DeviceLog>[]) => {
-                    console.log("actionLogs actionLogs actionLogs")
                     this.deviceLogs = logs.map(value => value.value)
                 })
             }
