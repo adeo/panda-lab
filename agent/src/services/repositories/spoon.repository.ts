@@ -7,7 +7,6 @@ import {catchError, filter, first, flatMap, map, onErrorResumeNext, switchMapTo,
 import {Artifact, Device, DeviceStatus, Job, JobTask, TaskStatus} from 'pandalab-commons';
 import {JobsService} from "../jobs.service";
 import {WorkspaceRepository} from "./workspace.repository";
-import Timestamp = firebase.firestore.Timestamp;
 
 const exec = require('util').promisify(require('child_process').exec);
 
