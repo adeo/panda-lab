@@ -119,3 +119,24 @@ export const GET_FILE_DATA = functions.https.onCall(async (data, context) => {
     }
 
 });
+
+export const SAVE_SPOON_RESULT = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", `Not authorized to access file data`);
+    }
+    try {
+        const jobId = data.jobId;
+        const deviceId = data.deviceId;
+        const result = data.result;
+        const stream = admin.storage().bucket().file(`reports/${jobId}/devices/${deviceId}/result.json`).createWriteStream();
+        stream.write(JSON.stringify(result));
+        stream.end();
+        return {
+            success: true,
+        };
+    } catch (e) {
+        return {
+            success: false,
+        }
+    }
+});
