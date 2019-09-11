@@ -292,6 +292,25 @@ export class AgentService {
             )
     }
 
+    public getDeviceAdb(id: string): Observable<DeviceAdb|null> {
+        return this.adbRepo.getDevices().pipe(
+            flatMap(devices => {
+                return from(devices).pipe(
+                    flatMap(device => {
+                        return this.getDeviceUID(device.id).pipe(map(id => {
+                            return {
+                                id,
+                                device,
+                            };
+                        }));
+                    }),
+                    first(tuple => tuple.id === id, null),
+                    map(tuple => tuple.device),
+                );
+            })
+        );
+    }
+
 
     private getDeviceUID(deviceId: string): Observable<string> {
         const transactionId = Guid.create().toString();
