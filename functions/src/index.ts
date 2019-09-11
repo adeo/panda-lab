@@ -4,10 +4,11 @@ import {DocumentSnapshot} from "firebase-functions/lib/providers/firestore";
 import {API_FUNCTION} from "./api";
 import {ANALYSE_APK, CLEAN_ARTIFACT, GET_FILE_DATA} from "./storage";
 import * as admin from "firebase-admin";
-import {jobService} from "./job/job.service";
+import {jobService} from "./services/job.service";
 import {CallableContext} from "firebase-functions/lib/providers/https";
 import QuerySnapshot = admin.firestore.QuerySnapshot;
 import DecodedIdToken = admin.auth.DecodedIdToken;
+import {deviceService} from "./services/device.service";
 
 admin.initializeApp({
     credential: admin.credential.applicationDefault(),
@@ -163,8 +164,10 @@ exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, conte
 });
 
 
-exports.cron = functions.pubsub.schedule('every 1 minutes').onRun((context) => {
-    console.log('Check task timout');
+exports.cron = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
+    console.log('Send update notification');
+    await deviceService.updateDevicesInfos();
+    console.log('Check tasks timout');
     return jobService.checkTaskTimeout()
 });
 

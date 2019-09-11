@@ -1,3 +1,4 @@
+import {DeviceStatus} from "pandalab-commons";
 import {AdbStatusState} from "../models/adb";
 import {ActionType} from "../services/agent.service";
 import {DeviceLogType} from "../models/device";
@@ -6,12 +7,14 @@ import {DeviceLogType} from "../models/device";
         <div class="devices-list-container md-elevation-4">
             <h2 class="md-display-1">List of connected devices:</h2>
             <md-list>
-                <AgentDevice v-for="device in devicesVue" v-bind:key="device.id" :device="device"/>
+                <AgentDevice v-for="device in devicesVue"
+                             v-bind:key="(device.adbDevice)?device.adbDevice.id:device.firebaseDevice?device.firebaseDevice._ref.id:Date.now() + device.actionType"
+                             :data="device"/>
             </md-list>
         </div>
         <div class="devices-infos-container md-elevation-4">
             <h2 class="md-display-1">Infos status:</h2>
-            <h3 class="md-body-1">Number of connected devices:</h3>
+            <h3 class="md-body-1">Number of available devices:</h3>
             <h2 class="md-display-1"><b>{{ devicesCount }}</b></h2>
             <h3 class="md-body-1">ADB Status:</h3>
             <h2 class="devices-adb-status-listen md-display-1"
@@ -51,13 +54,14 @@ import {DeviceLogType} from "../models/device";
     import {Component, Vue} from 'vue-property-decorator';
     import {Subscription} from 'vue-rx-decorators';
     import {AdbStatus, AdbStatusState} from "../../models/adb";
-    import {DeviceLog, DeviceLogType, DeviceVue} from "../../models/device";
+    import {DeviceLog} from "../../models/device";
     import {Services} from "../../services/services.provider";
     import {DevicesService} from "../../services/devices.service";
-    import {ActionType, AgentDeviceData, AgentService} from "../../services/agent.service";
+    import {AgentDeviceData, AgentService} from "../../services/agent.service";
     import {AdbRepository} from "../../services/repositories/adb.repository";
     import {EMPTY, Observable, Timestamp} from "rxjs";
     import AgentDevice from "./AgentDevice.vue";
+    import {DeviceStatus} from "pandalab-commons";
 
     @Component({
         components: {AgentDevice},
@@ -76,7 +80,7 @@ import {DeviceLogType} from "../models/device";
         private agentService: AgentService;
         private adb: AdbRepository;
 
-        public devicesVue: DeviceVue[] = [];
+        public devicesVue: AgentDeviceData[] = [];
         public adbStatus: AdbStatus = {state: AdbStatusState.STOPPED, time: Date.now()};
 
 
@@ -92,24 +96,11 @@ import {DeviceLogType} from "../models/device";
         mounted() {
             let devicesDataObs = this.agentService.listenAgentDevices();
             this.$subscribeTo(devicesDataObs, (devicesData: AgentDeviceData[]) => {
-                console.log("devicesData updated")
-                this.devicesCount = devicesData.length;
-                this.devicesVue = devicesData.map((data: AgentDeviceData) => {
-                    let lastLog = this.getLastLog(data);
-                    return <DeviceVue>{
-                        id: (data.adbDevice && data.adbDevice.uid) ? data.adbDevice.uid : data.firebaseDevice ? data.firebaseDevice._ref.id : data.adbDevice.id,
-                        type: data.adbDevice ? data.adbDevice.type + " / " + data.adbDevice.path : 'unknown',
-                        enrolled: (data.adbDevice != null && data.firebaseDevice != null),
-                        logError: lastLog ? lastLog.value.type == DeviceLogType.ERROR : false,
-                        log: lastLog,
-                        actionType: (data.action && !data.action.isStopped) ? data.actionType : ActionType.none,
-                        data: data
-                    }
-                });
+                this.devicesCount = devicesData.filter(value => value.firebaseDevice && value.firebaseDevice.status == DeviceStatus.available).length;
+                this.devicesVue = devicesData
             })
 
             this.$subscribeTo(this.adb.listenAdbStatus(), t => {
-                console.log("adb status updated", t.state == AdbStatusState.STARTED)
                 this.adbStatus = t;
             })
         }
@@ -127,15 +118,6 @@ import {DeviceLogType} from "../models/device";
 
         enableTcpIpActivaton() {
             this.agentService.enableTCP = this.enableTcpIpSwitch
-        }
-
-        private getLastLog(device: AgentDeviceData): Timestamp<DeviceLog> {
-            if (device.action) {
-                let logs = device.action.getValue();
-                return logs[logs.length - 1]
-
-            }
-            return null
         }
 
 

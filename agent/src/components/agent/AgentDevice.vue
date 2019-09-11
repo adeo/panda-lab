@@ -1,3 +1,4 @@
+import {DeviceLogType} from "../../models/device";
 import {AdbStatusState} from "../models/adb";
 import {ActionType} from "../services/agent.service";
 import {DeviceLogType} from "../models/device";
@@ -5,18 +6,17 @@ import {DeviceLogType} from "../models/device";
     <md-list-item>
         <md-icon>phone_android</md-icon>
         <div class="devices-header-container">
-            <h3 class="devices-list-block"><b>{{ device.id }}</b></h3>
+            <h3 class="devices-list-block"><b>{{ device.name + " - " +device.deviceId }}</b></h3>
             <p class="devices-list-block md-body-1">{{ device.type }} </p>
             <p class="devices-list-block md-body-1">
                 <b>
-                    {{ (device.enrolled) ? 'Already enroll' : 'Never enroll'}}
+                    {{ deviceStatus }}
                 </b>
             </p>
-            <p class="devices-logging md-body-1"
-               v-bind:style="{'color': (device.logError)? '#D2413A' : '#4caf50'}">
-                {{ (device.log != null) ? device.log.value.log : ' ' }}
+            <p class="devices-logging md-body-1" v-bind:style="{'color': (deviceLastLogError)? '#D2413A' : '#4caf50'}">
+                {{ (actionTypeLabel) ? actionTypeLabel : ' ' }}
                 <md-tooltip class="md-tooltip">
-                    <div v-for="log in deviceLogs">
+                    <div v-for="log in deviceLogs" v-bind:key="log.log">
                         {{ log.log }}
                     </div>
                 </md-tooltip>
@@ -33,7 +33,7 @@ import {DeviceLogType} from "../models/device";
                 Enroll
             </md-button>
             <div class="devices-status"
-                 v-bind:style="{'background-color': '#D2413A'}"></div>
+                 v-bind:style="{'background-color': !ready ? '#D2413A': used ?'#d28e3c'  : '#4caf50'}"></div>
         </div>
     </md-list-item>
 </template>
@@ -41,29 +41,106 @@ import {DeviceLogType} from "../models/device";
 <script lang="ts">
     import {Component, Prop, Vue} from 'vue-property-decorator';
     import {Timestamp} from "rxjs";
-    import {DeviceLog, DeviceVue} from "../../models/device";
+    import {DeviceLog, DeviceLogType} from "../../models/device";
     import {DeviceAdb} from "../../models/adb";
+    import {ActionType, AgentDeviceData} from "../../services/agent.service";
+    import {DeviceStatus} from "pandalab-commons";
 
     @Component
     export default class AgentDevices extends Vue {
 
-        @Prop({ required: true }) device: DeviceVue;
+        @Prop({required: true}) data: AgentDeviceData;
+
+        public device: DeviceVue;
         public deviceLogs: DeviceLog[] = [];
+
+        public deviceLastLog: string = "";
+        public deviceLastLogError: boolean = false;
+        private ready: boolean;
+        private deviceStatus: string;
+        private used: boolean;
+        private actionTypeLabel: string = "";
 
         constructor(props) {
             super(props);
+            let deviceId: string = (this.data.adbDevice && this.data.adbDevice.uid) ? this.data.adbDevice.uid : this.data.firebaseDevice ? this.data.firebaseDevice._ref.id : this.data.adbDevice.id;
+            this.device = {
+                name: this.data.firebaseDevice ? this.data.firebaseDevice.name : this.data.adbDevice.type,
+                deviceId: deviceId,
+                type: this.data.adbDevice ? this.data.adbDevice.id : this.data.firebaseDevice.ip,
+                enrolled: (this.data.firebaseDevice != null),
+            };
+
+            this.ready = false;
+            this.used = false;
+            this.deviceStatus = "Not enrolled";
+
+            if (this.data.firebaseDevice) {
+                switch (this.data.firebaseDevice.status) {
+                    case DeviceStatus.offline:
+                        this.deviceStatus = "Offline";
+                        break;
+                    case DeviceStatus.available:
+                        this.deviceStatus = "Available";
+                        this.ready = true;
+                        break;
+                    case DeviceStatus.working:
+                        this.deviceStatus = "Working";
+                        this.ready = true;
+                        this.used = true;
+                        break;
+                    case DeviceStatus.booked:
+                        this.deviceStatus = "Booked";
+                        this.ready = true;
+                        this.used = true;
+                        break;
+
+                }
+            }
+
         }
 
         mounted() {
-            let actionLogs = this.device.data.action;
+
+            this.actionTypeLabel = "";
+            switch (this.data.actionType) {
+                case ActionType.enroll:
+                    this.actionTypeLabel = "Enroll";
+                    break;
+                case ActionType.try_connect:
+                    this.actionTypeLabel = "Connect in tcp";
+                    break;
+                case ActionType.update_status:
+                    this.actionTypeLabel = "Update device status";
+                    break;
+                case ActionType.none:
+                    break;
+                case ActionType.enable_tcp:
+                    this.actionTypeLabel = "Enable tcp";
+                    break
+            }
+
+            let actionLogs = this.data.action;
             if (actionLogs) {
-                this.deviceLogs = this.device.data.action.getValue().map(value => value.value)
+                this.deviceLogs = this.data.action.getValue().map(value => value.value);
+                this.refreshLastLog()
                 this.$subscribeTo(actionLogs, (logs: Timestamp<DeviceLog>[]) => {
-                    this.deviceLogs = logs.map(value => value.value)
+                    this.deviceLogs = logs.map(value => value.value);
+                    this.refreshLastLog()
                 })
             }
         }
 
+        private refreshLastLog() {
+            if (this.deviceLogs.length > 0) {
+                const lastLog = this.deviceLogs[this.deviceLogs.length - 1];
+                this.deviceLastLog = lastLog.log;
+                this.deviceLastLogError = lastLog.type == DeviceLogType.ERROR
+            } else {
+                this.deviceLastLogError = false;
+                this.deviceLastLog = "";
+            }
+        }
 
         enroll(device: DeviceAdb) {
 
@@ -86,6 +163,13 @@ import {DeviceLogType} from "../models/device";
 
     }
 
+
+    interface DeviceVue {
+        name: string,
+        deviceId: string,
+        type: string,
+        enrolled: boolean,
+    }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
@@ -95,7 +179,7 @@ import {DeviceLogType} from "../models/device";
     /*}*/
 
 
-    .md-tooltip{
+    .md-tooltip {
         height: auto;
     }
 

@@ -1,7 +1,7 @@
 import cors = require("cors");
 import express = require("express");
 import * as admin from "firebase-admin";
-import {JobError, jobService} from "./job/job.service";
+import {JobError, jobService} from "./services/job.service";
 import {JobRequest} from "pandalab-commons";
 
 const functions = require('firebase-functions');

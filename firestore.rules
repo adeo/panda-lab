@@ -31,7 +31,7 @@ service cloud.firestore {
 
     match /devices/{device} {
         allow read: if isAgent() || isAdmin() || isUser();
-        allow write: if isMobileAgent();
+        allow write: if isMobileAgent() || isAgent();
     }
 
     match /jobs/{job} {

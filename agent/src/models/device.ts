@@ -10,14 +10,3 @@ export enum DeviceLogType {
     INFO,
     ERROR
 }
-
-
-export interface DeviceVue {
-    id: string,
-    type: string,
-    enrolled: boolean,
-    logError: boolean,
-    log: Timestamp<DeviceLog>,
-    actionType: ActionType,
-    data: AgentDeviceData
-}

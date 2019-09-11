@@ -38,6 +38,7 @@ import {AdbRepository} from "./repositories/adb.repository";
 import {FirebaseAuthService} from "./firebaseauth.service";
 import {DevicesService} from "./devices.service";
 import {StoreRepository} from "./repositories/store.repository";
+import {doOnSubscribe} from "../utils/rxjs";
 
 export class AgentService {
     private listenDevicesSub: Subscription;
@@ -73,7 +74,7 @@ export class AgentService {
 
     set autoEnroll(value: boolean) {
         this.storeRepo.save("auto-enroll", "" + value);
-        //this.notifyChange()
+        this.notifyChange()
     }
 
     get enableTCP(): boolean {
@@ -82,7 +83,7 @@ export class AgentService {
 
     set enableTCP(value: boolean) {
         this.storeRepo.save("enableTCP", "" + value);
-        //this.notifyChange()
+        this.notifyChange()
     }
 
 
@@ -90,22 +91,22 @@ export class AgentService {
         return this.agentRepo.agentStatus
     }
 
-    //private changeBehaviour = new BehaviorSubject("");
+    private changeBehaviour = new BehaviorSubject("");
     private agentDevicesData: BehaviorSubject<AgentDeviceData[]> = new BehaviorSubject<AgentDeviceData[]>([]);
 
     public listenAgentDevices(): Observable<AgentDeviceData[]> {
         return this.agentDevicesData;
     }
 
-    // private notifyChange() {
-    //     this.changeBehaviour.next("")
-    // }
+    private notifyChange() {
+        this.changeBehaviour.next("")
+    }
+
+    tcpIdCache = new Map<string, number>()
 
     private listenDevices(): Observable<AgentDeviceData[]> {
-        console.log("listenDevices started");
         let listenAdbDeviceWithUid: Observable<DeviceAdb[]> = this.adbRepo.listenAdb().pipe(
             flatMap(devices => {
-                    console.log("devices", devices.length);
                     return from(devices)
                         .pipe(
                             flatMap((device: DeviceAdb) => this.getDeviceUID(device.id)
@@ -116,7 +117,26 @@ export class AgentService {
                                         return device
                                     })
                                 )),
-                            toArray()
+                            toArray(),
+                            map(devices => {
+                                //remove device with same id (if connected with cable and tcp)
+                                const map = new Map<string, DeviceAdb>()
+
+
+                                const filteredDevices = [];
+                                devices.forEach(d => {
+                                    if (d.uid) {
+                                        map.set(d.uid, d)
+                                    } else {
+                                        filteredDevices.push(d)
+                                    }
+                                });
+                                map.forEach((value, key) => {
+                                    filteredDevices.push(value);
+                                });
+                                return filteredDevices;
+
+                            })
                         )
                 }
             ));
@@ -125,13 +145,12 @@ export class AgentService {
 
         return combineLatest([
             listenAgentDevices,
-            listenAdbDeviceWithUid
+            listenAdbDeviceWithUid,
+            this.changeBehaviour
         ])
             .pipe(
                 map(value => <any>{firebaseDevices: value[0], adbDevices: value[1]}),
                 map(result => {
-                    console.log("adbDevices", result.adbDevices.length);
-                    console.log("firebaseDevices", result.firebaseDevices.length);
 
                     const devicesData: AgentDeviceData[] = result.adbDevices.map(adbDevice => {
                         return <AgentDeviceData>{
@@ -139,9 +158,15 @@ export class AgentService {
                             adbDevice: adbDevice
                         }
                     });
+
+                    this.tcpIdCache.forEach((value, key) => {
+                        if (value < Date.now() - 1000 * 60 * 60 * 2) {
+                            this.tcpIdCache.delete(key);
+                        }
+                    });
+
                     result.firebaseDevices.forEach(device => {
                         const deviceData = devicesData.find(a => a.adbDevice.uid == device._ref.id);
-                        console.log("deviceData", deviceData)
                         if (!deviceData) {
                             device.status = DeviceStatus.offline;
                             devicesData.push(
@@ -155,6 +180,8 @@ export class AgentService {
                             if (device.status == DeviceStatus.offline) {
                                 device.status = DeviceStatus.available;
                                 deviceData.actionType = ActionType.update_status;
+                            } else if (device.status == DeviceStatus.available && this.enableTCP && !this.tcpIdCache.has(deviceData.adbDevice.id)) {
+                                deviceData.actionType = ActionType.enable_tcp;
                             } else {
                                 deviceData.actionType = ActionType.none;
                             }
@@ -184,6 +211,9 @@ export class AgentService {
                                         deviceData.action = this.startAction(this.tryToConnectAction(deviceData));
 
                                         break;
+                                    case ActionType.enable_tcp:
+                                        deviceData.action = this.startAction(this.enableTcpAction(deviceData));
+                                        break;
                                     case ActionType.none:
 
                                         break
@@ -194,7 +224,6 @@ export class AgentService {
                     }
                 ),
                 tap(data => {
-                    console.log("agentDevicesData count", data.length);
                     this.agentDevicesData.next(data)
                 })
             );
@@ -218,8 +247,32 @@ export class AgentService {
                 console.log(" - action log : " + log.value.log);
                 return logs;
             }))
-            .subscribe(subject);
+            .subscribe(value => {
+                subject.next(value)
+
+            }, error => {
+                console.error("Action finish with error", error)
+                subject.complete()
+            }, () => {
+                subject.complete();
+                //this.notifyChange()
+            });
         return subject;
+    }
+
+    private enableTcpAction(device: AgentDeviceData): Observable<Timestamp<DeviceLog>> {
+        return this.adbRepo.enableTcpIp(device.adbDevice.id)
+            .pipe(
+                doOnSubscribe(() => {
+                    this.tcpIdCache.set(device.adbDevice.id, Date.now());
+                }),
+                map(() => <DeviceLog>{log: "enable tcp command sent", type: DeviceLogType.INFO}),
+                startWith(<DeviceLog>{
+                    log: "try to enable tcp",
+                    type: DeviceLogType.INFO
+                }),
+                timestamp()
+            )
     }
 
     private tryToConnectAction(device: AgentDeviceData): Observable<Timestamp<DeviceLog>> {
@@ -299,7 +352,6 @@ export class AgentService {
             .pipe(
                 map(message => {
                     let parse = JSON.parse(message);
-                    console.log("device Id", parse.device_id);
                     return parse.device_id
                 }),
                 first(),
@@ -337,6 +389,7 @@ export enum ActionType {
     enroll,
     try_connect,
     update_status,
+    enable_tcp,
     none
 }
 
