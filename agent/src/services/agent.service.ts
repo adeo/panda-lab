@@ -208,8 +208,8 @@ export class AgentService {
                             if (device.status == DeviceStatus.offline) {
                                 device.status = DeviceStatus.available;
                                 deviceData.actionType = ActionType.update_status;
-                            } else if (device.status == DeviceStatus.available && this.enableTCP &&
-                                (!deviceData.firebaseDevice.lastTcpActivation || deviceData.firebaseDevice.lastTcpActivation < Date.now() - 1000*60*30)) {
+                            } else if (device.status == DeviceStatus.available && deviceData.adbDevice.path.startsWith("usb") && this.enableTCP &&
+                                (!deviceData.firebaseDevice.lastTcpActivation || deviceData.firebaseDevice.lastTcpActivation < Date.now() - 1000*60*60)) {
                                 deviceData.actionType = ActionType.enable_tcp;
                             } else {
                                 deviceData.actionType = ActionType.none;
@@ -333,6 +333,7 @@ export class AgentService {
                     catchError(err => {
                         console.warn("Can't connect to device on " + device.firebaseDevice.ip, err);
                         device.firebaseDevice.ip = "";
+                        device.firebaseDevice.lastTcpActivation = 0;
                         return this.updateDeviceAction(device.firebaseDevice, "Remove device ip");
                     }),
                     timestamp(),
