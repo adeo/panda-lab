@@ -1,7 +1,7 @@
 import {BehaviorSubject, from, interval, merge, Observable, Subscription} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
 import {DeviceLog, DeviceLogType} from "../../models/device";
-import {concatMap, debounceTime, switchMap, timeout} from "rxjs/operators";
+import {debounceTime, delay, distinctUntilChanged, map, switchMap, timeout} from "rxjs/operators";
 import {doOnSubscribe} from "../../utils/rxjs";
 
 export class AdbRepository {
@@ -97,7 +97,14 @@ export class AdbRepository {
     listenAdb(): Observable<DeviceAdb[]> {
         return this.listDevices
             .pipe(
-                debounceTime(1000)
+                delay(500),
+                distinctUntilChanged((prev, current) => {
+                    return JSON.stringify(prev) === JSON.stringify(current)
+                }),
+                map(value => {
+                    //deep copy to fix distinctUntilChanged error with uid in objects
+                    return JSON.parse(JSON.stringify(value))
+                })
             )
     }
 
@@ -110,12 +117,11 @@ export class AdbRepository {
     }
 
     restartAdbTracking() {
-            this.startTrackingAdb();
+        this.startTrackingAdb();
     }
 
     readAdbLogcat(deviceId: string, filter?: string): Observable<string> {
         return new Observable(emitter => {
-            console.log("listen device", deviceId, filter)
             this.adbClient.openLogcat(deviceId)
                 .then(logcat => {
                     let logcatFilter = logcat;
@@ -156,7 +162,6 @@ export class AdbRepository {
             Object.keys(data).forEach((key) => {
                 args.push("--es", key, data[key])
             });
-            console.log("sendBroadcastWithData", args.join(" "))
             this.adbClient.shell(deviceId, args)
                 .then(this.adb.util.readAll)
                 .then(function (output) {
