@@ -1,6 +1,7 @@
 import {firebase} from '@firebase/app';
 import '@firebase/auth';
 import '@firebase/firestore';
+import '@firebase/messaging';
 import {firestore} from "firebase";
 import {FirebaseNamespace} from '@firebase/app-types';
 import {from, Observable, of, throwError} from "rxjs";
@@ -29,7 +30,6 @@ export class FirebaseRepository {
     constructor(config: FirebaseConfig) {
         firebase.initializeApp(config);
         this.firebase = firebase
-
     }
 
 
@@ -95,6 +95,8 @@ export class FirebaseRepository {
                 }),
             );
     }
+
+
 
     private toFirebaseModel<T extends FirebaseModel>(doc: DocumentSnapshot): T {
         return {

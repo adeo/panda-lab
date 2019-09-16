@@ -30,6 +30,11 @@ class PandaLabManagerImpl(private var context: Context) :
 
     override fun updateDevice(): Completable {
         val deviceDoc = getDeviceDocument()
+
+        if(this.auth.currentUser==null){
+            Log.w(TAG, "device is not enrolled")
+            return Completable.complete()
+        }
         return RxFirestore.getDocument(deviceDoc)
             .map { data -> data.getDocumentReference("agent") }
             .map { agentDoc -> getDevice(agentDoc) }
@@ -39,7 +44,6 @@ class PandaLabManagerImpl(private var context: Context) :
     override fun enroll(token: String, agentId: String): Completable {
         val deviceDoc = getDeviceDocument()
         this.auth.signOut()
-
 
         return RxFirebaseAuth.signInWithCustomToken(this.auth, token)
             .map { getDevice(this.db.collection("agents").document(agentId)) }

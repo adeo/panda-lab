@@ -38,9 +38,11 @@ import {AdbRepository} from "./repositories/adb.repository";
 import {FirebaseAuthService} from "./firebaseauth.service";
 import {DevicesService} from "./devices.service";
 import {StoreRepository} from "./repositories/store.repository";
+import {doOnSubscribe} from "../utils/rxjs";
 
 export class AgentService {
     private listenDevicesSub: Subscription;
+    private manualActions: AgentDeviceData[] = [];
 
     constructor(public adbRepo: AdbRepository,
                 private authService: FirebaseAuthService,
@@ -73,7 +75,7 @@ export class AgentService {
 
     set autoEnroll(value: boolean) {
         this.storeRepo.save("auto-enroll", "" + value);
-        //this.notifyChange()
+        this.notifyChange()
     }
 
     get enableTCP(): boolean {
@@ -82,7 +84,7 @@ export class AgentService {
 
     set enableTCP(value: boolean) {
         this.storeRepo.save("enableTCP", "" + value);
-        //this.notifyChange()
+        this.notifyChange()
     }
 
 
@@ -90,33 +92,82 @@ export class AgentService {
         return this.agentRepo.agentStatus
     }
 
-    //private changeBehaviour = new BehaviorSubject("");
+    private changeBehaviour = new BehaviorSubject("");
     private agentDevicesData: BehaviorSubject<AgentDeviceData[]> = new BehaviorSubject<AgentDeviceData[]>([]);
 
     public listenAgentDevices(): Observable<AgentDeviceData[]> {
         return this.agentDevicesData;
     }
 
-    // private notifyChange() {
-    //     this.changeBehaviour.next("")
-    // }
+    private notifyChange() {
+        this.changeBehaviour.next("")
+    }
+
+
+    public addManualAction(data: AgentDeviceData) {
+        this.manualActions.push(data);
+    }
+
+
+    private cachedDeviceIds : Map<string, { date: number, id: string }>;
 
     private listenDevices(): Observable<AgentDeviceData[]> {
-        console.log("listenDevices started");
+        this.cachedDeviceIds = new Map<string, { date: number, id: string }>();
+
         let listenAdbDeviceWithUid: Observable<DeviceAdb[]> = this.adbRepo.listenAdb().pipe(
             flatMap(devices => {
-                    console.log("devices", devices.length);
                     return from(devices)
                         .pipe(
-                            flatMap((device: DeviceAdb) => this.getDeviceUID(device.id)
-                                .pipe(
-                                    catchError(() => of("")),
-                                    map(value => {
-                                        device.uid = value;
-                                        return device
-                                    })
-                                )),
-                            toArray()
+                            flatMap((device: DeviceAdb) => {
+                                let obs = this.getDeviceUID(device.id);
+                                if (this.cachedDeviceIds.has(device.id)) {
+                                    let cachedId = this.cachedDeviceIds.get(device.id);
+                                    if (cachedId.date > Date.now() - 1000 * 60 * 30) {
+                                        obs = of(cachedId.id)
+                                    }
+                                }
+                                return obs
+                                    .pipe(
+                                        catchError(() => of("")),
+                                        map(value => {
+                                            device.uid = value;
+                                            return device
+                                        })
+                                    )
+                            }),
+                            toArray(),
+                            map(devices => {
+
+
+                                //remove device with same id (if connected with cable and tcp)
+                                const map = new Map<string, DeviceAdb>();
+
+                                const filteredDevices = [];
+                                devices.forEach(d => {
+                                    if (d.uid) {
+                                        let currentValue = map.get(d.uid);
+                                        if (!currentValue || !currentValue.path.startsWith("usb")) {
+                                            map.set(d.uid, d)
+                                        }
+                                    } else {
+                                        filteredDevices.push(d)
+                                    }
+                                });
+                                map.forEach((value) => {
+                                    filteredDevices.push(value);
+                                });
+
+                                //remove cached uid
+                                this.cachedDeviceIds.forEach((value, key) => {
+                                    if (!map.has(key)) {
+                                        this.cachedDeviceIds.delete(key);
+                                    }
+                                });
+
+
+                                return filteredDevices;
+
+                            })
                         )
                 }
             ));
@@ -125,13 +176,12 @@ export class AgentService {
 
         return combineLatest([
             listenAgentDevices,
-            listenAdbDeviceWithUid
+            listenAdbDeviceWithUid,
+            this.changeBehaviour
         ])
             .pipe(
                 map(value => <any>{firebaseDevices: value[0], adbDevices: value[1]}),
                 map(result => {
-                    console.log("adbDevices", result.adbDevices.length);
-                    console.log("firebaseDevices", result.firebaseDevices.length);
 
                     const devicesData: AgentDeviceData[] = result.adbDevices.map(adbDevice => {
                         return <AgentDeviceData>{
@@ -139,14 +189,17 @@ export class AgentService {
                             adbDevice: adbDevice
                         }
                     });
+
                     result.firebaseDevices.forEach(device => {
                         const deviceData = devicesData.find(a => a.adbDevice.uid == device._ref.id);
-                        console.log("deviceData", deviceData)
                         if (!deviceData) {
                             device.status = DeviceStatus.offline;
+
+                            const canConnect = device.lastTcpActivation && device.lastTcpActivation < Date.now() - 1000*10;
+
                             devicesData.push(
                                 <AgentDeviceData>{
-                                    actionType: this.enableTCP && device.ip ? ActionType.try_connect : ActionType.none,
+                                    actionType: this.enableTCP && device.ip && canConnect ? ActionType.try_connect : ActionType.none,
                                     firebaseDevice: device
                                 }
                             )
@@ -155,6 +208,9 @@ export class AgentService {
                             if (device.status == DeviceStatus.offline) {
                                 device.status = DeviceStatus.available;
                                 deviceData.actionType = ActionType.update_status;
+                            } else if (device.status == DeviceStatus.available && deviceData.adbDevice.path.startsWith("usb") && this.enableTCP &&
+                                (!deviceData.firebaseDevice.lastTcpActivation || deviceData.firebaseDevice.lastTcpActivation < Date.now() - 1000*60*60)) {
+                                deviceData.actionType = ActionType.enable_tcp;
                             } else {
                                 deviceData.actionType = ActionType.none;
                             }
@@ -165,13 +221,17 @@ export class AgentService {
                 map(devicesData => {
                         const currentDevicesData = this.agentDevicesData.getValue();
                         return devicesData.map((deviceData: AgentDeviceData) => {
-                            let currentDeviceData = currentDevicesData.find((cData: AgentDeviceData) =>
-                                (cData.adbDevice && deviceData.adbDevice && cData.adbDevice.id === deviceData.adbDevice.id) ||
-                                (cData.firebaseDevice && deviceData.firebaseDevice && cData.firebaseDevice._ref.id === deviceData.firebaseDevice._ref.id)
-                            );
+                            let currentDeviceData = this.findDataInList(currentDevicesData, deviceData);
                             if (currentDeviceData && currentDeviceData.action && !currentDeviceData.action.isStopped) {
                                 return currentDeviceData;
+
+
                             } else {
+
+                                let index = this.findIndexDataInList(this.manualActions, deviceData);
+                                if (index >= 0) {
+                                    deviceData = this.manualActions.splice(index, 1)[0]
+                                }
                                 switch (deviceData.actionType) {
                                     case ActionType.enroll:
                                         console.log("enroll device", deviceData.adbDevice.id);
@@ -184,6 +244,9 @@ export class AgentService {
                                         deviceData.action = this.startAction(this.tryToConnectAction(deviceData));
 
                                         break;
+                                    case ActionType.enable_tcp:
+                                        deviceData.action = this.startAction(this.enableTcpAction(deviceData));
+                                        break;
                                     case ActionType.none:
 
                                         break
@@ -194,10 +257,19 @@ export class AgentService {
                     }
                 ),
                 tap(data => {
-                    console.log("agentDevicesData count", data.length);
                     this.agentDevicesData.next(data)
                 })
             );
+    }
+
+    private findIndexDataInList(currentDevicesData: AgentDeviceData[], deviceData: AgentDeviceData): number {
+        return currentDevicesData.findIndex((cData: AgentDeviceData) => (cData.adbDevice && deviceData.adbDevice && cData.adbDevice.id === deviceData.adbDevice.id) ||
+            (cData.firebaseDevice && deviceData.firebaseDevice && cData.firebaseDevice._ref.id === deviceData.firebaseDevice._ref.id));
+    }
+
+    private findDataInList(currentDevicesData: AgentDeviceData[], deviceData: AgentDeviceData) {
+        let index = this.findIndexDataInList(currentDevicesData, deviceData);
+        return index >= 0 ? currentDevicesData[index] : null
     }
 
     public getAgentUUID(): string {
@@ -218,8 +290,34 @@ export class AgentService {
                 console.log(" - action log : " + log.value.log);
                 return logs;
             }))
-            .subscribe(subject);
+            .subscribe(value => {
+                subject.next(value)
+
+            }, error => {
+                console.error("Action finish with error", error);
+                subject.complete()
+            }, () => {
+                subject.complete();
+                //this.notifyChange()
+            });
         return subject;
+    }
+
+    private enableTcpAction(device: AgentDeviceData): Observable<Timestamp<DeviceLog>> {
+        device.firebaseDevice.lastTcpActivation = Date.now();
+        return concat(
+            this.updateDeviceAction(device.firebaseDevice, "save device status"),
+            this.adbRepo.enableTcpIp(device.adbDevice.id)
+                .pipe(
+                    map(() => <DeviceLog>{log: "enable tcp command sent", type: DeviceLogType.INFO}),
+                    startWith(<DeviceLog>{
+                        log: "try to enable tcp",
+                        type: DeviceLogType.INFO
+                    }),
+                    timestamp()
+                )
+        )
+
     }
 
     private tryToConnectAction(device: AgentDeviceData): Observable<Timestamp<DeviceLog>> {
@@ -235,6 +333,7 @@ export class AgentService {
                     catchError(err => {
                         console.warn("Can't connect to device on " + device.firebaseDevice.ip, err);
                         device.firebaseDevice.ip = "";
+                        device.firebaseDevice.lastTcpActivation = 0;
                         return this.updateDeviceAction(device.firebaseDevice, "Remove device ip");
                     }),
                     timestamp(),
@@ -278,7 +377,7 @@ export class AgentService {
                 flatMap(result => this.firebaseRepo.listenDocument(CollectionName.DEVICES, result.uuid)),
                 first(device => device !== null),
                 tap(() => {
-                    subject.next({log: 'Device enrolled ...', type: DeviceLogType.INFO})
+                    subject.next({log: 'Device enrolled ...', type: DeviceLogType.INFO});
                     subject.complete()
                 }),
                 flatMap(() => EMPTY),
@@ -313,12 +412,12 @@ export class AgentService {
 
 
     private getDeviceUID(deviceId: string): Observable<string> {
+
         const transactionId = Guid.create().toString();
         const logcatObs = this.adbRepo.readAdbLogcat(deviceId, transactionId)
             .pipe(
                 map(message => {
                     let parse = JSON.parse(message);
-                    console.log("device Id", parse.device_id);
                     return parse.device_id
                 }),
                 first(),
@@ -356,6 +455,7 @@ export enum ActionType {
     enroll,
     try_connect,
     update_status,
+    enable_tcp,
     none
 }
 

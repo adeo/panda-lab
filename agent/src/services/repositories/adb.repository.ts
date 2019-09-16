@@ -1,7 +1,8 @@
-import {BehaviorSubject, from, Observable} from 'rxjs';
+import {BehaviorSubject, from, interval, merge, Observable, Subscription} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
 import {DeviceLog, DeviceLogType} from "../../models/device";
-import {debounceTime, timeout} from "rxjs/operators";
+import {debounceTime, delay, distinctUntilChanged, map, switchMap, timeout} from "rxjs/operators";
+import {doOnSubscribe} from "../../utils/rxjs";
 
 export class AdbRepository {
 
@@ -11,6 +12,7 @@ export class AdbRepository {
     private readonly listDevices: BehaviorSubject<Array<DeviceAdb>>;
     private readonly adbStatus: BehaviorSubject<AdbStatus>;
     private adb: any;
+    private trackingSub: Subscription;
 
     constructor() {
         this.adb = require('adbkit');
@@ -24,60 +26,58 @@ export class AdbRepository {
     }
 
     private startTrackingAdb() {
-        const adbService = this;
+        const adbEventObs = new Observable<number>(
+            subscriber => {
+                // Listen adb actions
+                this.adbClient.trackDevices()
+                    .then(tracker => {
+                        tracker.on('add', device => {
+                            console.log('Device %s was plugged in', device.id);
+                            subscriber.next(1)
+                        });
+                        tracker.on('remove', device => {
+                            console.log('Device %s was unplugged', device.id);
+                            subscriber.next(-1)
 
-        // Get for the first time the list of connected devices
-        this.adbClient.listDevicesWithPaths()
-            .then(devices => {
-                console.log(devices);
-                adbService.updateDevicesFlux(devices);
-                adbService.updateAdbStatusFlux(AdbStatusState.STARTED);
-            })
-            .catch(err => {
-                console.error('Something went wrong:', err.stack);
-                adbService.updateAdbStatusFlux(AdbStatusState.STOPPED);
-            });
+                        });
+                        tracker.on('end', () => {
+                            console.log('Tracking stopped');
+                            subscriber.error("'Tracking stopped'")
+                        });
+                    })
+                    .catch(err => {
+                        console.error('Something went wrong:', err.stack);
+                        subscriber.error(err)
+                    });
+            }
+        );
 
-        // Listen adb actions
-        this.adbClient.trackDevices()
-            .then(tracker => {
-                tracker.on('add', device => {
-                    console.log('Device %s was plugged in', device.id);
-                    const currentList = adbService.listDevices.value;
+        if (this.trackingSub) {
+            this.trackingSub.unsubscribe()
+        }
 
-                    if (!currentList.includes(device)) {
-                        currentList.push(device);
-                    }
-
-                    adbService.updateDevicesFlux(currentList);
-                    adbService.updateAdbStatusFlux(AdbStatusState.STARTED);
-                });
-                tracker.on('remove', device => {
-                    console.log('Device %s was unplugged', device.id);
-                    let currentList = adbService.listDevices.value;
-                    currentList = currentList.filter(item => item.id !== device.id);
-
-                    adbService.updateDevicesFlux(currentList);
-                    adbService.updateAdbStatusFlux(AdbStatusState.STARTED);
-                });
-                tracker.on('end', () => {
-                    console.log('Tracking stopped');
-                    adbService.updateAdbStatusFlux(AdbStatusState.STOPPED);
-                    setTimeout(() => {
-                        adbService.restartAdbTracking();
-                    }, 10000);
-                });
-            })
-            .catch(err => {
-                console.error('Something went wrong:', err.stack);
-                adbService.updateAdbStatusFlux(AdbStatusState.STOPPED);
-                setTimeout(() => {
-                    adbService.restartAdbTracking();
-                }, 10000);
-            });
+        this.trackingSub = merge(
+            interval(3000),
+            adbEventObs,
+        ).pipe(
+            doOnSubscribe(() => this.updateAdbStatusFlux(AdbStatusState.LOADING)),
+            switchMap(() => this.adbClient.listDevicesWithPaths())
+        ).subscribe(values => {
+            this.updateAdbStatusFlux(AdbStatusState.STARTED);
+            this.updateDevicesFlux(values as any)
+        }, error => {
+            this.updateAdbStatusFlux(AdbStatusState.STOPPED);
+            console.log("TrackingAdb error", error);
+            setTimeout(() => {
+                this.restartAdbTracking();
+            }, 10000);
+        }, () => {
+            this.updateAdbStatusFlux(AdbStatusState.STOPPED);
+        })
     }
 
     private updateDevicesFlux(devices: DeviceAdb[]) {
+        devices = devices.filter(value => value.type != 'offline');
         this.listDevices.next(devices);
     }
 
@@ -86,10 +86,17 @@ export class AdbRepository {
         this.adbStatus.next(adbStatus);
     }
 
-    listenAdb(): Observable<Array<DeviceAdb>> {
+    listenAdb(): Observable<DeviceAdb[]> {
         return this.listDevices
             .pipe(
-                debounceTime(1000)
+                delay(500),
+                distinctUntilChanged((prev, current) => {
+                    return JSON.stringify(prev) === JSON.stringify(current)
+                }),
+                map(value => {
+                    //deep copy to fix distinctUntilChanged error with uid in objects
+                    return JSON.parse(JSON.stringify(value))
+                })
             )
     }
 
@@ -106,15 +113,11 @@ export class AdbRepository {
     }
 
     restartAdbTracking() {
-        if (this.adbStatus.value.state === AdbStatusState.STOPPED) {
-            this.updateAdbStatusFlux(AdbStatusState.LOADING);
-            this.startTrackingAdb();
-        }
+        this.startTrackingAdb();
     }
 
     readAdbLogcat(deviceId: string, filter?: string): Observable<string> {
         return new Observable(emitter => {
-            console.log("listen device", deviceId, filter)
             this.adbClient.openLogcat(deviceId)
                 .then(logcat => {
                     let logcatFilter = logcat;
@@ -149,13 +152,12 @@ export class AdbRepository {
         });
     }
 
-    sendBroadcastWithData(deviceId: string, broadcastName: string, actionName: string, data: { [key:string]:string; }): Observable<DeviceLog> {
+    sendBroadcastWithData(deviceId: string, broadcastName: string, actionName: string, data: { [key: string]: string; }): Observable<DeviceLog> {
         return new Observable(emitter => {
             const args = ['am', 'broadcast', '-a', actionName, '-n', broadcastName];
             Object.keys(data).forEach((key) => {
                 args.push("--es", key, data[key])
             });
-            console.log("sendBroadcastWithData", args.join(" "))
             this.adbClient.shell(deviceId, args)
                 .then(this.adb.util.readAll)
                 .then(function (output) {
