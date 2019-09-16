@@ -38,7 +38,6 @@ import {AdbRepository} from "./repositories/adb.repository";
 import {FirebaseAuthService} from "./firebaseauth.service";
 import {DevicesService} from "./devices.service";
 import {StoreRepository} from "./repositories/store.repository";
-import {doOnSubscribe} from "../utils/rxjs";
 
 export class AgentService {
     private listenDevicesSub: Subscription;
@@ -106,71 +105,16 @@ export class AgentService {
 
     public addManualAction(data: AgentDeviceData) {
         this.manualActions.push(data);
+        this.notifyChange()
     }
 
 
-    private cachedDeviceIds : Map<string, { date: number, id: string }>;
+    private cachedDeviceIds: Map<string, { date: number, id: string }>;
 
     private listenDevices(): Observable<AgentDeviceData[]> {
         this.cachedDeviceIds = new Map<string, { date: number, id: string }>();
 
-        let listenAdbDeviceWithUid: Observable<DeviceAdb[]> = this.adbRepo.listenAdb().pipe(
-            flatMap(devices => {
-                    return from(devices)
-                        .pipe(
-                            flatMap((device: DeviceAdb) => {
-                                let obs = this.getDeviceUID(device.id);
-                                if (this.cachedDeviceIds.has(device.id)) {
-                                    let cachedId = this.cachedDeviceIds.get(device.id);
-                                    if (cachedId.date > Date.now() - 1000 * 60 * 30) {
-                                        obs = of(cachedId.id)
-                                    }
-                                }
-                                return obs
-                                    .pipe(
-                                        catchError(() => of("")),
-                                        map(value => {
-                                            device.uid = value;
-                                            return device
-                                        })
-                                    )
-                            }),
-                            toArray(),
-                            map(devices => {
-
-
-                                //remove device with same id (if connected with cable and tcp)
-                                const map = new Map<string, DeviceAdb>();
-
-                                const filteredDevices = [];
-                                devices.forEach(d => {
-                                    if (d.uid) {
-                                        let currentValue = map.get(d.uid);
-                                        if (!currentValue || !currentValue.path.startsWith("usb")) {
-                                            map.set(d.uid, d)
-                                        }
-                                    } else {
-                                        filteredDevices.push(d)
-                                    }
-                                });
-                                map.forEach((value) => {
-                                    filteredDevices.push(value);
-                                });
-
-                                //remove cached uid
-                                this.cachedDeviceIds.forEach((value, key) => {
-                                    if (!map.has(key)) {
-                                        this.cachedDeviceIds.delete(key);
-                                    }
-                                });
-
-
-                                return filteredDevices;
-
-                            })
-                        )
-                }
-            ));
+        let listenAdbDeviceWithUid: Observable<DeviceAdb[]> = this.adbRepo.listenAdb();
         let listenAgentDevices = this.deviceService.listenAgentDevices(this.agentRepo.UUID);
 
 
@@ -180,7 +124,14 @@ export class AgentService {
             this.changeBehaviour
         ])
             .pipe(
-                map(value => <any>{firebaseDevices: value[0], adbDevices: value[1]}),
+                map(value => <{ firebaseDevices: Device[], adbDevices: DeviceAdb[] }>{
+                    firebaseDevices: value[0],
+                    adbDevices: value[1]
+                }),
+                flatMap(value => this.getDevicesUID(value.adbDevices).pipe(map(devices => {
+                    value.adbDevices = devices;
+                    return value;
+                }))),
                 map(result => {
 
                     const devicesData: AgentDeviceData[] = result.adbDevices.map(adbDevice => {
@@ -191,11 +142,11 @@ export class AgentService {
                     });
 
                     result.firebaseDevices.forEach(device => {
-                        const deviceData = devicesData.find(a => a.adbDevice.uid == device._ref.id);
+                        const deviceData = devicesData.find(a => a.adbDevice && a.adbDevice.uid == device._ref.id);
                         if (!deviceData) {
                             device.status = DeviceStatus.offline;
 
-                            const canConnect = device.lastTcpActivation && device.lastTcpActivation < Date.now() - 1000*10;
+                            const canConnect = device.lastTcpActivation && device.lastTcpActivation < Date.now() - 1000 * 10;
 
                             devicesData.push(
                                 <AgentDeviceData>{
@@ -205,11 +156,11 @@ export class AgentService {
                             )
                         } else {
                             deviceData.firebaseDevice = device;
-                            if (device.status == DeviceStatus.offline) {
+                            if (device.status == DeviceStatus.offline || !device.status) {
                                 device.status = DeviceStatus.available;
                                 deviceData.actionType = ActionType.update_status;
                             } else if (device.status == DeviceStatus.available && deviceData.adbDevice.path.startsWith("usb") && this.enableTCP &&
-                                (!deviceData.firebaseDevice.lastTcpActivation || deviceData.firebaseDevice.lastTcpActivation < Date.now() - 1000*60*60)) {
+                                (!deviceData.firebaseDevice.lastTcpActivation || deviceData.firebaseDevice.lastTcpActivation < Date.now() - 1000 * 60 * 60)) {
                                 deviceData.actionType = ActionType.enable_tcp;
                             } else {
                                 deviceData.actionType = ActionType.none;
@@ -258,6 +209,61 @@ export class AgentService {
                 ),
                 tap(data => {
                     this.agentDevicesData.next(data)
+                })
+            );
+    }
+
+
+    private getDevicesUID(adbDevices: DeviceAdb[]): Observable<DeviceAdb[]> {
+        return from(adbDevices)
+            .pipe(
+                flatMap((device: DeviceAdb) => {
+                    let obs = this.getDeviceUID(device.id);
+                    if (this.cachedDeviceIds.has(device.id)) {
+                        let cachedId = this.cachedDeviceIds.get(device.id);
+                        if (cachedId.date > Date.now() - 1000 * 60 * 30) {
+                            obs = of(cachedId.id)
+                        }
+                    }
+                    return obs
+                        .pipe(
+                            catchError(() => of("")),
+                            map(value => {
+                                if (value && !this.cachedDeviceIds.has(device.id)) {
+                                    this.cachedDeviceIds.set(device.id, {date: Date.now(), id: value})
+                                }
+                                device.uid = value;
+                                return device
+                            })
+                        )
+                }),
+                toArray(),
+                map(devices => {
+                    //remove device with same id (if connected with cable and tcp)
+                    const map = new Map<string, DeviceAdb>();
+
+                    const filteredDevices = [];
+                    devices.forEach(d => {
+                        if (d.uid) {
+                            let currentValue = map.get(d.uid);
+                            if (!currentValue || !currentValue.path.startsWith("usb")) {
+                                map.set(d.uid, d)
+                            }
+                        } else {
+                            filteredDevices.push(d)
+                        }
+                    });
+                    map.forEach((value) => {
+                        filteredDevices.push(value);
+                    });
+
+                    //remove cached uid
+                    this.cachedDeviceIds.forEach((value, key) => {
+                        if (!map.has(key)) {
+                            this.cachedDeviceIds.delete(key);
+                        }
+                    });
+                    return filteredDevices;
                 })
             );
     }
@@ -357,6 +363,8 @@ export class AgentService {
 
         const enrollObs: Observable<DeviceLog> = this.adbRepo.installApk(adbDeviceId, this.agentRepo.getAgentApk())
             .pipe(
+                tap(() => subject.next({log: `Open main activity...`, type: DeviceLogType.INFO})),
+                flatMap(() => this.adbRepo.launchActivity(adbDeviceId, "com.leroymerlin.pandalab/.home.HomeActivity")),
                 tap(() => subject.next({log: `Retrieve device uid...`, type: DeviceLogType.INFO})),
                 flatMap(() => this.getDeviceUID(adbDeviceId)),
                 tap(() => subject.next({log: `Generate firebase token...`, type: DeviceLogType.INFO})),

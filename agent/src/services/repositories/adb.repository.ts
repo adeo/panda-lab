@@ -1,7 +1,7 @@
 import {BehaviorSubject, from, interval, merge, Observable, Subscription} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
 import {DeviceLog, DeviceLogType} from "../../models/device";
-import {debounceTime, delay, distinctUntilChanged, map, switchMap, timeout} from "rxjs/operators";
+import {delay, distinctUntilChanged, map, switchMap, timeout} from "rxjs/operators";
 import {doOnSubscribe} from "../../utils/rxjs";
 
 export class AdbRepository {
@@ -85,7 +85,7 @@ export class AdbRepository {
     }
 
     private updateDevicesFlux(devices: DeviceAdb[]) {
-        devices = devices.filter(value => value.type != 'offline');
+        devices = devices.filter(value => value.type != 'offline' && value.type != 'unauthorized');
         this.listDevices.next(devices);
     }
 
@@ -144,10 +144,11 @@ export class AdbRepository {
     }
 
 
-    launchActivity(deviceId: string, activityName: string): Observable<void> {
+    launchActivity(deviceId: string, activityName: string): Observable<DeviceLog> {
         return new Observable(emitter => {
             this.adbClient.startActivity(deviceId, {component: activityName})
                 .then(() => {
+                    emitter.next({type: DeviceLogType.INFO, log: "Activity started"});
                     emitter.complete();
                 })
                 .catch(err => {

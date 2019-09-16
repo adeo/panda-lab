@@ -2,7 +2,9 @@
     <div>
         <h2 class="devices-home-title md-display-1">Devices:</h2>
         <template v-if="devices">
-            <md-switch class="devices-home-display-switch md-primary" v-model="listMode" @change="onListMode()">Mode liste</md-switch>
+            <md-switch class="devices-home-display-switch md-primary" v-model="listMode" @change="onListMode()">Mode
+                liste
+            </md-switch>
             <div class="devices-card-container" v-if="!listMode">
                 <div v-for="device in devices" v-bind:key="device.id" class="devices-grid">
                     <md-card md-with-hover class="devices-card">
@@ -54,10 +56,8 @@
 <script lang="ts">
     import {Component, Vue} from "vue-property-decorator";
     import {Subscription} from "vue-rx-decorators";
-    import {from} from "rxjs";
-    import * as firebase from "firebase";
-    import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
-    import {storageUtils} from "@/utils/storage.utils";
+    import {Services} from "../services/services.provider";
+    import {StoreRepository} from "../services/repositories/store.repository";
 
     @Component
     export default class Website extends Vue {
@@ -65,27 +65,17 @@
         static LIST_MODE_KEY = 'listKey';
 
         listMode: boolean = this.getListModeStatus();
+        private store: StoreRepository;
+
+        constructor() {
+            super()
+
+            this.store = Services.getInstance().store;
+        }
 
         @Subscription()
         protected get devices() {
-            return from(firebase.firestore().collection('devices').get())
-                .map(value => {
-                    return value.docs;
-                })
-                .flatMap(from)
-                .map((value: QueryDocumentSnapshot) => {
-                    const data = value.data();
-                    return {
-                        id: value.ref.id,
-                        name: data.name,
-                        brand: data.phoneBrand,
-                        model: data.phoneModel,
-                        serialId: data.serialId,
-                        phoneModel: data.phoneModel,
-                        pictureIcon: data.pictureIcon,
-                    };
-                })
-                .toArray();
+            return Services.getInstance().devicesService.listenDevices();
         }
 
         protected onDisplayDetail(device: any) {
@@ -93,16 +83,12 @@
         }
 
         protected onListMode() {
-            storageUtils.setItemInStorage(Website.LIST_MODE_KEY, this.listMode);
+            this.store.save(Website.LIST_MODE_KEY, this.listMode ? "list" : "grid");
         }
 
         protected getListModeStatus() {
-            if(storageUtils.getItemFromStorage(Website.LIST_MODE_KEY) == null) {
-                storageUtils.setItemInStorage(Website.LIST_MODE_KEY, false);
-                return false;
-            } else {
-                return storageUtils.getItemFromStorage(Website.LIST_MODE_KEY);
-            }
+            let listMode = this.store.load(Website.LIST_MODE_KEY, "list");
+            return listMode == "list"
         }
     }
 </script>
@@ -113,22 +99,26 @@
         position: relative;
         overflow: auto;
     }
+
     .devices-list-container {
         margin: 15px;
         position: relative;
         overflow: auto;
     }
+
     .devices-card {
         width: 300px;
         float: left;
         margin: 15px;
     }
+
     .devices-home-title {
         margin: 15px;
         color: white;
     }
+
     .devices-home-display-switch {
         margin-left: 15px;
-        color:  white;
+        color: white;
     }
 </style>

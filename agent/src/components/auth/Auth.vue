@@ -31,6 +31,7 @@
             this.authService.isConnected()
                 .then(async isLogged => {
                     if (isLogged) {
+                        console.log("logged, redirect to splash");
                         await this.$router.push({path: '/splash'})
                     } else {
                         console.log("not logged, show ui");
@@ -52,7 +53,7 @@
                 await this.signInWithAgentToken(result.data.token);
             } catch (e) {
                 console.error(e);
-                this.$router.push({path: '/'});
+                this.$router.push({path: '/home'});
             }
         }
 
@@ -60,6 +61,7 @@
             console.log("token created ", token);
             console.log("agent uuid created ", this.agentService.getAgentUUID());
             await Services.getInstance().authService.signInWithAgentToken(token, this.agentService.getAgentUUID()).toPromise();
+            console.log("redirect to splash")
             await this.$router.push({path: '/splash'});
         }
 
