@@ -7,6 +7,7 @@ import {catchError, filter, first, flatMap, map, onErrorResumeNext, switchMapTo,
 import {Artifact, Device, DeviceStatus, Job, JobTask, TaskStatus} from 'pandalab-commons';
 import {JobsService} from "../jobs.service";
 import {WorkspaceRepository} from "./workspace.repository";
+import {AgentService} from "../agent.service";
 
 const exec = require('util').promisify(require('child_process').exec);
 
@@ -14,6 +15,7 @@ export class SpoonRepository {
     private statusSub: Subscription;
 
     constructor(private agentRepo: AgentRepository,
+                private agentService: AgentService,
                 private firebaseRepo: FirebaseRepository,
                 private adbRepo: AdbRepository,
                 private devicesService: DevicesService,
@@ -63,6 +65,7 @@ export class SpoonRepository {
         let notify = false;
 
         const resetWorking = () => {
+            console.log('reset working');
             working = false;
             if (notify) {
                 notifier.next(null);
@@ -88,9 +91,9 @@ export class SpoonRepository {
                     return availableDevices.find(value => value._ref.id === deviceId);
                 };
 
-                if (tasks.length == 0) {
-                    console.log(`tasks is empty`);
-                    return of();
+                if (tasks.length == 0 || availableDevices.length == 0) {
+                    console.log(`empty`);
+                    return empty();
                 }
 
                 return from(tasks).pipe(
@@ -103,41 +106,58 @@ export class SpoonRepository {
                         };
                     }),
                     flatMap(tuple => {
-                        if (this.adbRepo.isConnected(tuple.device.serialId)) {
-                            return of(tuple);
-                        } else {
-                            return this.saveDeviceStatus(tuple.device, DeviceStatus.offline)
-                                .pipe(
-                                    switchMapTo(of({
+                        const saveDeviceOffline = this.saveDeviceStatus(tuple.device, DeviceStatus.offline)
+                            .pipe(
+                                switchMapTo(of({
+                                    ...tuple,
+                                    error: `Device is offline`,
+                                }))
+                            );
+
+                        // TODO getDeviceAdb add cache for match firebase id with adb id
+                        return this.agentService.getDeviceAdb(tuple.device._ref.id).pipe(
+                            flatMap(deviceAdb => {
+                                console.log(`Serial = ${deviceAdb}`);
+                                if (deviceAdb === null) {
+                                    return saveDeviceOffline;
+                                } else {
+                                    return of(<Perform>{
                                         ...tuple,
-                                        error: `Device is offline`,
-                                    }))
-                                );
-                        }
+                                        serial: deviceAdb.id,
+                                    });
+                                }
+                            }),
+                            catchError(() => {
+                                return saveDeviceOffline;
+                            }),
+                        );
                     }),
                     flatMap((tuple: any) => {
                         if (tuple.error) {
                             return this.saveJobTaskStatus(tuple.task, TaskStatus.error, tuple.error);
                         }
 
-                        const timeInSeconds = tuple.task.timeout.seconds;
-                        const nowInSecond = Math.round(Date.now() / 1000);
-
-                        const timeoutInSeconds = timeInSeconds - nowInSecond;
-                        if (timeoutInSeconds <= 0) {
-                            // is expired
-                            return this.saveJobTaskStatus(tuple.task, TaskStatus.error, 'timeout');
+                        let timeoutInSeconds = 60 * 60 * 1000;
+                        if (tuple.task.timeout) {
+                            console.log('Timeout exist');
+                            const timeInSeconds = tuple.task.timeout.seconds - Math.round(Date.now() / 1000);
+                            console.log('timeInSeconds = ', timeInSeconds);
+                            if (timeInSeconds <= 0) {
+                                return this.saveJobTaskStatus(tuple.task, TaskStatus.error, 'timeout');
+                            } else {
+                                timeoutInSeconds = timeInSeconds;
+                            }
                         } else {
-                            console.log('run = ', tuple);
-                            return this.saveDeviceStatus(tuple.device, DeviceStatus.booked)
-                                .pipe(
-                                    switchMapTo(this.runTest(tuple.task, tuple.device)),
-                                    switchMapTo(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
-                                    onErrorResumeNext(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
-                                    timeout(timeoutInSeconds),
-                                );
+                            console.log('default timeout = ', timeoutInSeconds);
                         }
-
+                        console.log('run = ', tuple);
+                        return this.saveDeviceStatus(tuple.device, DeviceStatus.booked)
+                            .pipe(
+                                switchMapTo(this.runTest(tuple.task, tuple.device, tuple.serial)),
+                                switchMapTo(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
+                                onErrorResumeNext(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
+                                timeout(timeoutInSeconds),
+                            );
                     }),
                 );
             }),
@@ -154,7 +174,7 @@ export class SpoonRepository {
         );
     }
 
-    runTest(task: JobTask, device: Device): Observable<JobTask> {
+    runTest(task: JobTask, device: Device, serial: string): Observable<JobTask> {
         console.log(`run test, [jobId = ${task._ref.id}, deviceId = ${task.device.id}]`);
         return this.getJob(task)
             .pipe(
@@ -165,13 +185,14 @@ export class SpoonRepository {
                         ...perform,
                         task,
                         device,
+                        serial,
                     };
                 }),
                 flatMap(perform => {
                     return this.saveJobTaskStatus(perform.task, TaskStatus.running)
                         .pipe(
                             flatMap(() => this.runCommand(perform)),
-                            switchMapTo(this.saveJobTaskStatus(perform.task, TaskStatus.success)),
+                            flatMap(() => this.saveJobTaskStatus(perform.task, TaskStatus.success)),
                             catchError(err => {
                                 console.error(err);
                                 return this.saveJobTaskStatus(perform.task, TaskStatus.error, err.message);
@@ -214,9 +235,7 @@ export class SpoonRepository {
         }
 
         const artifactPath = `${apkDirectory}${this.workspace.path.sep}${getFilenameArtifact(artifact)}`;
-        const artifactUrl = ''; // TODO
         const testArtifactPath = `${apkDirectory}${this.workspace.path.sep}${getFilenameArtifact(testArtifact)}`;
-        const testArtifactUrl = ''; // TODO
 
         console.log(artifactPath);
         console.log(testArtifactPath);
@@ -229,17 +248,28 @@ export class SpoonRepository {
             testArtifactPath
         });
 
-        return this.downloadApk(artifactPath, artifactUrl)
+        return this.downloadApk(artifactPath, artifact)
             .pipe(
-                switchMapTo(this.downloadApk(testArtifactPath, testArtifactUrl)),
+                switchMapTo(this.downloadApk(testArtifactPath, testArtifact)),
                 switchMapTo(result),
                 tap(result => console.log(`RESULT = ${result}`)),
             );
     }
 
-    private downloadApk(path: string, url: string): Observable<string> {
-        return of(path);
-        // return this.workspace.downloadFile(path, url);
+    private downloadApk(path: string, artifact: Artifact): Observable<string> {
+        return this.generateDownloadUrl(artifact).pipe(
+            flatMap(url => {
+                console.log(`Download artifact: ${artifact._ref.id}, url = ${url}, path = ${path}`);
+                return this.workspace.downloadFile(path, url);
+            }),
+        );
+    }
+
+    private generateDownloadUrl(artifact: Artifact): Observable<string> {
+        const getFileData = this.firebaseRepo.firebase.functions().httpsCallable("getFileData");
+        return from(getFileData({path: artifact.path})).pipe(
+            map(result => result.data.downloadUrl),
+        );
     }
 
     private runCommand(perform: Perform): Observable<void> {
@@ -248,6 +278,7 @@ export class SpoonRepository {
     }
 
     private async runCommandPromise(perform: Perform): Promise<void> {
+        console.log(`run command serial = ${perform.serial}`);
         console.log('runCommandPromise');
         const reportDirectory = this.workspace.getReportJobDirectory(perform.job._ref.id, perform.device._ref.id);
         const spoonCommands = [
@@ -256,22 +287,35 @@ export class SpoonRepository {
             `--test-apk ${perform.testArtifactPath}`,
             `--sdk ${process.env.ANDROID_HOME}`,
             `--output ${reportDirectory}`,
-            `-serial ${perform.device.serialId}`,
+            `-serial ${perform.serial}`,
         ];
 
         const cmd = spoonCommands.join(' ');
         console.log(`Run : ${cmd}`);
-        const {stdout, stderr} = await exec(cmd, {shell: true});
+        const {error, stdout, stderr} = await exec(cmd, {shell: true});
         console.log('stdout:', stdout);
         console.log('stderr:', stderr);
+
+        if (error !== null) {
+            throw new Error(stderr);
+        }
+
         console.log(`End download apk for job : ${perform.job._ref.id}`);
 
         const fs = require('fs');
         const json = fs.readFileSync(`${reportDirectory}/result.json`);
+        fs.unlinkSync(`${reportDirectory}/result.json`);
 
-        this.adbRepo.listenAdb();
+        const saveSpoonResult = this.firebaseRepo.firebase.functions().httpsCallable("saveSpoonResult");
+        const result = await saveSpoonResult({
+            jobId: perform.job._ref.id,
+            deviceId: perform.device._ref.id,
+            result: JSON.parse(json)
+        });
 
-        // TODO UPLOAD TO BUCKET
+        if (result.data.success) {
+            throw new Error("Can't save document in storage");
+        }
     }
 
     private saveJobTaskStatus(jobTask: JobTask, status: TaskStatus, errorMessage: string = null): Observable<JobTask> {
@@ -308,4 +352,5 @@ interface Perform {
     testArtifact: Artifact;
     artifactPath: string;
     testArtifactPath: string;
+    serial: string;
 }

@@ -103,6 +103,7 @@ class LocalServicesProvider implements ServicesProvider {
                     this.store
                 );
                 const spoonRepo = new SpoonRepository(agentRepository,
+                    this.agentService,
                     this.firebaseRepo,
                     adbRepository,
                     this.devicesService,

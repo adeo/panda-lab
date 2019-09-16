@@ -76,14 +76,6 @@ export class AdbRepository {
         })
     }
 
-    isConnected(serialId: string): boolean {
-        const devices = this.listDevices.value;
-        if (devices === null || devices.length === 0) {
-            return false;
-        }
-        return devices.find(value => value.uid === serialId) !== null;
-    }
-
     private updateDevicesFlux(devices: DeviceAdb[]) {
         devices = devices.filter(value => value.type != 'offline' && value.type != 'unauthorized');
         this.listDevices.next(devices);
@@ -106,6 +98,10 @@ export class AdbRepository {
                     return JSON.parse(JSON.stringify(value))
                 })
             )
+    }
+
+    getDevices(): Observable<Array<DeviceAdb>> {
+        return this.listDevices.asObservable();
     }
 
     snapshotDeviceAdb(): Array<DeviceAdb> {
