@@ -66,8 +66,6 @@ export class AgentRepository {
                     const value = result.data as FileData;
                     const currentDate = parseInt(this.storeRepo.load("agent_last_date", "0"));
                     const update = currentDate < value.updatedAt;
-                    console.log("update", update, "exist ?", this.workspace.fileExist(this.workspace.agentApkPath))
-
                     if (update || !this.workspace.fileExist(this.workspace.agentApkPath)) {
                         console.log("update local agent apk");
                         this.workspace.delete(this.workspace.agentApkPath);

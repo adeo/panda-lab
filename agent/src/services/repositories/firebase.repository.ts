@@ -80,7 +80,7 @@ export class FirebaseRepository {
     }
 
     saveDocument<T extends FirebaseModel>(doc: T, merge: boolean = true): Observable<T> {
-        let ref = doc._ref;
+        let ref : DocumentReference = doc._ref as any as DocumentReference;
         if (ref == null)
             return throwError("_ref not defined. can't save model");
 
@@ -93,7 +93,7 @@ export class FirebaseRepository {
                     console.error(err);
                     return of(doc);
                 }),
-            );
+            ) as Observable<T>;
     }
 
 
@@ -114,5 +114,6 @@ export enum CollectionName {
     VERSIONS = "versions",
     APPLICATIONS = "applications",
     DEVICES = "devices",
+    DEVICE_GROUPS = "deviceGroups",
     AGENTS = "agents",
 }

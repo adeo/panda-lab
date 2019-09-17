@@ -8,7 +8,7 @@ import {DeviceLogType} from "../models/device";
             <h2 class="md-display-1">List of connected devices:</h2>
             <md-list>
                 <AgentDevice v-for="device in devicesVue"
-                             v-bind:key="(device.adbDevice)?device.adbDevice.id:device.firebaseDevice?device.firebaseDevice._ref.id:Date.now() + device.actionType"
+                             v-bind:key="device.key"
                              :data="device"/>
             </md-list>
         </div>
@@ -97,7 +97,11 @@ import {DeviceLogType} from "../models/device";
             let devicesDataObs = this.agentService.listenAgentDevices();
             this.$subscribeTo(devicesDataObs, (devicesData: AgentDeviceData[]) => {
                 this.devicesCount = devicesData.filter(value => value.firebaseDevice && value.firebaseDevice.status == DeviceStatus.available).length;
-                this.devicesVue = devicesData
+                this.devicesVue = devicesData.map(value => {
+
+                    value['key'] = value.actionType + (value.adbDevice?value.adbDevice.id:"") + (value.firebaseDevice?value.firebaseDevice._ref.id:"")
+                    return value
+                })
             })
 
             this.$subscribeTo(this.adb.listenAdbStatus(), t => {

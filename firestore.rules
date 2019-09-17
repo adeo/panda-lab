@@ -29,6 +29,11 @@ service cloud.firestore {
         allow write: if isAgent()
     }
 
+    match /deviceGroups/{group} {
+        allow read: if isAdmin() || isUser();
+        allow write: if isAdmin();
+    }
+
     match /devices/{device} {
         allow read: if isAgent() || isAdmin() || isUser();
         allow write: if isMobileAgent() || isAgent();

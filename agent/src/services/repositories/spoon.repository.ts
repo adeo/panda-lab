@@ -9,10 +9,11 @@ import {JobsService} from "../jobs.service";
 import {WorkspaceRepository} from "./workspace.repository";
 import {AgentService} from "../agent.service";
 
-const exec = require('util').promisify(require('child_process').exec);
 
 export class SpoonRepository {
     private statusSub: Subscription;
+
+
 
     constructor(private agentRepo: AgentRepository,
                 private agentService: AgentService,
@@ -21,6 +22,8 @@ export class SpoonRepository {
                 private devicesService: DevicesService,
                 private jobsService: JobsService,
                 private workspace: WorkspaceRepository) {
+
+
 
     }
 
@@ -292,7 +295,7 @@ export class SpoonRepository {
 
         const cmd = spoonCommands.join(' ');
         console.log(`Run : ${cmd}`);
-        const {error, stdout, stderr} = await exec(cmd, {shell: true});
+        const {error, stdout, stderr} = await require('util').promisify(require('child_process').exec)(cmd, {shell: true});
         console.log('stdout:', stdout);
         console.log('stderr:', stderr);
 

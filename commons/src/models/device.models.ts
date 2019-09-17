@@ -21,6 +21,11 @@ export interface Device extends FirebaseModel {
     processor: string;
 }
 
+export interface DevicesGroup extends FirebaseModel {
+    devices: Device[];
+    name: string;
+}
+
 export enum DeviceStatus {
     offline = "offline",
     available = "available",
