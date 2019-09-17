@@ -1,7 +1,7 @@
 import {Change, EventContext} from "firebase-functions";
 import {UserRecord} from "firebase-functions/lib/providers/auth";
 import {DocumentSnapshot} from "firebase-functions/lib/providers/firestore";
-import {API_FUNCTION} from "./api";
+import {API_FUNCTION, CREATE_JOB} from "./api";
 import {ANALYSE_APK, CLEAN_ARTIFACT, GET_FILE_DATA, SAVE_SPOON_RESULT} from "./storage";
 import * as admin from "firebase-admin";
 import {jobService} from "./services/job.service";
@@ -189,4 +189,5 @@ exports.analyse_apk = ANALYSE_APK;
 exports.clean_artifact = CLEAN_ARTIFACT;
 exports.getFileData = GET_FILE_DATA;
 exports.saveSpoonResult = SAVE_SPOON_RESULT;
+exports.createJob = CREATE_JOB;
 exports.api = API_FUNCTION;
