@@ -114,5 +114,6 @@ export enum CollectionName {
     VERSIONS = "versions",
     APPLICATIONS = "applications",
     DEVICES = "devices",
+    DEVICE_GROUPS = "deviceGroups",
     AGENTS = "agents",
 }

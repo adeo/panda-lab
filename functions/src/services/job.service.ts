@@ -36,8 +36,8 @@ class JobService {
         //Check devices ids
         const devicesQuery: string[][] = await Promise.all(
             job.groups.map(async (group: string) => {
-                const result = await admin.firestore().collection("deviceGroups").doc(group).collection("devices").get();
-                return result.docs.map(doc => doc.id)
+                const result = await admin.firestore().collection("deviceGroups").doc(group).get();
+                return result.get("devices")
             })
         );
         let devicesList = devicesQuery.reduce((prev, curr) => prev.concat(curr), []);

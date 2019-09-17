@@ -11,6 +11,8 @@ import Auth from "@/components/auth/Auth.vue";
 import Splash from "../components/auth/Splash.vue";
 import AgentDevices from "../components/agent/AgentDevices.vue";
 import Devices from "../components/devices/Devices.vue";
+import Groups from "../components/groups/Groups.vue";
+import GroupDetails from "../components/groups/GroupDetails.vue";
 
 Vue.use(VueRouter);
 
@@ -34,6 +36,8 @@ const HOME_ROUTE: RouteConfig = {
     children: [
         {path: '/', redirect: 'devices'},
         {path: 'devices', component: Devices,},
+        {path: 'groups', component: Groups,},
+        {path: 'groups/:groupId', component: GroupDetails,},
         {path: 'agentDevices', component: AgentDevices,},
         {path: 'jobs', component: Jobs,},
         {path: 'jobs/:jobId', component: Job},

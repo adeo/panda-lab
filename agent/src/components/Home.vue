@@ -13,16 +13,31 @@ import {RuntimeEnv} from "../services/services.provider";
                         <md-icon>home</md-icon>
                     </md-button>
                 </router-link>
+
+                <router-link to="/devices">
+                    <md-button class="md-icon-button toolbar-devices-button">
+                        <md-icon>devices</md-icon>
+                    </md-button>
+                </router-link>
+
+                <router-link to="/groups">
+                    <md-button class="md-icon-button toolbar-devices-button">
+                        <md-icon>group_work</md-icon>
+                    </md-button>
+                </router-link>
+
                 <router-link v-if="isElectron" to="/agentDevices">
                     <md-button class="md-icon-button toolbar-devices-button">
                         <md-icon>phone_android</md-icon>
                     </md-button>
                 </router-link>
+
                 <router-link to="/jobs">
                     <md-button class="md-icon-button toolbar-devices-button">
                         <md-icon>schedule</md-icon>
                     </md-button>
                 </router-link>
+
                 <router-link to="/applications">
                     <md-button class="md-icon-button toolbar-devices-button">
                         <md-icon>apps</md-icon>

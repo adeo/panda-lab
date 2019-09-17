@@ -1,7 +1,8 @@
 import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
 import {DevicesRepository} from "./repositories/devices.repository";
-import {Device} from 'pandalab-commons';
-import {Observable} from "rxjs";
+import {Device, DevicesGroup} from 'pandalab-commons';
+import {from, Observable} from "rxjs";
+import {flatMap} from "rxjs/operators";
 
 export class DevicesService {
 
@@ -29,5 +30,26 @@ export class DevicesService {
 
     listenDevice(deviceId: string): Observable<Device> {
         return this.firebaseRepo.listenDocument(CollectionName.DEVICES, deviceId)
+    }
+
+
+    listenGroups(): Observable<DevicesGroup[]> {
+        return this.firebaseRepo.listenCollection(CollectionName.DEVICE_GROUPS)
+    }
+
+    listenGroup(groupId: string): Observable<DevicesGroup> {
+        return this.firebaseRepo.listenDocument(CollectionName.DEVICE_GROUPS, groupId)
+    }
+
+    saveGroup(group: DevicesGroup): Observable<DevicesGroup>{
+        return this.firebaseRepo.saveDocument(group);
+    }
+    createGroup(groupName: string): Observable<DevicesGroup> {
+        let group = {
+            devices: [],
+            name: groupName
+        } as DevicesGroup;
+        return from(this.firebaseRepo.getCollection(CollectionName.DEVICE_GROUPS).add(group))
+            .pipe(flatMap(value => this.firebaseRepo.getDocument(value)));
     }
 }
