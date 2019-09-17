@@ -189,9 +189,10 @@ export class AgentService {
                             adbDevice: adbDevice
                         }
                     });
-
                     result.firebaseDevices.forEach(device => {
-                        const deviceData = devicesData.find(a => a.adbDevice.uid == device._ref.id);
+                        const deviceData = devicesData.find(a => {
+                            return a.adbDevice && a.adbDevice.uid == device._ref.id;
+                        });
                         if (!deviceData) {
                             device.status = DeviceStatus.offline;
 
