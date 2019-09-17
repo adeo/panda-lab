@@ -19,7 +19,7 @@
                                 <div class="md-list-item-text">
                                     <span>{{ device.name }}</span>
                                     <span>{{ device.id }}</span>
-                                    <span>{{ device.brand }}</span>
+                                    <span>{{ device.phoneBrand }}</span>
                                 </div>
                             </md-list-item>
 
@@ -31,35 +31,40 @@
                                 <md-icon class="md-primary">email</md-icon>
 
                                 <div class="md-list-item-text">
-                                    <span>{{ device.model }}</span>
+                                    <span>{{ device.phoneModel }}</span>
                                     <span>{{ device.serialId }}</span>
                                 </div>
                             </md-list-item>
 
                             <md-divider></md-divider>
 
-                            <md-subheader>Jobs</md-subheader>
+                            <md-subheader>Status</md-subheader>
 
                             <md-list-item>
-                                <md-icon class="md-primary">email</md-icon>
+                                <md-icon class="md-primary">update</md-icon>
                                 <div class="md-list-item-text">
-                                    <span>Total</span>
-                                    <span v-if="jobs">{{ jobs.length }}</span>
-                                    <div v-else class="progress-container">
-                                        <md-progress-spinner md-mode="indeterminate" :md-diameter="20" :md-stroke="2"></md-progress-spinner>
-                                    </div>
-
+                                    <span>{{device.status}}</span>
                                 </div>
-                                <md-button class="md-icon-button md-list-action">
-                                    <md-icon class="md-primary">view_list</md-icon>
-                                </md-button>
                             </md-list-item>
                         </md-list>
                     </div>
                     <div>
-                        <img :src="device.pictureIcon ? device.pictureIcon : require('../assets/images/device.png')">
+                        <img :src="device.pictureIcon ? device.pictureIcon : require('../../assets/images/device.png')" alt="toto">
                     </div>
                 </div>
+
+                <md-table id="task-table" v-if="tasks" v-model="tasks" md-sort="status" md-sort-order="asc" md-card>
+                    <md-table-toolbar>
+                        <h1 class="md-title">Tasks</h1>
+                    </md-table-toolbar>
+
+                    <md-table-row slot="md-table-row" slot-scope="{ item }">
+                        <md-table-cell md-label="ID" md-numeric>{{ item._ref.id }}</md-table-cell>
+                        <md-table-cell md-label="Status" md-sort-by="status">{{ item.status }}</md-table-cell>
+                        <md-table-cell md-label="Job" md-sort-by="job">{{ item.job.id }}</md-table-cell>
+                    </md-table-row>
+                </md-table>
+
             </div>
         </template>
         <template v-else>
@@ -71,52 +76,21 @@
 <script lang="ts">
     import {Component, Vue} from "vue-property-decorator";
     import {Subscription} from "vue-rx-decorators";
-    import {from} from "rxjs";
-    import * as firebase from "firebase";
-    import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
-    import {tap} from "rxjs/operators";
+    import {Services} from "../../services/services.provider";
+    import {JobTask} from "pandalab-commons";
 
     @Component
     export default class Device extends Vue {
 
-        @Subscription()
-        protected get device() {
-            return from(firebase.firestore().collection('devices').doc(this.$route.params.deviceId).get())
-                .map((value: QueryDocumentSnapshot) => {
-                    const data = value.data();
-                    return {
-                        id: value.id,
-                        name: data.name,
-                        brand: data.phoneBrand,
-                        model: data.phoneModel,
-                        serialId: data.serialId,
-                        pictureIcon: data.pictureIcon,
-                    };
-                });
-        }
+        @Subscription(function () {
+            return Services.getInstance().devicesService.listenDevice(this.$route.params.deviceId)
+        })
+        device: Device;
 
-        @Subscription()
-        protected get jobs() {
-            const deviceReference = firebase.firestore().collection('devices').doc(this.$route.params.deviceId);
-            const querySnapshotPromise = firebase.firestore()
-                .collection('jobs-tasks')
-                .where('device', '==', deviceReference)
-                .get();
-
-            return from(querySnapshotPromise)
-                .map(value => value.docs)
-                .flatMap(from)
-                .map((document: QueryDocumentSnapshot) => {
-                    return {
-                        id: document.id,
-                        data: document.data(),
-                    };
-                })
-                .toArray()
-                .pipe(
-                    tap((data => console.log(data)))
-                );
-        }
+        @Subscription(function () {
+            return Services.getInstance().jobsService.getDeviceJob(this.$route.params.deviceId)
+        })
+        tasks: JobTask[];
 
         protected onBack() {
             this.$router.back();
@@ -137,6 +111,10 @@
 
     h1 {
         color: white;
+    }
+
+    #task-table {
+        margin-top: 20px;
     }
 
     #device .container {

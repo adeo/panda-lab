@@ -1,3 +1,4 @@
+import {RuntimeEnv} from "../services/services.provider";
 <template>
     <div id="home">
         <div class="content-container">
@@ -12,7 +13,7 @@
                         <md-icon>home</md-icon>
                     </md-button>
                 </router-link>
-                <router-link to="/agentDevices">
+                <router-link v-if="isElectron" to="/agentDevices">
                     <md-button class="md-icon-button toolbar-devices-button">
                         <md-icon>phone_android</md-icon>
                     </md-button>
@@ -33,9 +34,14 @@
 </template>
 <script lang="ts">
     import {Component, Vue} from 'vue-property-decorator';
+    import {getRuntimeEnv, RuntimeEnv} from "../services/services.provider";
+
 
     @Component
     export default class Home extends Vue {
+
+        isElectron : Boolean = getRuntimeEnv() == RuntimeEnv.ELECTRON_RENDERER
+
     }
 
 </script>

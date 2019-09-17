@@ -11,15 +11,16 @@
                         <md-ripple>
                             <div @click="onDisplayDetail(device)">
                                 <md-card-header>
-                                    <div class="md-title">{{ device.phoneModel }}</div>
+                                    <div id="card-title" class="md-title">{{ device.phoneModel }}</div>
                                 </md-card-header>
 
                                 <md-card-media md-big>
-                                    <img :src="device.pictureIcon ? device.pictureIcon : require('../assets/images/device.png')">
+                                    <img :src="device.pictureIcon ? device.pictureIcon : require('../../assets/images/device.png')"
+                                         onerror="this.src = this.alt" :alt="require('../../assets/images/device.png')">
                                 </md-card-media>
 
                                 <md-card-content>
-                                    <div class="card-text-content">
+                                    <div id="card-footer" class="card-text-content">
                                         {{ device.name }}
                                     </div>
                                 </md-card-content>
@@ -29,20 +30,22 @@
                 </div>
             </div>
             <div class="devices-list-container" v-if="listMode">
-                <md-table md-card>
-                    <md-table-row>
-                        <md-table-head>ID</md-table-head>
-                        <md-table-head>Name</md-table-head>
-                        <md-table-head>Brand</md-table-head>
-                        <md-table-head>Model</md-table-head>
-                        <md-table-head>Serial Id</md-table-head>
-                    </md-table-row>
-                    <md-table-row v-for="device in devices" v-bind:key="device.id" v-on:click="onDisplayDetail(device)">
-                        <md-table-cell>{{ device.id }}</md-table-cell>
-                        <md-table-cell>{{ device.name }}</md-table-cell>
-                        <md-table-cell>{{ device.brand }}</md-table-cell>
-                        <md-table-cell>{{ device.model }}</md-table-cell>
-                        <md-table-cell>{{ device.serialId }}</md-table-cell>
+                <md-table v-model="devices" md-card md-sort="status" md-sort-order="asc" md-fixed-header>
+                    <!--                    <md-table-toolbar>-->
+                    <!--                        <div class="md-toolbar-section-start">-->
+                    <!--                            <h1 class="md-title">Devices</h1>-->
+                    <!--                        </div>-->
+
+                    <!--                        <md-field md-clearable class="md-toolbar-section-end">-->
+                    <!--                            <md-input placeholder="Search by id..." v-model="search" @input="searchOnTable" />-->
+                    <!--                        </md-field>-->
+                    <!--                    </md-table-toolbar>-->
+                    <md-table-row slot="md-table-row" slot-scope="{ item }" v-on:click="onDisplayDetail(item)">
+                        <md-table-cell md-label="ID" md-numeric> {{ item._ref.id }}</md-table-cell>
+                        <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
+                        <md-table-cell md-label="Brand" md-sort-by="phoneBrand">{{ item.phoneBrand }}</md-table-cell>
+                        <md-table-cell md-label="Model" md-sort-by="phoneModel">{{ item.phoneModel }}</md-table-cell>
+                        <md-table-cell md-label="Status" md-sort-by="status">{{ item.status }}</md-table-cell>
                     </md-table-row>
                 </md-table>
             </div>
@@ -56,22 +59,14 @@
 <script lang="ts">
     import {Component, Vue} from "vue-property-decorator";
     import {Subscription} from "vue-rx-decorators";
-    import {Services} from "../services/services.provider";
-    import {StoreRepository} from "../services/repositories/store.repository";
+    import {Services} from "../../services/services.provider";
 
     @Component
-    export default class Website extends Vue {
+    export default class Devices extends Vue {
 
         static LIST_MODE_KEY = 'listKey';
 
         listMode: boolean = this.getListModeStatus();
-        private store: StoreRepository;
-
-        constructor() {
-            super()
-
-            this.store = Services.getInstance().store;
-        }
 
         @Subscription()
         protected get devices() {
@@ -79,21 +74,30 @@
         }
 
         protected onDisplayDetail(device: any) {
-            this.$router.push('/devices/' + device.id);
+            this.$router.push('/devices/' + device._ref.id);
         }
 
         protected onListMode() {
-            this.store.save(Website.LIST_MODE_KEY, this.listMode ? "list" : "grid");
+            Services.getInstance().store.save(Devices.LIST_MODE_KEY, this.listMode ? "list" : "grid");
         }
 
         protected getListModeStatus() {
-            let listMode = this.store.load(Website.LIST_MODE_KEY, "list");
+            let listMode = Services.getInstance().store.load(Devices.LIST_MODE_KEY, "list");
             return listMode == "list"
         }
     }
 </script>
 
 <style scoped>
+
+    #card-title {
+        min-height: 32px;
+    }
+
+    #card-footer {
+        min-height: 22px;
+    }
+
     .devices-card-container {
         margin: 15px;
         position: relative;

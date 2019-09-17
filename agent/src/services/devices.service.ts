@@ -27,5 +27,7 @@ export class DevicesService {
     }
 
 
-
+    listenDevice(deviceId: string): Observable<Device> {
+        return this.firebaseRepo.listenDocument(CollectionName.DEVICES, deviceId)
+    }
 }
