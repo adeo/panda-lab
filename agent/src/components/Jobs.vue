@@ -1,8 +1,5 @@
 <template>
     <div id="jobs">
-        <create-job/>
-        <md-button class="md-dense md-raised md-primary" v-on:click="displayDialog()">Ajouter un job
-        </md-button>
         <md-table id="table" md-card>
             <md-table-toolbar>
                 <h1 class="md-title">Liste des jobs</h1>
@@ -16,11 +13,11 @@
             </md-table-row>
             <md-table-row v-for="job in jobs" v-bind:key="job.id" v-on:click="onSelect(job)" md-selectable="single"
                           class="md-primary">
-                <md-table-cell>{{ job._id }}</md-table-cell>
-                <md-table-cell>{{ job.apk._path }}</md-table-cell>
-                <md-table-cell>{{ job.apkTest._path }}</md-table-cell>
+                <md-table-cell>{{ job._ref.id }}</md-table-cell>
+                <md-table-cell>{{ job.apk.id }}</md-table-cell>
+                <md-table-cell>{{ job.apk_test.id }}</md-table-cell>
                 <md-table-cell>{{ job.completed }}</md-table-cell>
-                <md-table-cell>{{ job.tasks }}</md-table-cell>
+                <md-table-cell>{{ job.status }}</md-table-cell>
             </md-table-row>
         </md-table>
     </div>
@@ -32,7 +29,7 @@
     import {Observable} from "rxjs";
     import {Subscription,} from "vue-rx-decorators";
     import CreateJob from "@/components/CreateJob.vue";
-    import {CREATE_JOB_EVENT_DISPLAY} from "../components/events";
+    import {CREATE_JOB_EVENT_DISPLAY} from "./events";
     import {Job} from "pandalab-commons";
     import {Services} from "../services/services.provider";
 

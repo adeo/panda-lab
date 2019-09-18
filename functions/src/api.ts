@@ -67,6 +67,21 @@ app.post('/job', async (req, res) => {
     });
 });
 
+export const CREATE_JOB = functions.https.onCall(async (data, context) => {
+    console.log(`CALL createJob`);
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", `Not authorized to create a job`);
+    }
+    const job: JobRequest = data as JobRequest;
+    console.log(`jobRequest = `, job);
+    job.devices = job.devices || [];
+    job.groups = job.groups || [];
+    const value = await jobService.createJob(job);
+    return {
+        jobId: value.id,
+    }
+});
+
 app.use((err, req, res, next) => {
     res.status(404).send();
 });

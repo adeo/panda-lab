@@ -95,16 +95,16 @@ class JobService {
     }
 
 
-    async onTaskUpdate(taskDoc: DocumentSnapshot) : Promise<void> {
+    async onTaskUpdate(taskDoc: DocumentSnapshot) : Promise<any> {
         const task = taskDoc.data() as JobTask;
 
 
         if (task.status === TaskStatus.pending) {
             if (!task.device) {
-                await this.assignTasksToDevices(taskDoc)
+                return this.assignTasksToDevices(taskDoc)
             }
             console.log("task pending. skip job update");
-            return Promise.resolve()
+            return Promise.resolve();
         }
 
         const jobRef = task.job;
@@ -159,6 +159,7 @@ class JobService {
     }
 
     async assignTasksToDevices(currentTask?: DocumentSnapshot) {
+        console.log('assignTasksToDevices');
         let tasksDocs: DocumentSnapshot[];
         if (currentTask) {
             tasksDocs = [currentTask]
@@ -179,7 +180,7 @@ class JobService {
             .where("status", "==", DeviceStatus.available)
             .orderBy("lastConnexion", "asc").get();
 
-        tasksDocs.forEach(
+        return Promise.all(tasksDocs.map(
             async taskDoc => {
                 const task = taskDoc.data() as JobTask;
 
@@ -190,7 +191,7 @@ class JobService {
                 const alreadyUsedDevices = jobTasksQuery.docs
                     .map(value => value.data() as JobTask)
                     .map(value => value.device)
-                    .filter(value => value !== null)
+                    .filter(value => value !== null && value !== undefined)
                     .map(value => value.id);
 
                 const devices = devicesQuery.docs;
@@ -199,14 +200,14 @@ class JobService {
                 if (deviceIndex >= 0) {
                     const selectedDevice = devices.splice(deviceIndex, 1)[0];
                     console.log("assign task " + taskDoc.id + " to " + selectedDevice.id);
-                    await taskDoc.ref.set({
+                    return taskDoc.ref.set({
                         "device": selectedDevice.ref as any as DocumentReference
                     } as JobTask, {merge: true})
+                } else {
+                    return Promise.resolve();
                 }
             }
-        )
-
-
+        ));
     }
 
 }

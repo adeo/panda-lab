@@ -40,9 +40,9 @@
     import {Subscription} from "vue-rx-decorators";
     import {from, of} from "rxjs";
     import * as firebase from "firebase";
-    import {catchError, tap} from "rxjs/operators";
+    import {catchError, flatMap, map, tap, toArray} from "rxjs/operators";
     import DialogCreateJob from "@/components/DialogCreateJob.vue";
-    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "../components/events";
+    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "./events";
     import "rxjs-compat/add/operator/scan";
     import {Services} from "../services/services.provider";
     import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
@@ -64,8 +64,8 @@
         @Emit(DIALOG_CREATE_JOB_DISPLAY_EVENT)
         async onClickCreateJob(application: any, version: any) {
             return {
-                application,
-                version,
+                applicationId: application.id,
+                versionId: version.id,
             };
         }
 
@@ -77,35 +77,38 @@
         @Subscription()
         protected get applications() {
             this.loading = true;
+
             return from(firebase.firestore().collection('applications').get())
-                .map(snapshot => snapshot.docs)
-                .flatMap(from) // flatMap iterate
-                .flatMap(async (documentSnapshot: QueryDocumentSnapshot) => {
-                    const applicationId = documentSnapshot.id;
-                    const versionsSnapshot = await documentSnapshot.ref.collection('versions').get();
-                    const versions = await Promise.all(versionsSnapshot.docs.map(async version => {
-                        const versionId = version.id;
-                        const artifactsSnapshot = await version.ref.collection('artifacts').get();
-                        const artifacts = artifactsSnapshot.docs.map(artifactSnapshot => {
-                            const id = artifactSnapshot.id;
-                            return {
-                                id,
-                                ...artifactSnapshot.data()
-                            };
-                        });
-                        return {
-                            id: versionId,
-                            ...version.data(),
-                            artifacts,
-                        };
-                    }));
-                    return {
-                        id: applicationId,
-                        versions
-                    };
-                })
-                .toArray()
                 .pipe(
+                    map(snapshot => snapshot.docs),
+                    flatMap(from), // flatMap iterate
+                    flatMap(async (documentSnapshot: QueryDocumentSnapshot) => {
+                        const applicationId = documentSnapshot.id;
+                        const versionsSnapshot = await documentSnapshot.ref.collection('versions').get();
+                        const versions = await Promise.all(versionsSnapshot.docs.map(async version => {
+                            const versionId = version.id;
+                            const artifactsSnapshot = await version.ref.collection('artifacts').get();
+                            const artifacts = artifactsSnapshot.docs.map(artifactSnapshot => {
+                                const id = artifactSnapshot.id;
+                                return {
+                                    id,
+                                    ...artifactSnapshot.data()
+                                };
+                            });
+                            return {
+                                _ref: version.ref,
+                                id: versionId,
+                                ...version.data(),
+                                artifacts,
+                            };
+                        }));
+                        return {
+                            _ref: documentSnapshot.ref,
+                            id: applicationId,
+                            versions
+                        };
+                    }),
+                    toArray(),
                     tap(() => {
                         this.loading = false;
                         this.$forceUpdate();

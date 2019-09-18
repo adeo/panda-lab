@@ -52,8 +52,6 @@ export class AgentService {
                 private agentRepo: AgentRepository,
                 private deviceService: DevicesService,
                 private storeRepo: StoreRepository) {
-
-
         this.agentRepo.agentStatus.subscribe(value => {
             switch (value) {
                 case AgentStatus.CONFIGURING:
@@ -69,7 +67,6 @@ export class AgentService {
             }
         })
     }
-
 
     get autoEnroll(): boolean {
         return this.storeRepo.load("auto-enroll", "true") == "true"
@@ -89,7 +86,6 @@ export class AgentService {
         this.notifyChange()
     }
 
-
     listenAgentStatus(): Observable<AgentStatus> {
         return this.agentRepo.agentStatus
     }
@@ -105,22 +101,18 @@ export class AgentService {
         this.changeBehaviour.next("")
     }
 
-
     public addManualAction(data: AgentDeviceData) {
         this.manualActions.push(data);
         this.notifyChange()
     }
 
-
     private cachedDeviceIds: Map<string, { date: number, id: string }>;
+    private currentAdbDevices: DeviceAdb[] = [];
 
     private listenDevices(): Observable<AgentDeviceData[]> {
         this.cachedDeviceIds = new Map<string, { date: number, id: string }>();
-
         let listenAdbDeviceWithUid: Observable<DeviceAdb[]> = this.adbRepo.listenAdb();
         let listenAgentDevices = this.deviceService.listenAgentDevices(this.agentRepo.UUID);
-
-
         return combineLatest([
             listenAgentDevices,
             listenAdbDeviceWithUid,
@@ -133,24 +125,21 @@ export class AgentService {
                 }),
                 flatMap(value => this.getDevicesUID(value.adbDevices).pipe(map(devices => {
                     value.adbDevices = devices;
+                    this.currentAdbDevices = devices;
                     return value;
                 }))),
                 map(result => {
-
                     const devicesData: AgentDeviceData[] = result.adbDevices.map(adbDevice => {
                         return <AgentDeviceData>{
                             actionType: this.autoEnroll ? ActionType.enroll : ActionType.none,
                             adbDevice: adbDevice
                         }
                     });
-
                     result.firebaseDevices.forEach(device => {
                         const deviceData = devicesData.find(a => a.adbDevice && a.adbDevice.uid == device._ref.id);
                         if (!deviceData) {
                             device.status = DeviceStatus.offline;
-
                             const canConnect = device.lastTcpActivation && device.lastTcpActivation < Date.now() - 1000 * 10;
-
                             devicesData.push(
                                 <AgentDeviceData>{
                                     actionType: this.enableTCP && device.ip && canConnect ? ActionType.try_connect : ActionType.none,
@@ -178,10 +167,7 @@ export class AgentService {
                             let currentDeviceData = this.findDataInList(currentDevicesData, deviceData);
                             if (currentDeviceData && currentDeviceData.action && !currentDeviceData.action.isStopped) {
                                 return currentDeviceData;
-
-
                             } else {
-
                                 let index = this.findIndexDataInList(this.manualActions, deviceData);
                                 if (index >= 0) {
                                     deviceData = this.manualActions.splice(index, 1)[0]
@@ -196,13 +182,11 @@ export class AgentService {
                                         break;
                                     case ActionType.try_connect:
                                         deviceData.action = this.startAction(this.tryToConnectAction(deviceData));
-
                                         break;
                                     case ActionType.enable_tcp:
                                         deviceData.action = this.startAction(this.enableTcpAction(deviceData));
                                         break;
                                     case ActionType.none:
-
                                         break
                                 }
                                 return deviceData;
@@ -215,7 +199,6 @@ export class AgentService {
                 })
             );
     }
-
 
     private getDevicesUID(adbDevices: DeviceAdb[]): Observable<DeviceAdb[]> {
         return from(adbDevices)
@@ -244,7 +227,6 @@ export class AgentService {
                 map(devices => {
                     //remove device with same id (if connected with cable and tcp)
                     const map = new Map<string, DeviceAdb>();
-
                     const filteredDevices = [];
                     devices.forEach(d => {
                         if (d.uid) {
@@ -259,7 +241,6 @@ export class AgentService {
                     map.forEach((value) => {
                         filteredDevices.push(value);
                     });
-
                     //remove cached uid
                     this.cachedDeviceIds.forEach((value, key) => {
                         if (!map.has(key)) {
@@ -285,7 +266,6 @@ export class AgentService {
         return this.agentRepo.UUID;
     }
 
-
     private startAction(action: Observable<Timestamp<DeviceLog>>): BehaviorSubject<Timestamp<DeviceLog>[]> {
         const subject = new BehaviorSubject<Timestamp<DeviceLog>[]>([]);
         action.pipe(
@@ -301,7 +281,6 @@ export class AgentService {
             }))
             .subscribe(value => {
                 subject.next(value)
-
             }, error => {
                 this.logger.error("Action finish with error", error);
                 subject.complete()
@@ -326,7 +305,6 @@ export class AgentService {
                     timestamp()
                 )
         )
-
     }
 
     private tryToConnectAction(device: AgentDeviceData): Observable<Timestamp<DeviceLog>> {
@@ -363,7 +341,6 @@ export class AgentService {
     private enrollAction(adbDeviceId: string): Observable<Timestamp<DeviceLog>> {
         const subject = new ReplaySubject<DeviceLog>();
         subject.next({log: 'Install service APK...', type: DeviceLogType.INFO});
-
         const enrollObs: Observable<DeviceLog> = this.adbRepo.installApk(adbDeviceId, this.agentRepo.getAgentApk())
             .pipe(
                 tap(() => subject.next({log: `Open main activity...`, type: DeviceLogType.INFO})),
@@ -376,8 +353,6 @@ export class AgentService {
                         return {uuid: uuid, token: token}
                     }))),
                 tap(() => subject.next({log: 'Launch of the service...', type: DeviceLogType.INFO})),
-
-
                 flatMap(result => this.adbRepo.sendBroadcastWithData(adbDeviceId, "com.leroymerlin.pandalab/.AgentReceiver",
                     'com.leroymerlin.pandalab.INTENT.ENROLL', {
                         'token_id': result.token,
@@ -393,7 +368,6 @@ export class AgentService {
                 }),
                 flatMap(() => EMPTY),
             ) as Observable<DeviceLog>;
-
         return merge(subject, enrollObs)
             .pipe(
                 timeout(50000),
@@ -402,28 +376,14 @@ export class AgentService {
             )
     }
 
-    public getDeviceAdb(id: string): Observable<DeviceAdb | null> {
-        return this.adbRepo.getDevices().pipe(
-            flatMap(devices => {
-                return from(devices).pipe(
-                    flatMap(device => {
-                        return this.getDeviceUID(device.id).pipe(map(id => {
-                            return {
-                                id,
-                                device,
-                            };
-                        }));
-                    }),
-                    first(tuple => tuple.id === id, null),
-                    map(tuple => tuple.device),
-                );
-            })
+
+    public getDeviceAdb(firebaseId: string): Observable<DeviceAdb | null> {
+        return from(this.currentAdbDevices).pipe(
+            first(value => value.uid === firebaseId),
         );
     }
 
-
     private getDeviceUID(deviceId: string): Observable<string> {
-
         const transactionId = Guid.create().toString();
         const logcatObs = this.adbRepo.readAdbLogcat(deviceId, transactionId)
             .pipe(
@@ -434,11 +394,9 @@ export class AgentService {
                 first(),
                 timeout(5000)
             );
-
         const sendTransaction = this.adbRepo.sendBroadcastWithData(deviceId,
             "com.leroymerlin.pandalab/.AgentReceiver",
             "com.leroymerlin.pandalab.INTENT.GET_ID", {"transaction_id": transactionId});
-
         return this.adbRepo.isInstalled(deviceId, 'com.leroymerlin.pandalab')
             .pipe(
                 flatMap(installed => {
@@ -453,14 +411,11 @@ export class AgentService {
 }
 
 export interface AgentDeviceData {
-
     actionType: ActionType,
     adbDevice: DeviceAdb,
     firebaseDevice: Device,
     action: BehaviorSubject<Timestamp<DeviceLog>[]>
-
 }
-
 
 export enum ActionType {
     enroll,
@@ -471,9 +426,7 @@ export enum ActionType {
 }
 
 class AgentError extends Error {
-
     static APP_NOT_INSTALLED: string = "App is not installed on device";
-
 
     static notInstalled() {
         return new AgentError(AgentError.APP_NOT_INSTALLED)
@@ -482,5 +435,4 @@ class AgentError extends Error {
     private constructor(public message: string) {
         super(message);
     }
-
 }

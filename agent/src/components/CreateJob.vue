@@ -38,6 +38,7 @@
 <script lang="ts">
 
     import {Component, Vue} from "vue-property-decorator";
+    // import {CREATE_JOB_EVENT_DISPLAY} from "./events";
     // import {firebaseService, UploadApplicationProgress, UploadApplications} from "@/services/firebase.service";
     // import {Subscription as RxSubscription} from "rxjs";
     // import {Guid} from "guid-typescript";
@@ -48,7 +49,7 @@
 
         // showCreateJobDialog: boolean = false;
         //
-        // private files!: UploadApplications;
+        // private files!: any;
         // private sending = false;
         // private uploadSubscription?: RxSubscription;
         // private percent = 0;
@@ -64,6 +65,7 @@
         //     });
         //
         // }
+        //
         //
         // destroyed() {
         //     this.unsubscribeUpload();

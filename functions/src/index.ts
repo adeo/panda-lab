@@ -1,7 +1,7 @@
 import {Change, EventContext} from "firebase-functions";
 import {UserRecord} from "firebase-functions/lib/providers/auth";
 import {DocumentSnapshot} from "firebase-functions/lib/providers/firestore";
-import {API_FUNCTION} from "./api";
+import {API_FUNCTION, CREATE_JOB} from "./api";
 import {ANALYSE_APK, CLEAN_ARTIFACT, GET_FILE_DATA, SAVE_SPOON_RESULT} from "./storage";
 import * as admin from "firebase-admin";
 import {jobService} from "./services/job.service";
@@ -171,12 +171,18 @@ exports.cron = functions.pubsub.schedule('every 1 minutes').onRun(async (context
     return jobService.checkTaskTimeout()
 });
 
-exports.onTaskResult = functions.firestore.document('devices/{deviceId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
+exports.onDeviceUpdated = functions.firestore.document('devices/{deviceId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
     return jobService.assignTasksToDevices()
 });
 
-exports.onTaskResult = functions.firestore.document('jobs-tasks/{taskId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
-    return jobService.onTaskUpdate(change.after)
+exports.onTaskUpdated = functions.firestore.document('jobs-tasks/{taskId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
+    console.log('onTaskUpdated');
+    return jobService.onTaskUpdate(change.after);
+});
+
+exports.onTaskCreated = functions.firestore.document('jobs-tasks/{taskId}').onCreate(async (snapshot: DocumentSnapshot, context: EventContext) => {
+    console.log('onTaskCreated');
+    return jobService.onTaskUpdate(snapshot);
 });
 
 exports.onRemoveJob = functions.firestore.document('jobs/{jobId}').onDelete(async (snapshot: DocumentSnapshot, context: EventContext) => {
@@ -189,4 +195,5 @@ exports.analyse_apk = ANALYSE_APK;
 exports.clean_artifact = CLEAN_ARTIFACT;
 exports.getFileData = GET_FILE_DATA;
 exports.saveSpoonResult = SAVE_SPOON_RESULT;
+exports.createJob = CREATE_JOB;
 exports.api = API_FUNCTION;

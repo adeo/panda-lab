@@ -1,7 +1,7 @@
 <template>
     <div id="dialogCreateJob">
-        <md-dialog :md-active="display" v-if="application" style="padding: 24px; min-width: 50%;">
-            <md-dialog-title>Créer un job de l'application : {{ application.id }}</md-dialog-title>
+        <md-dialog :md-active="display" v-if="applicationId !== null" style="padding: 24px; min-width: 50%;">
+            <md-dialog-title>Créer un job de l'application : {{ applicationId }}</md-dialog-title>
             <div v-if="artifacts">
                 <md-radio v-model="artifactSelected" v-for="artifact in artifacts" v-bind:key="artifact.path"
                           v-bind:value="artifact">{{ artifact.buildType }}
@@ -32,18 +32,19 @@
 </template>
 <script lang="ts">
     import {Component, Vue} from "vue-property-decorator";
-    import {ObservableMethod, Subscription} from "vue-rx-decorators";
-    import {from, Subscription as RxSubscription} from "rxjs";
-    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "../components/events";
+    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "./events";
     import {Services} from "../services/services.provider";
+    import {Artifact} from "pandalab-commons";
+    import {filter, flatMap, toArray} from "rxjs/operators";
+    import {from} from "rxjs";
 
     @Component
     export default class DialogCreateJob extends Vue {
 
         protected display = false;
 
-        private application: any = {}; // application selected
-        private version: any = {}; // version selected
+        private applicationId: string = null;
+        private versionId: string = null;
         private artifactSelected: any = {}; // artifact to select
         private loading = false; // notify if create job is launched
         private snackbar = {
@@ -54,22 +55,9 @@
         };
 
 
-        private createJobSubscription: RxSubscription;
-
-        @ObservableMethod()
-        private applicationVersion: ObservableMethod;
-
         private jobService = Services.getInstance().jobsService;
 
-        /**
-         * This subscription retrieve all artifacts with application and version id.
-         * This observable is updated when the ObservableMethod pplicationVersion is called
-         */
-        @Subscription()
-        protected get artifacts() {
-            return this.applicationVersion
-                .flatMap(value => this.jobService.getArtifacts(value.application.id, value.version.id));
-        }
+        protected artifacts: Array<Artifact> = [];
 
         /**
          * When Vue Component is created, register on event : DIALOG_CREATE_JOB_DISPLAY_EVENT
@@ -77,20 +65,23 @@
          * When this event received, display a dialog
          */
         created() {
-            this.$parent.$on(DIALOG_CREATE_JOB_DISPLAY_EVENT, ({application, version}) => {
-                this.applicationVersion({
-                    application,
-                    version,
-                });
-                this.application = application;
-                this.version = version;
+            this.$parent.$on(DIALOG_CREATE_JOB_DISPLAY_EVENT, ({applicationId, versionId}) => {
+                this.applicationId = applicationId;
+                this.versionId = versionId;
                 this.display = true;
                 this.$forceUpdate();
-            });
-        }
 
-        destroyed() {
-            this.unsubscribeCreateJob();
+                const getArtifactsAsync = this.jobService.getArtifactsExcludeRelease(this.applicationId, this.versionId);
+                this.$subscribeTo(getArtifactsAsync, artifacts => {
+                    this.artifacts = artifacts;
+                    this.$forceUpdate();
+                }, (error) => {
+                    console.error(error);
+                    this.$forceUpdate();
+                    this.artifacts = [];
+                }, () => {
+                });
+            });
         }
 
         /**
@@ -103,40 +94,29 @@
          */
         onSubmit() {
             this.loading = true;
-            const createJob = this.jobService.createJob(this.application.id, this.version.id, this.artifactSelected.id);
-            this.createJobSubscription = from(createJob)
-                .delay(3000)
-                .subscribe(jobId => {
-                    console.log(`Create job id = ${jobId}`);
-                    this.onClose();
-                    this.snackbar.message = `Le job ${jobId} a bien été créé`;
-                    this.snackbar.display = true;
-                    this.$forceUpdate();
-                }, reason => {
-                    console.error(reason);
-                    this.onClose();
-                    this.snackbar.message = `Impossible de créer le job !`;
-                    this.snackbar.display = true;
-                });
+            this.$subscribeTo(this.jobService.createNewJob(this.artifactSelected as Artifact), jobId => {
+                console.log(`Create job id = ${jobId}`);
+                this.onClose();
+                this.snackbar.message = `Le job ${jobId} a bien été créé`;
+                this.snackbar.display = true;
+                this.$forceUpdate();
+            }, reason => {
+                console.error(reason);
+                this.onClose();
+                this.snackbar.message = `Impossible de créer le job !`;
+                this.snackbar.display = true;
+            });
         }
 
         /**
          * Reset all variables
          */
-        onClose() {
-            this.application = {};
+        private onClose() {
+            this.applicationId = null;
+            this.versionId = null;
             this.artifactSelected = {};
             this.loading = false;
             this.display = false;
-        }
-
-        /**
-         * Unsubscribe current subscription : CreateJob
-         */
-        private unsubscribeCreateJob() {
-            if (this.createJobSubscription) {
-                this.createJobSubscription.unsubscribe();
-            }
         }
     }
 

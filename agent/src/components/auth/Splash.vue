@@ -51,10 +51,12 @@
                             break;
                         case AgentStatus.NOT_LOGGED:
                             this.configurationMessage = "Device lab not logged";
-                            this.$router.push({path : '/'});
+                            console.log("Device lab not logged : redirect to /login")
+                            this.$router.push({path : '/login'});
                             break;
                         case AgentStatus.READY:
                             this.configurationMessage = "Device lab ready";
+                            console.log("Device lab ready : redirect to /agentDevices")
                             this.$router.push({path : '/agentDevices'});
                             break;
                     }

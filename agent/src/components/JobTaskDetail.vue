@@ -40,7 +40,8 @@
                                     <span>Statut : {{ test.status }}</span>
                                 </div>
                                 <md-list class="md-double-line">
-                                    <md-list-item v-for="log in test.logs">
+                                    <md-list-item v-for="log in test.logs"
+                                                  v-bind:key="log.message+log.pid+log.tag+log.tid">
                                         <div class="md-list-item-text">
                                             <span>AppName : {{ log.appName }}</span>
                                             <span>Level : {{ log.level }}</span>
