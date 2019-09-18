@@ -1,5 +1,15 @@
 import {AgentRepository, AgentStatus} from "./agent.repository";
-import {BehaviorSubject, combineLatest, empty, from, Observable, of, OperatorFunction, Subscription, zip} from "rxjs";
+import {
+    BehaviorSubject,
+    combineLatest,
+    EMPTY,
+    from,
+    Observable,
+    of,
+    OperatorFunction,
+    Subscription,
+    zip
+} from "rxjs";
 import {CollectionName, FirebaseRepository} from "./firebase.repository";
 import {AdbRepository} from "./adb.repository";
 import {DevicesService} from "../devices.service";
@@ -96,7 +106,7 @@ export class SpoonRepository {
 
                 if (tasks.length == 0 || availableDevices.length == 0) {
                     console.log(`empty`);
-                    return empty();
+                    return EMPTY;
                 }
 
                 return from(tasks).pipe(
@@ -154,7 +164,7 @@ export class SpoonRepository {
                             console.log('default timeout = ', timeoutInSeconds);
                         }
                         console.log('run = ', tuple);
-                        return this.saveDeviceStatus(tuple.device, DeviceStatus.booked)
+                        return this.saveDeviceStatus(tuple.device, DeviceStatus.working)
                             .pipe(
                                 switchMapTo(this.runTest(tuple.task, tuple.device, tuple.serial)),
                                 switchMapTo(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
@@ -173,7 +183,7 @@ export class SpoonRepository {
                     resetWorking();
                 }
             ),
-            catchError(() => empty())
+            catchError(() => EMPTY)
         );
     }
 
@@ -295,6 +305,8 @@ export class SpoonRepository {
 
         const cmd = spoonCommands.join(' ');
         console.log(`Run : ${cmd}`);
+
+        const exec = require('child_process').exec;
         const {error, stdout, stderr} = await require('util').promisify(require('child_process').exec)(cmd, {shell: true});
         console.log('stdout:', stdout);
         console.log('stderr:', stderr);

@@ -171,12 +171,18 @@ exports.cron = functions.pubsub.schedule('every 1 minutes').onRun(async (context
     return jobService.checkTaskTimeout()
 });
 
-exports.onTaskResult = functions.firestore.document('devices/{deviceId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
+exports.onDeviceUpdated = functions.firestore.document('devices/{deviceId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
     return jobService.assignTasksToDevices()
 });
 
-exports.onTaskResult = functions.firestore.document('jobs-tasks/{taskId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
-    return jobService.onTaskUpdate(change.after)
+exports.onTaskUpdated = functions.firestore.document('jobs-tasks/{taskId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
+    console.log('onTaskUpdated');
+    return jobService.onTaskUpdate(change.after);
+});
+
+exports.onTaskCreated = functions.firestore.document('jobs-tasks/{taskId}').onCreate(async (snapshot: DocumentSnapshot, context: EventContext) => {
+    console.log('onTaskCreated');
+    return jobService.onTaskUpdate(snapshot);
 });
 
 exports.onRemoveJob = functions.firestore.document('jobs/{jobId}').onDelete(async (snapshot: DocumentSnapshot, context: EventContext) => {
