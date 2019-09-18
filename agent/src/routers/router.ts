@@ -5,7 +5,7 @@ import Home from "@/components/Home.vue";
 import Jobs from "@/components/Jobs.vue";
 import Device from "../components/devices/Device.vue";
 import Applications from "@/components/Applications.vue";
-import Job from "@/components/Job.vue";
+// import Job from "@/components/Job.vue";
 import JobTaskDetail from "@/components/JobTaskDetail.vue";
 import Auth from "@/components/auth/Auth.vue";
 import Splash from "../components/auth/Splash.vue";
@@ -40,7 +40,7 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'groups/:groupId', component: GroupDetails,},
         {path: 'agentDevices', component: AgentDevices,},
         {path: 'jobs', component: Jobs,},
-        {path: 'jobs/:jobId', component: Job},
+        // {path: 'jobs/:jobId', component: Job},
         {path: 'jobs/:jobId/tasks/:taskId', component: JobTaskDetail},
         {path: 'phone', component: Jobs,},
         {path: 'devices/:deviceId', component: Device,},

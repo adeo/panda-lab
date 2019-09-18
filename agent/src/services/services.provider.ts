@@ -10,6 +10,7 @@ import {DevicesService} from "./devices.service";
 import {DevicesRepository} from "./repositories/devices.repository";
 import {SpoonRepository} from "./repositories/spoon.repository";
 import {firebase} from "@firebase/app";
+import * as winston from "winston";
 
 export interface ServicesProvider {
     config: ServicesConfiguration;
@@ -19,8 +20,10 @@ export interface ServicesProvider {
     authService: FirebaseAuthService;
     jobsService: JobsService;
     devicesService: DevicesService;
-
     agentService?: AgentService
+
+    logger : winston.Logger
+
 }
 
 export class Services {
@@ -73,8 +76,8 @@ class LocalServicesProvider implements ServicesProvider {
     authService: FirebaseAuthService;
     jobsService: JobsService;
     devicesService: DevicesService;
-
     agentService?: AgentService;
+    logger: winston.Logger;
 
     private constructor(public config: ServicesConfiguration) {
         console.log("Service provider initialized");
@@ -84,18 +87,36 @@ class LocalServicesProvider implements ServicesProvider {
             throw new Error("Can't instanciate local services provider in electron renderer process");
         }
 
+
+        const logger = winston.createLogger({
+            level: 'info',
+            format: winston.format.json(),
+        });
+        logger.add(new winston.transports.Console({
+            format: winston.format.simple()
+        }));
+
+        this.logger = logger;
+
         this.firebaseRepo = new FirebaseRepository(config);
         this.jobsService = new JobsService(this.firebaseRepo);
         this.devicesService = new DevicesService(this.firebaseRepo, new DevicesRepository());
 
         switch (runtimeEnv) {
             case RuntimeEnv.ELECTRON_MAIN: {
+
+                this.logger
+                    .add(new winston.transports.File({filename: 'error.log', level: 'error'}))
+                    .add(new winston.transports.File({filename: 'combined.log'}));
+
+
                 this.store = new ElectronStoreRepository();
                 const adbRepository = new AdbRepository();
                 const workspaceRepository = new WorkspaceRepository();
                 this.authService = new FirebaseAuthService(this.firebaseRepo, this.store);
                 const agentRepository = new AgentRepository(workspaceRepository, this.authService, this.firebaseRepo, this.store);
                 this.agentService = new AgentService(
+                    this.logger.child({service : "agentService"}),
                     adbRepository,
                     this.authService, this.firebaseRepo,
                     agentRepository,

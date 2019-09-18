@@ -25,6 +25,7 @@
         </md-table>
     </div>
 </template>
+
 <script lang="ts">
 
     import {Component, Emit, Vue} from "vue-property-decorator";
@@ -43,7 +44,7 @@
         private jobService = Services.getInstance().jobsService;
 
         protected onSelect(job: Job) {
-            this.$router.push('/jobs/' + job._id);
+            this.$router.push('/jobs/' + job._ref.id);
         }
 
         @Emit(CREATE_JOB_EVENT_DISPLAY)

@@ -38,12 +38,15 @@ import {AdbRepository} from "./repositories/adb.repository";
 import {FirebaseAuthService} from "./firebaseauth.service";
 import {DevicesService} from "./devices.service";
 import {StoreRepository} from "./repositories/store.repository";
+import * as winston from "winston";
 
 export class AgentService {
     private listenDevicesSub: Subscription;
     private manualActions: AgentDeviceData[] = [];
 
-    constructor(public adbRepo: AdbRepository,
+
+    constructor(private logger: winston.Logger,
+                public adbRepo: AdbRepository,
                 private authService: FirebaseAuthService,
                 private firebaseRepo: FirebaseRepository,
                 private agentRepo: AgentRepository,
@@ -185,7 +188,7 @@ export class AgentService {
                                 }
                                 switch (deviceData.actionType) {
                                     case ActionType.enroll:
-                                        console.log("enroll device", deviceData.adbDevice.id);
+                                        this.logger.info("enroll device", deviceData.adbDevice.id);
                                         deviceData.action = this.startAction(this.enrollAction(deviceData.adbDevice.id));
                                         break;
                                     case ActionType.update_status:
@@ -287,20 +290,20 @@ export class AgentService {
         const subject = new BehaviorSubject<Timestamp<DeviceLog>[]>([]);
         action.pipe(
             catchError(err => {
-                console.warn("Action error", err);
+                this.logger.warn("Action error", err);
                 return of(<DeviceLog>{log: err, type: DeviceLogType.ERROR})
             }),
             map((log: Timestamp<DeviceLog>) => {
                 let logs = subject.getValue();
                 logs.push(log);
-                console.log(" - action log : " + log.value.log);
+                this.logger.info(" - action log : " + log.value.log);
                 return logs;
             }))
             .subscribe(value => {
                 subject.next(value)
 
             }, error => {
-                console.error("Action finish with error", error);
+                this.logger.error("Action finish with error", error);
                 subject.complete()
             }, () => {
                 subject.complete();
@@ -337,7 +340,7 @@ export class AgentService {
                     }),
                     endWith(<DeviceLog>{log: "connected to device", type: DeviceLogType.INFO}),
                     catchError(err => {
-                        console.warn("Can't connect to device on " + device.firebaseDevice.ip, err);
+                        this.logger.warn("Can't connect to device on " + device.firebaseDevice.ip, err);
                         device.firebaseDevice.ip = "";
                         device.firebaseDevice.lastTcpActivation = 0;
                         return this.updateDeviceAction(device.firebaseDevice, "Remove device ip");
@@ -399,7 +402,7 @@ export class AgentService {
             )
     }
 
-    public getDeviceAdb(id: string): Observable<DeviceAdb|null> {
+    public getDeviceAdb(id: string): Observable<DeviceAdb | null> {
         return this.adbRepo.getDevices().pipe(
             flatMap(devices => {
                 return from(devices).pipe(

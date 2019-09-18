@@ -91,4 +91,8 @@ export class JobsService {
         return this.firebaseRepo.getQuery<JobTask>(this.firebaseRepo.getCollection(CollectionName.JOBS_TASKS)
             .where('device', '==', this.firebaseRepo.getCollection(CollectionName.DEVICES).doc(deviceUid)))
     }
+
+    public getAllJobs(): Observable<Job[]> {
+        return this.firebaseRepo.listenCollection(CollectionName.JOBS)
+    }
 }

@@ -50,6 +50,6 @@ export class DevicesService {
             name: groupName
         } as DevicesGroup;
         return from(this.firebaseRepo.getCollection(CollectionName.DEVICE_GROUPS).add(group))
-            .pipe(flatMap(value => this.firebaseRepo.getDocument(value)));
+            .pipe(flatMap(value => this.firebaseRepo.getDocument<DevicesGroup>(value)));
     }
 }

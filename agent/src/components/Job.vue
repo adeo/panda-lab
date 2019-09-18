@@ -82,45 +82,39 @@
 </template>
 <script lang="ts">
 
-    import {Component, Vue} from "vue-property-decorator";
-    import {Subscription} from "vue-rx-decorators";
-    import {Observable} from "rxjs";
     import "rxjs-compat/add/operator/map";
     import "rxjs-compat/add/operator/mergeMap";
     import "rxjs-compat/add/operator/toArray";
-    import {JobTask} from "pandalab-commons";
-    import {Services} from "../services/services.provider";
-
-    @Component
-    export default class Job extends Vue {
-
-        private jobService = Services.getInstance().jobsService;
-
-        protected get jobId() {
-            return this.$route.params.jobId;
-        }
-
-        @Subscription()
-        protected get job() {
-            return this.jobService.getJob(this.jobId);
-        }
 
 
-        @Subscription()
-        protected get jobsTasks(): Observable<JobTask[]> {
-            return this.jobService.getJobsTasks(this.jobId);
-        }
-
-        protected onDisplayJobTaskResult(jobTask: JobTask) {
-            this.$router.push(`/jobs/${this.jobId}/tasks/${jobTask._id}`);
-        }
-
-        protected formatTimestamp(seconds: number) {
-            const date = new Date(1970, 0, 1); // Epoch
-            date.setSeconds(seconds);
-            return date.toLocaleDateString();
-        }
-    }
+    //
+    //
+    // private jobService = Services.getInstance().jobsService;
+    //
+    // protected get jobId() {
+    //     return this.$route.params.jobId;
+    // }
+    //
+    // @Subscription()
+    // protected get job() {
+    //     return this.jobService.getJob(this.jobId);
+    // }
+    //
+    //
+    // @Subscription()
+    // protected get jobsTasks(): Observable<JobTask[]> {
+    //     return this.jobService.getJobsTasks(this.jobId);
+    // }
+    //
+    // protected onDisplayJobTaskResult(jobTask: JobTask) {
+    //     this.$router.push(`/jobs/${this.jobId}/tasks/${jobTask._id}`);
+    // }
+    //
+    // protected formatTimestamp(seconds: number) {
+    //     const date = new Date(1970, 0, 1); // Epoch
+    //     date.setSeconds(seconds);
+    //     return date.toLocaleDateString();
+    // }
 
 </script>
 <style lang="css" scoped>
