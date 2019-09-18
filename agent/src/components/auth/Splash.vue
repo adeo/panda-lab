@@ -44,7 +44,7 @@
         mounted(){
             this.subscription = this.agentService.listenAgentStatus()
                 .subscribe((status: AgentStatus) => {
-                    console.log("agent status", status)
+                    console.log("agent status", status);
                     switch (status) {
                         case AgentStatus.CONFIGURING:
                             this.configurationMessage = "Loading..";

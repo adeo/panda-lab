@@ -1,6 +1,6 @@
 import Vue from 'vue';
 import VueRouter, {RouteConfig} from 'vue-router';
-import {AuthentConfiguredGuard, AuthentNotConfiguredGuard} from "./authent.guards";
+import {AuthentGuard} from "./authent.guards";
 import Home from "@/components/Home.vue";
 import Jobs from "@/components/Jobs.vue";
 import Device from "../components/devices/Device.vue";
@@ -19,19 +19,20 @@ Vue.use(VueRouter);
 const AUTHENT_ROUTE: RouteConfig = {
     path: '/login',
     component: Auth,
-    beforeEnter: AuthentNotConfiguredGuard
+    beforeEnter: AuthentGuard
 };
 
 const SPLASH_ROUTE: RouteConfig = {
     path: '/splash',
-    component: Splash
+    component: Splash,
+    beforeEnter: AuthentGuard
 };
 
 
 const HOME_ROUTE: RouteConfig = {
     path: '/',
     component: Home,
-    beforeEnter: AuthentConfiguredGuard,
+    beforeEnter: AuthentGuard,
 
     children: [
         {path: '/', redirect: 'devices'},

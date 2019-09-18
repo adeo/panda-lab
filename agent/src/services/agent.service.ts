@@ -18,6 +18,8 @@ import {
 } from "rxjs";
 import {
     catchError,
+    debounceTime,
+    delay,
     endWith,
     first,
     flatMap,
@@ -119,6 +121,7 @@ export class AgentService {
             this.changeBehaviour
         ])
             .pipe(
+                debounceTime(500),
                 map(value => <{ firebaseDevices: Device[], adbDevices: DeviceAdb[] }>{
                     firebaseDevices: value[0],
                     adbDevices: value[1]
@@ -205,6 +208,7 @@ export class AgentService {
             .pipe(
                 flatMap((device: DeviceAdb) => {
                     let obs = this.getDeviceUID(device.id);
+                    this.logger.info("cache size " + this.cachedDeviceIds.size)
                     if (this.cachedDeviceIds.has(device.id)) {
                         let cachedId = this.cachedDeviceIds.get(device.id);
                         if (cachedId.date > Date.now() - 1000 * 60 * 30) {
@@ -213,11 +217,15 @@ export class AgentService {
                     }
                     return obs
                         .pipe(
-                            catchError(() => of("")),
+                            catchError(error => {
+                                this.logger.warn("can't get device uid", error);
+                                return of("")
+                            }),
                             map(value => {
                                 if (value && !this.cachedDeviceIds.has(device.id)) {
                                     this.cachedDeviceIds.set(device.id, {date: Date.now(), id: value})
                                 }
+
                                 device.uid = value;
                                 return device
                             })
@@ -243,7 +251,7 @@ export class AgentService {
                     });
                     //remove cached uid
                     this.cachedDeviceIds.forEach((value, key) => {
-                        if (!map.has(key)) {
+                        if (!map.has(value.id)) {
                             this.cachedDeviceIds.delete(key);
                         }
                     });
@@ -294,7 +302,6 @@ export class AgentService {
     private enableTcpAction(device: AgentDeviceData): Observable<Timestamp<DeviceLog>> {
         device.firebaseDevice.lastTcpActivation = Date.now();
         return concat(
-            this.updateDeviceAction(device.firebaseDevice, "save device status"),
             this.adbRepo.enableTcpIp(device.adbDevice.id)
                 .pipe(
                     map(() => <DeviceLog>{log: "enable tcp command sent", type: DeviceLogType.INFO}),
@@ -303,7 +310,8 @@ export class AgentService {
                         type: DeviceLogType.INFO
                     }),
                     timestamp()
-                )
+                ),
+            of("").pipe(delay(500), flatMap(() => this.updateDeviceAction(device.firebaseDevice, "save device status")))
         )
     }
 
@@ -392,21 +400,30 @@ export class AgentService {
                     return parse.device_id
                 }),
                 first(),
-                timeout(5000)
+                timeout(6000)
             );
-        const sendTransaction = this.adbRepo.sendBroadcastWithData(deviceId,
+
+        const sendTransaction = of("").pipe(delay(500), flatMap(() => this.adbRepo.sendBroadcastWithData(deviceId,
             "com.leroymerlin.pandalab/.AgentReceiver",
-            "com.leroymerlin.pandalab.INTENT.GET_ID", {"transaction_id": transactionId});
+            "com.leroymerlin.pandalab.INTENT.GET_ID", {"transaction_id": transactionId})));
         return this.adbRepo.isInstalled(deviceId, 'com.leroymerlin.pandalab')
             .pipe(
                 flatMap(installed => {
                     if (!installed) {
+                        this.logger.warn("Can't get uid, app not installed");
                         throw AgentError.notInstalled()
                     }
                     return zip(logcatObs, sendTransaction)
                 }),
                 map(values => values[0])
             )
+    }
+
+    isConfigured(): Promise<boolean> {
+        return this.listenAgentStatus().pipe(
+            map(value => value == AgentStatus.READY),
+            first(),
+        ).toPromise()
     }
 }
 

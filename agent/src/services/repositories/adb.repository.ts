@@ -57,7 +57,7 @@ export class AdbRepository {
         }
 
         this.trackingSub = merge(
-            interval(3000),
+            interval(2000),
             adbEventObs,
         ).pipe(
             doOnSubscribe(() => this.updateAdbStatusFlux(AdbStatusState.LOADING)),
@@ -89,7 +89,6 @@ export class AdbRepository {
     listenAdb(): Observable<DeviceAdb[]> {
         return this.listDevices
             .pipe(
-                delay(500),
                 distinctUntilChanged((prev, current) => {
                     return JSON.stringify(prev) === JSON.stringify(current)
                 }),
