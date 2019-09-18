@@ -11,6 +11,9 @@ import {DevicesRepository} from "./repositories/devices.repository";
 import {SpoonRepository} from "./repositories/spoon.repository";
 import {firebase} from "@firebase/app";
 import * as winston from "winston";
+import {AppsService} from "./apps.service";
+
+const jsonStringify = require('fast-safe-stringify');
 
 export interface ServicesProvider {
     config: ServicesConfiguration;
@@ -20,9 +23,10 @@ export interface ServicesProvider {
     authService: FirebaseAuthService;
     jobsService: JobsService;
     devicesService: DevicesService;
+    appsService: AppsService
     agentService?: AgentService
 
-    logger : winston.Logger
+    logger: winston.Logger
 
 }
 
@@ -76,8 +80,9 @@ class LocalServicesProvider implements ServicesProvider {
     authService: FirebaseAuthService;
     jobsService: JobsService;
     devicesService: DevicesService;
-    agentService?: AgentService;
     logger: winston.Logger;
+    agentService: AgentService;
+    appsService: AppsService;
 
     private constructor(public config: ServicesConfiguration) {
         console.log("Service provider initialized");
@@ -94,16 +99,34 @@ class LocalServicesProvider implements ServicesProvider {
         });
         logger.add(new winston.transports.Console({
             format: winston.format.combine(
+                winston.format.timestamp({
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }),
                 winston.format.colorize(),
-                winston.format.simple()
+                winston.format.printf(info => {
+                    const stringifiedRest = jsonStringify(Object.assign({}, info, {
+                        level: undefined,
+                        message: undefined,
+                        timestamp: undefined,
+                        context: undefined
+                    }));
+                    return `${info.timestamp} ${info.level}: ${(info.context !== undefined) ? "[" + info.context + "]" : ""} ${info.message} ${(stringifiedRest !== '{}') ? stringifiedRest : ''}`;
+                })
             )
-        }));
+        }))
+        ;
 
         this.logger = logger;
 
         this.firebaseRepo = new FirebaseRepository(config);
         this.jobsService = new JobsService(this.firebaseRepo);
         this.devicesService = new DevicesService(this.firebaseRepo, new DevicesRepository());
+
+
+        this.appsService = new AppsService(
+            this.logger,
+            this.firebaseRepo
+        );
 
         switch (runtimeEnv) {
             case RuntimeEnv.ELECTRON_MAIN: {
@@ -119,7 +142,7 @@ class LocalServicesProvider implements ServicesProvider {
                 this.authService = new FirebaseAuthService(this.firebaseRepo, this.store);
                 const agentRepository = new AgentRepository(workspaceRepository, this.authService, this.firebaseRepo, this.store);
                 this.agentService = new AgentService(
-                    this.logger.child({service : "agentService"}),
+                    this.logger.child({context: "agentService"}),
                     adbRepository,
                     this.authService, this.firebaseRepo,
                     agentRepository,

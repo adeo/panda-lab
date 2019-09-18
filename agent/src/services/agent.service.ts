@@ -208,7 +208,6 @@ export class AgentService {
             .pipe(
                 flatMap((device: DeviceAdb) => {
                     let obs = this.getDeviceUID(device.id);
-                    this.logger.info("cache size " + this.cachedDeviceIds.size)
                     if (this.cachedDeviceIds.has(device.id)) {
                         let cachedId = this.cachedDeviceIds.get(device.id);
                         if (cachedId.date > Date.now() - 1000 * 60 * 30) {
@@ -218,7 +217,7 @@ export class AgentService {
                     return obs
                         .pipe(
                             catchError(error => {
-                                this.logger.warn("can't get device uid", error);
+                                this.logger.warn("can't get device uid - ", error);
                                 return of("")
                             }),
                             map(value => {

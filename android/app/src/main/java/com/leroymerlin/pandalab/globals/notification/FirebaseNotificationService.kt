@@ -4,8 +4,9 @@ import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.leroymerlin.pandalab.PandaLabApplication
+import io.reactivex.functions.Action
 
-class FirebaseNotificationService: FirebaseMessagingService() {
+class FirebaseNotificationService : FirebaseMessagingService() {
 
     private val TAG = "FirebaseNotification"
 
@@ -15,12 +16,16 @@ class FirebaseNotificationService: FirebaseMessagingService() {
         // Check if message contains a data payload.
         if (remoteMessage.data.isNotEmpty()) {
             Log.d(TAG, "Message data payload: " + remoteMessage.data)
-            remoteMessage.data["action"]?.let {
-                action ->
-                when(action){
+            remoteMessage.data["action"]?.let { action ->
+                when (action) {
                     "refresh" -> {
-                        PandaLabApplication.getApp(context = this).component.pandaLabManager().updateDevice()
-                            .subscribe()
+                        PandaLabApplication.getApp(context = this).component.pandaLabManager()
+                            .updateDevice()
+                            .subscribe({
+                                Log.d(TAG, "Device infos updated")
+                            }, {
+                                Log.e(TAG, "Can't update device infos", it)
+                            })
                     }
                     else -> {
                         Log.w(TAG, "Can't handle this notification")
