@@ -22,6 +22,7 @@
         </md-table>
     </div>
 </template>
+
 <script lang="ts">
 
     import {Component, Emit, Vue} from "vue-property-decorator";

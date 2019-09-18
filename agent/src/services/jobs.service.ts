@@ -58,36 +58,6 @@ export class JobsService {
             );
     }
 
-    public getAllJobs(): Observable<Job[]> {
-        return this.firebaseRepo.getQuery<Job>(this.firebaseRepo.getCollection(CollectionName.JOBS));
-    }
-
-    // public getAllJobs(): Observable<Job[]> {
-    //     return from(this.firebaseRepo.getCollection(CollectionName.JOBS).get())
-    //         .map(value => value.docs)
-    //         .flatMap(from)
-    //         .flatMap(doc => this.firebaseRepo.getCollection(CollectionName.JOBS_TASKS)
-    //             .where("job", '==', doc.ref))
-    //         .map(document => {
-    //
-    //         }
-    //
-    //
-    //     {
-    //         const data = doc.data();
-    //         const jobsTasks = await firebase.firestore().collection('jobs-tasks').where('job', '==', doc.ref).get();
-    //         return <FirebaseModel>{
-    //             ...data,
-    //             _ref: doc.ref,
-    //         };
-    //     }
-    // )
-    // .
-    //     flatMap(promise => from(promise))
-    //         .toArray();
-    // }
-
-
     public getJobsTasks(jobId: string): Observable<JobTask[]> {
         const jobReference = this.firebaseRepo.getCollection(CollectionName.JOBS).doc(jobId);
         return this.firebaseRepo.getQuery<JobTask>(this.firebaseRepo.getCollection(CollectionName.JOBS_TASKS)
@@ -102,6 +72,10 @@ export class JobsService {
     public getDeviceJob(deviceUid: string): Observable<JobTask[]> {
         return this.firebaseRepo.getQuery<JobTask>(this.firebaseRepo.getCollection(CollectionName.JOBS_TASKS)
             .where('device', '==', this.firebaseRepo.getCollection(CollectionName.DEVICES).doc(deviceUid)))
+    }
+
+    public getAllJobs(): Observable<Job[]> {
+        return this.firebaseRepo.listenCollection(CollectionName.JOBS)
     }
 
     public createNewJob(artifact: Artifact): Observable<string> {

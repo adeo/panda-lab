@@ -22,7 +22,7 @@ export interface Device extends FirebaseModel {
 }
 
 export interface DevicesGroup extends FirebaseModel {
-    devices: Device[];
+    devices: string[];
     name: string;
 }
 

@@ -1,3 +1,4 @@
+
 <template>
     <div id="app">
         <router-view></router-view>
@@ -6,8 +7,8 @@
 
 <script lang="ts">
     import {Component, Vue} from 'vue-property-decorator';
-    import {router} from "@/routers/router";
-    import Auth from "@/components/auth/Auth.vue";
+    import {router} from "./routers/router";
+    import Auth from "./components/auth/Auth.vue";
 
     @Component({
         components: {Auth},

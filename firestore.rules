@@ -30,7 +30,7 @@ service cloud.firestore {
     }
 
     match /deviceGroups/{group} {
-        allow read: if isAdmin() || isUser();
+        allow read: if isAdmin() || isUser() || isAgent();
         allow write: if isAdmin();
     }
 
