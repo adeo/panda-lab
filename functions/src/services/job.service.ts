@@ -183,70 +183,46 @@ class JobService {
             return
         }
 
-        const devicesQuery = await admin.firestore().collection("devices")
-            .where("status", "==", DeviceStatus.available)
-            .orderBy("lastConnexion", "asc").get();
+        await admin.firestore().runTransaction(async transaction => {
+            const devicesQuery = admin.firestore().collection("devices")
+                .where("status", "==", DeviceStatus.available)
+                .orderBy("lastConnexion", "asc");
 
-        const devices = devicesQuery.docs;
-        for(let i = 0; i < tasksDocs.length; i++) {
-            const taskDoc = tasksDocs[i];
-            const task = taskDoc.data() as JobTask;
+            const devicesQuerySnapshot = await transaction.get(devicesQuery);
 
-            const jobTasksQuery = await admin.firestore().collection('jobs-tasks')
-                .where("job", "==", task.job)
-                .get();
+            const devices = devicesQuerySnapshot.docs;
 
-            const alreadyUsedDevices = jobTasksQuery.docs
-                .map(value => value.data() as JobTask)
-                .map(value => value.device)
-                .filter(value => value !== null && value !== undefined)
-                .map(value => value.id);
+            for(let i = 0; i < tasksDocs.length; i++) {
+                const taskDoc = tasksDocs[i];
+                const task = taskDoc.data() as JobTask;
+
+                const jobTasksQuery = await admin.firestore().collection('jobs-tasks')
+                    .where("job", "==", task.job);
+
+                const jobTasksSnapshot = await transaction.get(jobTasksQuery);
+                const alreadyUsedDevices = jobTasksSnapshot.docs
+                    .map(value => value.data() as JobTask)
+                    .map(value => value.device)
+                    .filter(value => value !== null && value !== undefined)
+                    .map(value => value.id);
 
 
-            const deviceIndex = devices
-                .findIndex(value => alreadyUsedDevices.indexOf(value.id) < 0 && task.devices.indexOf(value.id) >= 0);
+                const deviceIndex = devices
+                    .findIndex(value => alreadyUsedDevices.indexOf(value.id) < 0 && task.devices.indexOf(value.id) >= 0);
 
-            console.log('onTaskWrited deviceIndex = ' + deviceIndex);
-            if (deviceIndex >= 0) {
-                const selectedDevice = devices.splice(deviceIndex, 1)[0];
-                console.log("assign task " + taskDoc.id + " to " + selectedDevice.id);
-                await taskDoc.ref.set({
-                    "device": selectedDevice.ref as any as DocumentReference
-                } as JobTask, {merge: true})
+
+                console.log('onTaskWrited deviceIndex = ' + deviceIndex);
+                if (deviceIndex >= 0) {
+                    const selectedDevice = devices.splice(deviceIndex, 1)[0];
+                    console.log("assign task " + taskDoc.id + " to " + selectedDevice.id);
+                    await transaction.set(taskDoc.ref, {
+                        "device": selectedDevice.ref as any as DocumentReference
+                    } as JobTask, {merge: true})
+                }
             }
-        }
-        // const cacheUsedDevices = new Set<string>();
-        // return Promise.all(tasksDocs.map(
-        //     async taskDoc => {
-        //         const task = taskDoc.data() as JobTask;
-        //
-        //         const jobTasksQuery = await admin.firestore().collection('jobs-tasks')
-        //             .where("job", "==", task.job)
-        //             .get();
-        //
-        //         const alreadyUsedDevices = jobTasksQuery.docs
-        //             .map(value => value.data() as JobTask)
-        //             .map(value => value.device)
-        //             .filter(value => value !== null && value !== undefined)
-        //             .map(value => value.id);
-        //
-        //         const devices = devicesQuery.docs;
-        //         const deviceIndex = devices
-        //             .findIndex(value => !cacheUsedDevices.has(value.id) && alreadyUsedDevices.indexOf(value.id) < 0 && task.devices.indexOf(value.id) >= 0);
-        //
-        //         console.log('onTaskWrited deviceIndex = ' + deviceIndex);
-        //         if (deviceIndex >= 0) {
-        //             const selectedDevice = devices.splice(deviceIndex, 1)[0];
-        //             cacheUsedDevices.add(selectedDevice.id);
-        //             console.log("assign task " + taskDoc.id + " to " + selectedDevice.id);
-        //             return taskDoc.ref.set({
-        //                 "device": selectedDevice.ref as any as DocumentReference
-        //             } as JobTask, {merge: true})
-        //         } else {
-        //             return Promise.resolve();
-        //         }
-        //     }
-        // ));
+        });
+
+
     }
 
 }
