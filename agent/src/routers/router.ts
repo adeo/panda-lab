@@ -13,6 +13,8 @@ import AgentDevices from "../components/agent/AgentDevices.vue";
 import Devices from "../components/devices/Devices.vue";
 import Groups from "../components/groups/Groups.vue";
 import GroupDetails from "../components/groups/GroupDetails.vue";
+import Apps from "../components/apps/Apps.vue";
+import AppDetails from "../components/apps/AppDetails.vue";
 
 Vue.use(VueRouter);
 
@@ -45,7 +47,8 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'jobs/:jobId/tasks/:taskId', component: JobTaskDetail},
         {path: 'phone', component: Jobs,},
         {path: 'devices/:deviceId', component: Device,},
-        {path: 'applications', component: Applications,},
+        {path: 'applications', component: Apps,},
+        {path: 'applications/:applicationId', component: AppDetails,},
     ]
 };
 

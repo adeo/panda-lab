@@ -74,7 +74,10 @@ export class FirebaseRepository {
             const subs = query
                 .onSnapshot(doc => {
                     emitter.next(doc.docs.map(doc => this.toFirebaseModel<T>(doc)));
-                }, emitter.error, emitter.complete);
+                }, error => {
+                    console.log('query error', error);
+                    emitter.error(error)
+                }, emitter.complete);
             emitter.add(subs);
         });
     }

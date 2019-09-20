@@ -4,7 +4,8 @@ import VueMaterial from 'vue-material'
 import 'vue-material/dist/vue-material.min.css'
 import App from './App.vue'
 import {Services} from "./services/services.provider";
-
+import Chart from 'chart.js'
+import Chartkick from 'vue-chartkick'
 
 Services.setup({
     apiKey: process.env.VUE_APP_API_KEY,
@@ -19,6 +20,7 @@ Services.setup({
 Vue.config.productionTip = false;
 Vue.use(VueRx);
 Vue.use(VueMaterial);
+Vue.use(Chartkick.use(Chart));
 
 
 new Vue({

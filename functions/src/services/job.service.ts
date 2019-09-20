@@ -3,7 +3,6 @@ import * as firebase from "firebase";
 import {DeviceStatus, Job, JobRequest, JobStatus, JobTask, TaskStatus, TestStatus} from "pandalab-commons";
 import DocumentSnapshot = admin.firestore.DocumentSnapshot;
 import DocumentReference = firebase.firestore.DocumentReference;
-import Timestamp = firebase.firestore.Timestamp;
 
 
 export enum JobError {
@@ -69,12 +68,16 @@ class JobService {
 
 
         //Create job and tasks
-        const createdJob = {
+        const versionRef = artifactDoc.ref.parent.parent as any as DocumentReference;
+        const createdJob = <Job> {
             apk: artifactDoc.ref as any as DocumentReference,
             apk_test: artifactTestDoc.ref as any as DocumentReference,
             completed: false,
             status: JobStatus.pending,
-        } as Job;
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            version: versionRef,
+            app: versionRef.parent.parent,
+        };
 
         const jobRef = await admin.firestore().collection('jobs').add(createdJob);
 
@@ -85,6 +88,7 @@ class JobService {
                     job: admin.firestore().collection('jobs').doc(jobRef.id) as any as DocumentReference,
                     devices: finalDevices,
                     status: TaskStatus.pending,
+                    completed: false,
                     timeout: admin.firestore.Timestamp.fromMillis(admin.firestore.Timestamp.now().seconds * 1000 + timeoutInMillis)
                 } as JobTask;
                 (taskObj as any).device = null;
@@ -151,7 +155,7 @@ class JobService {
     async checkTaskTimeout() {
         const timeoutTasks = await admin.firestore().collection('jobs-tasks')
             .where("completed", "==", false)
-            .where("timeout", '<', Timestamp.now())
+            .where("timeout", '<', admin.firestore.Timestamp.now())
             .get();
 
         return Promise.all(timeoutTasks.docs.map(async doc => {

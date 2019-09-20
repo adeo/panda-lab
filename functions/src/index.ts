@@ -167,7 +167,7 @@ exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, conte
 exports.cron = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
     console.log('Send update notification');
     await deviceService.updateDevicesInfos();
-    console.log('Check tasks timout');
+    console.log('Check tasks timeout');
     return jobService.checkTaskTimeout()
 });
 

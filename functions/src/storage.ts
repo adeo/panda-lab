@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as util from "util";
-import {Artifact} from "pandalab-commons";
+import {AppVersion, Artifact} from "pandalab-commons";
 import {FileData} from "../../commons/src/models/storage.models";
 
 const admin = require('firebase-admin');
@@ -63,29 +63,29 @@ async function extractApk(directory: string, filename: string) {
     const newPath = "applications/" + appName + "/" + filename;
 
 
-    const appData = {
+    const appData = <AppVersion>{
         flavor: flavor,
         appName: appName,
         package: manifest.package,
         timestamp: admin.firestore.FieldValue.serverTimestamp()
     };
 
-    const artifactData = {
+    const artifactData = <Artifact>{
         package: manifest.package,
         path: newPath,
         flavor: flavor,
         buildType: buildType,
         type: type,
         timestamp: admin.firestore.FieldValue.serverTimestamp()
-    } as Artifact;
+    };
 
     if (manifest.versionCode) {
-        appData['versionCode'] = manifest.versionCode;
-        artifactData['versionCode'] = manifest.versionCode;
+        appData.versionCode = manifest.versionCode;
+        artifactData.versionCode = manifest.versionCode;
     }
     if (manifest.versionName) {
-        appData['versionName'] = manifest.versionName;
-        artifactData['versionName'] = manifest.versionName;
+        appData.versionName = manifest.versionName;
+        artifactData.versionName = manifest.versionName;
     }
 
     const doc = admin.firestore().collection("applications").doc(appName).collection("versions").doc(uuid);

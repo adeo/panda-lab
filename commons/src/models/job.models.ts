@@ -38,10 +38,13 @@ export interface JobRequest {
 }
 
 export interface Job extends FirebaseModel {
+    app: DocumentReference,
+    version: DocumentReference,
     apk: DocumentReference,
     apk_test: DocumentReference,
     completed: boolean,
-    status: JobStatus
+    status: JobStatus,
+    createdAt: Timestamp;
 }
 
 export interface Artifact extends FirebaseModel {
@@ -49,7 +52,7 @@ export interface Artifact extends FirebaseModel {
     flavor: string;
     package: string;
     path: string;
-    timestamp: any;
+    timestamp: Timestamp;
     type: any;
     versionCode: number;
     versionName: number;
