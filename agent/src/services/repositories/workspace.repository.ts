@@ -2,6 +2,7 @@ import {AsyncSubject, BehaviorSubject, from, Observable, Subject} from "rxjs";
 import {concatMap, filter, first, map} from "rxjs/operators";
 import "rxjs-compat/add/operator/multicast";
 import {doOnSubscribe} from "../../utils/rxjs";
+import * as winston from "winston";
 
 
 
@@ -17,7 +18,7 @@ export class WorkspaceRepository {
     path = require('path');
     request = require('request');
 
-    constructor() {
+    constructor(private logger : winston.Logger) {
         this.homeDir = require('os').homedir();
         this.fs = require('fs');
         this.path = require('path');
@@ -68,23 +69,23 @@ export class WorkspaceRepository {
             return from(new Promise<{ error?: string, filePath: string }>((resolve, reject) => {
                 if (this.fs.existsSync(data.filePath)) {
                     // file already downloaded
-                    console.log(`File exist :  ${data.filePath}. Stop download apk.`);
+                    this.logger.info(`File exist :  ${data.filePath}. Stop download apk.`);
                     resolve({filePath: data.filePath});
                     return;
                 }
-                console.log(`Start downloading file, path = ${data.url}`);
+                this.logger.info(`Start downloading file, path = ${data.url}`);
 
                 const file = this.fs.createWriteStream(data.filePath);
                 const https = require('https');
                 console.log(data.url);
                 https.get(data.url, res => {
                     res.pipe(file);
-                    file.on('finish', function () {
-                        console.log(`End download apk, path = ${data.filePath}`);
+                    file.on('finish',  () => {
+                        this.logger.info(`End download apk, path = ${data.filePath}`);
                         resolve({filePath: data.filePath});
                     });
-                }).on('error', function (err) {
-                    console.error(`Error download apk, path = ${data.filePath}`, err);
+                }).on('error', (err) => {
+                    this.logger.info(`Error download apk, path = ${data.filePath}`, err);
                     resolve({error: `Error download apk`, filePath: data.filePath});
                 });
             }))

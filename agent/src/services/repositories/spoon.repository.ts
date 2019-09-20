@@ -1,15 +1,5 @@
 import {AgentRepository, AgentStatus} from "./agent.repository";
-import {
-    BehaviorSubject,
-    combineLatest,
-    EMPTY,
-    from,
-    Observable,
-    of,
-    OperatorFunction,
-    Subscription,
-    zip
-} from "rxjs";
+import {BehaviorSubject, combineLatest, EMPTY, from, Observable, of, Subscription, zip} from "rxjs";
 import {CollectionName, FirebaseRepository} from "./firebase.repository";
 import {AdbRepository} from "./adb.repository";
 import {DevicesService} from "../devices.service";
@@ -18,14 +8,15 @@ import {Artifact, Device, DeviceStatus, Job, JobTask, TaskStatus} from 'pandalab
 import {JobsService} from "../jobs.service";
 import {WorkspaceRepository} from "./workspace.repository";
 import {AgentService} from "../agent.service";
+import * as winston from "winston";
 
 
 export class SpoonRepository {
     private statusSub: Subscription;
 
 
-
-    constructor(private agentRepo: AgentRepository,
+    constructor(private logger: winston.Logger,
+                private agentRepo: AgentRepository,
                 private agentService: AgentService,
                 private firebaseRepo: FirebaseRepository,
                 private adbRepo: AdbRepository,
@@ -34,12 +25,10 @@ export class SpoonRepository {
                 private workspace: WorkspaceRepository) {
 
 
-
     }
 
     public setup() {
         this.agentRepo.agentStatus.subscribe(value => {
-            console.log('agentStatus = ', value);
             switch (value) {
                 case AgentStatus.CONFIGURING:
                 case AgentStatus.NOT_LOGGED:
@@ -78,7 +67,7 @@ export class SpoonRepository {
         let notify = false;
 
         const resetWorking = () => {
-            console.log('reset working');
+            this.logger.verbose('reset working');
             working = false;
             if (notify) {
                 notifier.next(null);
@@ -105,7 +94,7 @@ export class SpoonRepository {
                 };
 
                 if (tasks.length == 0 || availableDevices.length == 0) {
-                    console.log(`empty`);
+                    this.logger.info("Task or device missing");
                     return EMPTY;
                 }
 
@@ -127,10 +116,8 @@ export class SpoonRepository {
                                 }))
                             );
 
-                        // TODO getDeviceAdb add cache for match firebase id with adb id
                         return this.agentService.getDeviceAdb(tuple.device._ref.id).pipe(
                             flatMap(deviceAdb => {
-                                console.log(`Serial = ${deviceAdb}`);
                                 if (deviceAdb === null) {
                                     return saveDeviceOffline;
                                 } else {
@@ -152,18 +139,17 @@ export class SpoonRepository {
 
                         let timeoutInSeconds = 60 * 60 * 1000;
                         if (tuple.task.timeout) {
-                            console.log('Timeout exist');
                             const timeInSeconds = tuple.task.timeout.seconds - Math.round(Date.now() / 1000);
-                            console.log('timeInSeconds = ', timeInSeconds);
+                            this.logger.verbose(`Timeout exist : ${timeInSeconds}s`);
                             if (timeInSeconds <= 0) {
                                 return this.saveJobTaskStatus(tuple.task, TaskStatus.error, 'timeout');
                             } else {
                                 timeoutInSeconds = timeInSeconds;
                             }
                         } else {
-                            console.log('default timeout = ', timeoutInSeconds);
+                            this.logger.verbose(`Default timeout : ${timeoutInSeconds}s`);
                         }
-                        console.log('run = ', tuple);
+                        this.logger.info('run test', tuple);
                         return this.saveDeviceStatus(tuple.device, DeviceStatus.working)
                             .pipe(
                                 switchMapTo(this.runTest(tuple.task, tuple.device, tuple.serial)),
@@ -179,7 +165,7 @@ export class SpoonRepository {
                     resetWorking();
                 },
                 (error) => {
-                    console.error(error);
+                    this.logger.error(error);
                     resetWorking();
                 }
             ),
@@ -188,7 +174,7 @@ export class SpoonRepository {
     }
 
     runTest(task: JobTask, device: Device, serial: string): Observable<JobTask> {
-        console.log(`run test, [jobId = ${task._ref.id}, deviceId = ${task.device.id}]`);
+        this.logger.info(`run test, [jobId = ${task._ref.id}, deviceId = ${task.device.id}]`);
         return this.getJob(task)
             .pipe(
                 flatMap(job => this.getJobArtifacts(job)),
@@ -220,13 +206,11 @@ export class SpoonRepository {
         return this.jobsService.getJob(task.job.id);
     }
 
-    private getArtifact(documentReference: any) {
-        console.log(`getArtifact: ${documentReference.id}`);
+    private getArtifact(documentReference: any) : Observable<Artifact>{
         return this.firebaseRepo.getDocument<Artifact>(documentReference);
     }
 
     private getJobArtifacts(job: Job): Observable<Perform> {
-        console.log('getJobArtifacts');
         return zip(this.getArtifact(job.apk), this.getArtifact(job.apk_test), (artifact, testArtifact) => {
             return <Perform>{
                 job,
@@ -272,7 +256,7 @@ export class SpoonRepository {
     private downloadApk(path: string, artifact: Artifact): Observable<string> {
         return this.generateDownloadUrl(artifact).pipe(
             flatMap(url => {
-                console.log(`Download artifact: ${artifact._ref.id}, url = ${url}, path = ${path}`);
+                this.logger.info(`Download artifact: ${artifact._ref.id}, url = ${url}, path = ${path}`);
                 return this.workspace.downloadFile(path, url);
             }),
         );
@@ -286,13 +270,11 @@ export class SpoonRepository {
     }
 
     private runCommand(perform: Perform): Observable<void> {
-        console.log('runCommand');
         return from(this.runCommandPromise(perform));
     }
 
     private async runCommandPromise(perform: Perform): Promise<void> {
-        console.log(`run command serial = ${perform.serial}`);
-        console.log('runCommandPromise');
+        this.logger.verbose(`run command serial = ${perform.serial}`);
         const reportDirectory = this.workspace.getReportJobDirectory(perform.job._ref.id, perform.device._ref.id);
         const spoonCommands = [
             `java -jar ${this.workspace.spoonJarPath}`,
@@ -304,18 +286,20 @@ export class SpoonRepository {
         ];
 
         const cmd = spoonCommands.join(' ');
-        console.log(`Run : ${cmd}`);
+        this.logger.info(`Run : ${cmd}`);
 
-        const exec = require('child_process').exec;
         const {error, stdout, stderr} = await require('util').promisify(require('child_process').exec)(cmd, {shell: true});
-        console.log('stdout:', stdout);
-        console.log('stderr:', stderr);
+        this.logger.info('stdout:', stdout);
+
+        if(stderr){
+            this.logger.warn('stderr:', stderr);
+        }
 
         if (error !== null) {
             throw new Error(stderr);
         }
 
-        console.log(`End download apk for job : ${perform.job._ref.id}`);
+        this.logger.info(`End download apk for job : ${perform.job._ref.id}`);
 
         const fs = require('fs');
         const json = fs.readFileSync(`${reportDirectory}/result.json`);
@@ -334,7 +318,7 @@ export class SpoonRepository {
     }
 
     private saveJobTaskStatus(jobTask: JobTask, status: TaskStatus, errorMessage: string = null): Observable<JobTask> {
-        console.log(`saveJobTaskStatus ${jobTask._ref.id} - ${status}`);
+        this.logger.info(`saveJobTaskStatus ${jobTask._ref.id} - ${status}`);
         jobTask.status = status;
         jobTask.error = errorMessage;
         return from(jobTask._ref.set({
@@ -345,18 +329,17 @@ export class SpoonRepository {
     }
 
     private saveDeviceStatus(device: Device, deviceStatus: DeviceStatus): Observable<Device> {
-        console.log('saveDeviceStatus');
         device.status = deviceStatus;
-        return from(device._ref.set({status: device.status}, {merge: true})).pipe(switchMapTo(of(device)));
+        return this.firebaseRepo.saveDocument(device);
         // firebase error, DocumentReference.set() called with invalid data
         // return this.firebaseRepo.saveDocument<Device>(device);
     }
 
 }
 
-export function flatMapIterate<T>(): OperatorFunction<T[], T> {
-    return flatMap(values => from<T[]>(values));
-}
+// export function flatMapIterate<T>(): OperatorFunction<T[], T> {
+//     return flatMap(values => from<T[]>(values));
+// }
 
 
 interface Perform {

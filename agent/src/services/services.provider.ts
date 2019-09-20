@@ -138,11 +138,11 @@ class LocalServicesProvider implements ServicesProvider {
 
                 this.store = new ElectronStoreRepository();
                 const adbRepository = new AdbRepository();
-                const workspaceRepository = new WorkspaceRepository();
+                const workspaceRepository = new WorkspaceRepository(this.logger.child({context:'Workspace'}));
                 this.authService = new FirebaseAuthService(this.firebaseRepo, this.store);
                 const agentRepository = new AgentRepository(workspaceRepository, this.authService, this.firebaseRepo, this.store);
                 this.agentService = new AgentService(
-                    this.logger.child({context: "agentService"}),
+                    this.logger.child({context: "Agent"}),
                     adbRepository,
                     this.authService, this.firebaseRepo,
                     agentRepository,
@@ -150,6 +150,7 @@ class LocalServicesProvider implements ServicesProvider {
                     this.store
                 );
                 const spoonRepo = new SpoonRepository(
+                    this.logger.child({context: "Spoon"}),
                     agentRepository,
                     this.agentService,
                     this.firebaseRepo,

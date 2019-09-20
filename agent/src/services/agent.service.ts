@@ -178,16 +178,16 @@ export class AgentService {
                                 switch (deviceData.actionType) {
                                     case ActionType.enroll:
                                         this.logger.info("enroll device", deviceData.adbDevice.id);
-                                        deviceData.action = this.startAction(this.enrollAction(deviceData.adbDevice.id));
+                                        deviceData.action = this.startAction(deviceData.actionType, this.enrollAction(deviceData.adbDevice.id));
                                         break;
                                     case ActionType.update_status:
-                                        deviceData.action = this.startAction(this.updateDeviceAction(deviceData.firebaseDevice, "save device status"));
+                                        deviceData.action = this.startAction(deviceData.actionType, this.updateDeviceAction(deviceData.firebaseDevice, "save device status"));
                                         break;
                                     case ActionType.try_connect:
-                                        deviceData.action = this.startAction(this.tryToConnectAction(deviceData));
+                                        deviceData.action = this.startAction(deviceData.actionType, this.tryToConnectAction(deviceData));
                                         break;
                                     case ActionType.enable_tcp:
-                                        deviceData.action = this.startAction(this.enableTcpAction(deviceData));
+                                        deviceData.action = this.startAction(deviceData.actionType, this.enableTcpAction(deviceData));
                                         break;
                                     case ActionType.none:
                                         break
@@ -273,7 +273,7 @@ export class AgentService {
         return this.agentRepo.UUID;
     }
 
-    private startAction(action: Observable<Timestamp<DeviceLog>>): BehaviorSubject<Timestamp<DeviceLog>[]> {
+    private startAction(type: ActionType, action: Observable<Timestamp<DeviceLog>>): BehaviorSubject<Timestamp<DeviceLog>[]> {
         const subject = new BehaviorSubject<Timestamp<DeviceLog>[]>([]);
         action.pipe(
             catchError(err => {
@@ -283,13 +283,13 @@ export class AgentService {
             map((log: Timestamp<DeviceLog>) => {
                 let logs = subject.getValue();
                 logs.push(log);
-                this.logger.info(" - action log : " + log.value.log);
+                this.logger.info(type + " - action log : " + log.value.log);
                 return logs;
             }))
             .subscribe(value => {
                 subject.next(value)
             }, error => {
-                this.logger.error("Action finish with error", error);
+                this.logger.error(type + " - Action finish with error", error);
                 subject.complete()
             }, () => {
                 subject.complete();
@@ -434,11 +434,11 @@ export interface AgentDeviceData {
 }
 
 export enum ActionType {
-    enroll,
-    try_connect,
-    update_status,
-    enable_tcp,
-    none
+    enroll = 'enroll',
+    try_connect = 'try_connect',
+    update_status = 'update_status',
+    enable_tcp = 'enable_tcp',
+    none = 'none'
 }
 
 class AgentError extends Error {
