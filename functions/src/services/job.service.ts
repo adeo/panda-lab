@@ -87,6 +87,7 @@ class JobService {
                     status: TaskStatus.pending,
                     timeout: admin.firestore.Timestamp.fromMillis(admin.firestore.Timestamp.now().seconds * 1000 + timeoutInMillis)
                 } as JobTask;
+                (taskObj as any).device = null;
                 return await admin.firestore().collection('jobs-tasks').add(taskObj);
             }
         ));
@@ -100,12 +101,16 @@ class JobService {
 
 
         if (task.status === TaskStatus.pending) {
+            console.log('onTaskWrited pending');
             if (!task.device) {
+                console.log('onTaskWrited not device');
                 return this.assignTasksToDevices(taskDoc)
             }
-            console.log("task pending. skip job update");
+            console.log("onTaskWrited task pending. skip job update");
             return Promise.resolve();
         }
+
+
 
         const jobRef = task.job;
 
@@ -166,48 +171,58 @@ class JobService {
         } else {
             const tasksQuery = await admin.firestore().collection('jobs-tasks')
                 .where("status", "==", JobStatus.pending)
-                .where("device", "==", null).get();
+                .where("device", "==", null)
+                .get();
             tasksDocs = tasksQuery.docs
         }
 
+        console.log('onTaskWrited tasksDocs length = ' + tasksDocs.length);
 
         if (tasksDocs.length === 0) {
             console.log("no tasks to assign");
             return
         }
 
-        const devicesQuery = await admin.firestore().collection("devices")
-            .where("status", "==", DeviceStatus.available)
-            .orderBy("lastConnexion", "asc").get();
+        await admin.firestore().runTransaction(async transaction => {
+            const devicesQuery = admin.firestore().collection("devices")
+                .where("status", "==", DeviceStatus.available)
+                .orderBy("lastConnexion", "asc");
 
-        return Promise.all(tasksDocs.map(
-            async taskDoc => {
+            const devicesQuerySnapshot = await transaction.get(devicesQuery);
+
+            const devices = devicesQuerySnapshot.docs;
+
+            for(let i = 0; i < tasksDocs.length; i++) {
+                const taskDoc = tasksDocs[i];
                 const task = taskDoc.data() as JobTask;
 
                 const jobTasksQuery = await admin.firestore().collection('jobs-tasks')
-                    .where("job", "==", task.job)
-                    .get();
+                    .where("job", "==", task.job);
 
-                const alreadyUsedDevices = jobTasksQuery.docs
+                const jobTasksSnapshot = await transaction.get(jobTasksQuery);
+                const alreadyUsedDevices = jobTasksSnapshot.docs
                     .map(value => value.data() as JobTask)
                     .map(value => value.device)
                     .filter(value => value !== null && value !== undefined)
                     .map(value => value.id);
 
-                const devices = devicesQuery.docs;
+
                 const deviceIndex = devices
                     .findIndex(value => alreadyUsedDevices.indexOf(value.id) < 0 && task.devices.indexOf(value.id) >= 0);
+
+
+                console.log('onTaskWrited deviceIndex = ' + deviceIndex);
                 if (deviceIndex >= 0) {
                     const selectedDevice = devices.splice(deviceIndex, 1)[0];
                     console.log("assign task " + taskDoc.id + " to " + selectedDevice.id);
-                    return taskDoc.ref.set({
+                    await transaction.set(taskDoc.ref, {
                         "device": selectedDevice.ref as any as DocumentReference
                     } as JobTask, {merge: true})
-                } else {
-                    return Promise.resolve();
                 }
             }
-        ));
+        });
+
+
     }
 
 }
