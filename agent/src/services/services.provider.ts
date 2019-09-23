@@ -48,6 +48,8 @@ export class Services {
                 //     (global as any).WebSocket = require('ws');
                 //     (global as any).XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
                 // }
+                (global as any).XMLHttpRequest = require('xhr2');
+                (global as any).WebSocket = require('ws');
                 Services.instance = LocalServicesProvider.newInstance(config);
                 break;
             case RuntimeEnv.ELECTRON_RENDERER:

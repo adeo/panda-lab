@@ -76,6 +76,7 @@
 
         @Subscription()
         protected get applications() {
+
             this.loading = true;
 
             return from(firebase.firestore().collection('applications').get())

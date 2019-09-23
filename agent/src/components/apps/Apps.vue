@@ -28,7 +28,6 @@
     import "rxjs-compat/add/operator/mergeMap";
     import "rxjs-compat/add/operator/toArray";
     import {AppModel} from "pandalab-commons";
-    import {Services} from "../../services/services.provider";
     import AppCell from "./AppCell.vue";
 
     @Component({
@@ -36,17 +35,6 @@
     })
     export default class Apps extends Vue {
         private apps: AppModel[] = [];
-
-        mounted() {
-
-
-            this.$subscribeTo(Services.getInstance().appsService.listenApps(), apps => {
-                this.apps = apps;
-            })
-
-        }
-
-
     }
 
 </script>
