@@ -28,8 +28,8 @@
     import "rxjs-compat/add/operator/mergeMap";
     import "rxjs-compat/add/operator/toArray";
     import {AppModel} from "pandalab-commons";
-    import {Services} from "../../services/services.provider";
     import AppCell from "./AppCell.vue";
+    import {Services} from "../../services/services.provider";
 
     @Component({
         components: {AppCell},
@@ -46,7 +46,6 @@
 
 
         }
-
 
     }
 

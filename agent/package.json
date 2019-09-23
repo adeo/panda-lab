@@ -44,7 +44,10 @@
     "vue-rx": "^6.2.0",
     "vue-rx-decorators": "0.0.8",
     "winston": "^3.2.1",
-    "xmlhttprequest": "^1.8.0"
+    "ws": "^7.1.2",
+    "xhr2": "^0.2.0",
+    "xmlhttprequest": "^1.8.0",
+    "zip-folder": "^1.0.0"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.10.0",

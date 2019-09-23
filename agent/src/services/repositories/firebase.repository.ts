@@ -2,6 +2,7 @@ import {firebase} from '@firebase/app';
 import '@firebase/auth';
 import '@firebase/firestore';
 import '@firebase/messaging';
+import '@firebase/storage';
 import {firestore} from "firebase";
 import {FirebaseNamespace} from '@firebase/app-types';
 import {from, Observable, of, throwError} from "rxjs";
@@ -11,7 +12,6 @@ import CollectionReference = firestore.CollectionReference;
 import DocumentSnapshot = firestore.DocumentSnapshot;
 import DocumentReference = firestore.DocumentReference;
 import Query = firestore.Query;
-import {tryCatch} from "rxjs/internal-compatibility";
 
 
 export interface FirebaseConfig {
@@ -108,5 +108,4 @@ export class FirebaseRepository {
         } as FirebaseModel as T
     }
 }
-
 
