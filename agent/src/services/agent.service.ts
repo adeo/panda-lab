@@ -33,8 +33,8 @@ import {
 } from "rxjs/operators";
 import {DeviceAdb} from "../models/adb";
 import {DeviceLog, DeviceLogType} from "../models/device";
-import {Device, DeviceStatus} from 'pandalab-commons';
-import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
+import {Device, DeviceStatus, CollectionName} from 'pandalab-commons';
+import {FirebaseRepository} from "./repositories/firebase.repository";
 import {AgentRepository, AgentStatus} from "./repositories/agent.repository";
 import {AdbRepository} from "./repositories/adb.repository";
 import {FirebaseAuthService} from "./firebaseauth.service";

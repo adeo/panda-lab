@@ -1,5 +1,4 @@
 import {FirebaseModel} from "./firebase.models";
-import {Spoon} from "./spoon.models";
 import {firestore} from "firebase";
 import DocumentReference = firestore.DocumentReference;
 import Timestamp = firestore.Timestamp;
@@ -21,12 +20,6 @@ export enum TaskStatus {
     error = "error"
 }
 
-
-export enum TestStatus {
-    pass = 'PASS',
-    error = 'ERROR',
-    fail = 'FAIL'
-}
 
 
 export interface JobRequest {
@@ -67,7 +60,6 @@ export interface JobTask extends FirebaseModel {
     completed: boolean,
     status: TaskStatus,
     error: string,
-    result: Spoon
 }
 
 

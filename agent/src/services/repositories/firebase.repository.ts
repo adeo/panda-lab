@@ -5,7 +5,7 @@ import '@firebase/messaging';
 import {firestore} from "firebase";
 import {FirebaseNamespace} from '@firebase/app-types';
 import {from, Observable, of, throwError} from "rxjs";
-import {FirebaseModel} from "pandalab-commons";
+import {CollectionName, FirebaseModel} from "pandalab-commons";
 import {catchError, flatMap, map} from "rxjs/operators";
 import CollectionReference = firestore.CollectionReference;
 import DocumentSnapshot = firestore.DocumentSnapshot;
@@ -110,13 +110,3 @@ export class FirebaseRepository {
 }
 
 
-export enum CollectionName {
-    JOBS_TASKS = "jobs-tasks",
-    JOBS = "jobs",
-    ARTIFACTS = "artifacts",
-    VERSIONS = "versions",
-    APPLICATIONS = "applications",
-    DEVICES = "devices",
-    DEVICE_GROUPS = "deviceGroups",
-    AGENTS = "agents",
-}

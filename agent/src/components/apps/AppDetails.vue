@@ -70,11 +70,12 @@
         mounted() {
 
 
-            this.$subscribeTo(Services.getInstance().appsService.listenApp(this.$route.params.applicationId), app => {
+            let appId = this.$route.params.applicationId;
+            this.$subscribeTo(Services.getInstance().appsService.listenApp(appId), app => {
                 this.app = app;
-            })
+            });
 
-            this.$subscribeTo(Services.getInstance().appsService.listenAppVersions(this.$route.params.applicationId), versions => {
+            this.$subscribeTo(Services.getInstance().appsService.listenAppVersions(appId), versions => {
 
                 const flavorsSet = new Set<string>();
                 versions.forEach(version => {
@@ -88,6 +89,10 @@
 
                 this.allVersions = versions;
                 this.updateVersions()
+            });
+
+            this.$subscribeTo(Services.getInstance().jobsService.listenAppJobs(appId), jobs => {
+
             })
         }
 

@@ -1,10 +1,10 @@
 import {AgentRepository, AgentStatus} from "./agent.repository";
 import {BehaviorSubject, combineLatest, EMPTY, from, Observable, of, Subscription, zip} from "rxjs";
-import {CollectionName, FirebaseRepository} from "./firebase.repository";
+import {FirebaseRepository} from "./firebase.repository";
 import {AdbRepository} from "./adb.repository";
 import {DevicesService} from "../devices.service";
 import {catchError, filter, first, flatMap, map, onErrorResumeNext, switchMapTo, tap, timeout} from "rxjs/operators";
-import {Artifact, Device, DeviceStatus, Job, JobTask, TaskStatus} from 'pandalab-commons';
+import {Artifact, CollectionName, Device, DeviceStatus, Job, JobTask, TaskStatus} from 'pandalab-commons';
 import {JobsService} from "../jobs.service";
 import {WorkspaceRepository} from "./workspace.repository";
 import {AgentService} from "../agent.service";

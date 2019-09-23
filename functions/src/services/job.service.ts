@@ -1,8 +1,6 @@
 import * as admin from "firebase-admin";
-import * as firebase from "firebase";
-import {DeviceStatus, Job, JobRequest, JobStatus, JobTask, TaskStatus, TestStatus} from "pandalab-commons";
+import {DeviceStatus, Job, JobRequest, JobStatus, JobTask, TaskStatus} from "pandalab-commons";
 import DocumentSnapshot = admin.firestore.DocumentSnapshot;
-import DocumentReference = firebase.firestore.DocumentReference;
 
 
 export enum JobError {
@@ -68,10 +66,10 @@ class JobService {
 
 
         //Create job and tasks
-        const versionRef = artifactDoc.ref.parent.parent as any as DocumentReference;
-        const createdJob = <Job> {
-            apk: artifactDoc.ref as any as DocumentReference,
-            apk_test: artifactTestDoc.ref as any as DocumentReference,
+        const versionRef = artifactDoc.ref.parent.parent as any;
+        const createdJob = <Job>{
+            apk: artifactDoc.ref as any,
+            apk_test: artifactTestDoc.ref as any,
             completed: false,
             status: JobStatus.pending,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -81,11 +79,11 @@ class JobService {
 
         const jobRef = await admin.firestore().collection('jobs').add(createdJob);
 
-        const timeoutInMillis = ((job.timeoutInSecond || 60 * 60) * 1000);
+        const timeoutInMillis = ((job.timeoutInSecond || 60 * 60) * 1000);
         await Promise.all(new Array(taskCount).fill(0).map(
             async () => {
                 const taskObj = {
-                    job: admin.firestore().collection('jobs').doc(jobRef.id) as any as DocumentReference,
+                    job: admin.firestore().collection('jobs').doc(jobRef.id) as any,
                     devices: finalDevices,
                     status: TaskStatus.pending,
                     completed: false,
@@ -100,7 +98,7 @@ class JobService {
     }
 
 
-    async onTaskUpdate(taskDoc: DocumentSnapshot) : Promise<any> {
+    async onTaskUpdate(taskDoc: DocumentSnapshot): Promise<any> {
         const task = taskDoc.data() as JobTask;
 
 
@@ -115,13 +113,15 @@ class JobService {
         }
 
 
-
         const jobRef = task.job;
 
         const tasksList = await admin.firestore().collection("jobs-tasks").where("job", "==", jobRef).get();
 
 
-        const jobTasks = tasksList.docs.map(value => value.data() as JobTask);
+        const jobTasks = tasksList.docs.map(value => <JobTask>{
+            ...value.data(),
+            _ref: value.ref as any
+        });
         const finishTasks = jobTasks.filter(value => value.completed).length;
 
 
@@ -131,20 +131,19 @@ class JobService {
 
         let jobStatus = JobStatus.inprogress;
         if (completed) {
-            const hasTestFailure = jobTasks.filter(value => value.status === TaskStatus.success)
-                .filter(value => value.result.results
-                    .filter(r => r.installFailed || r.tests.filter(test => test.status !== TestStatus.pass).length > 0)
-                    .length > 0
-                ).length > 0;
 
-            const hasErrorTask = jobTasks.filter(value => value.status === TaskStatus.error).length > 0;
+            const successTasks = jobTasks.filter(value => value.status === TaskStatus.success);
 
-            if (hasTestFailure) {
-                jobStatus = JobStatus.failure
-            } else if (hasErrorTask) {
-                jobStatus = JobStatus.unstable
-            } else {
+            const onlySuccess = jobTasks.length === successTasks.length;
+
+            const onlyError = jobTasks.length === jobTasks.filter(value => value.status === TaskStatus.error).length;
+
+            if (onlySuccess) {
                 jobStatus = JobStatus.success
+            } else if (onlyError) {
+                jobStatus = JobStatus.failure
+            } else {
+                jobStatus = JobStatus.unstable
             }
         }
         return jobRef.set({completed: completed, status: jobStatus}, {merge: true});
@@ -196,7 +195,7 @@ class JobService {
 
             const devices = devicesQuerySnapshot.docs;
 
-            for(let i = 0; i < tasksDocs.length; i++) {
+            for (let i = 0; i < tasksDocs.length; i++) {
                 const taskDoc = tasksDocs[i];
                 const task = taskDoc.data() as JobTask;
 
@@ -220,7 +219,7 @@ class JobService {
                     const selectedDevice = devices.splice(deviceIndex, 1)[0];
                     console.log("assign task " + taskDoc.id + " to " + selectedDevice.id);
                     await transaction.set(taskDoc.ref, {
-                        "device": selectedDevice.ref as any as DocumentReference
+                        "device": selectedDevice.ref as any
                     } as JobTask, {merge: true})
                 }
             }

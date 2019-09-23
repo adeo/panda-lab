@@ -1,6 +1,6 @@
 import {BehaviorSubject, from, Observable} from "rxjs";
 import {filter, first, flatMap, map, tap} from "rxjs/operators";
-import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
+import {FirebaseRepository} from "./repositories/firebase.repository";
 import {firebase} from '@firebase/app';
 import '@firebase/auth';
 import '@firebase/functions';
@@ -8,6 +8,7 @@ import {FirebaseAuth} from '@firebase/auth-types';
 import {FirebaseFunctions} from '@firebase/functions-types';
 import {StoreRepository} from "./repositories/store.repository";
 import UserCredential = firebase.auth.UserCredential;
+import {CollectionName} from "pandalab-commons";
 
 export class FirebaseAuthService {
 
