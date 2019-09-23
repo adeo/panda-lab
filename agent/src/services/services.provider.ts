@@ -12,6 +12,7 @@ import {SpoonRepository} from "./repositories/spoon.repository";
 import {firebase} from "@firebase/app";
 import * as winston from "winston";
 import {AppsService} from "./apps.service";
+import {delay} from "q";
 
 const jsonStringify = require('fast-safe-stringify');
 

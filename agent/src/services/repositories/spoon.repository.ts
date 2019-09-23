@@ -191,6 +191,13 @@ export class SpoonRepository {
                     return this.saveJobTaskStatus(perform.task, TaskStatus.running)
                         .pipe(
                             flatMap(() => this.runCommand(perform)),
+                            flatMap(() => {
+                                return this.firebaseRepo.listenDocument(CollectionName.TASKS_REPORT, perform.task._ref.id)
+                                    .pipe(
+                                        first(),
+                                        timeout(30 * 1000),
+                                    );
+                            }),
                             flatMap(() => this.saveJobTaskStatus(perform.task, TaskStatus.success)),
                             catchError(err => {
                                 console.error(err);
@@ -206,7 +213,7 @@ export class SpoonRepository {
         return this.jobsService.getJob(task.job.id);
     }
 
-    private getArtifact(documentReference: any) : Observable<Artifact>{
+    private getArtifact(documentReference: any): Observable<Artifact> {
         return this.firebaseRepo.getDocument<Artifact>(documentReference);
     }
 
@@ -291,7 +298,7 @@ export class SpoonRepository {
         const {error, stdout, stderr} = await require('util').promisify(require('child_process').exec)(cmd, {shell: true});
         this.logger.info('stdout:', stdout);
 
-        if(stderr){
+        if (stderr) {
             this.logger.warn('stderr:', stderr);
         }
 
@@ -302,19 +309,22 @@ export class SpoonRepository {
         this.logger.info(`End download apk for job : ${perform.job._ref.id}`);
 
         const fs = require('fs');
-        const json = fs.readFileSync(`${reportDirectory}/result.json`);
-        fs.unlinkSync(`${reportDirectory}/result.json`);
+        const buffer = fs.readFileSync(`${reportDirectory}/spoon.json`);
+        await this.firebaseRepo.firebase.storage().ref(`/reports/${perform.job._ref.id}/spoon.json`).put(buffer);
+        // const json = fs.readFileSync(`${reportDirectory}/result.json`);
+        // fs.unlinkSync(`${reportDirectory}/result.json`);
 
-        const saveSpoonResult = this.firebaseRepo.firebase.functions().httpsCallable("saveSpoonResult");
-        const result = await saveSpoonResult({
-            jobId: perform.job._ref.id,
-            deviceId: perform.device._ref.id,
-            result: JSON.parse(json)
-        });
 
-        if (result.data.success) {
-            throw new Error("Can't save document in storage");
-        }
+        // const saveSpoonResult = this.firebaseRepo.firebase.functions().httpsCallable("saveSpoonResult");
+        // const result = await saveSpoonResult({
+        //     jobId: perform.job._ref.id,
+        //     deviceId: perform.device._ref.id,
+        //     result: JSON.parse(json)
+        // });
+        //
+        // if (result.data.success) {
+        //     throw new Error("Can't save document in storage");
+        // }
     }
 
     private saveJobTaskStatus(jobTask: JobTask, status: TaskStatus, errorMessage: string = null): Observable<JobTask> {
