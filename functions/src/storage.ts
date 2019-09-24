@@ -1,6 +1,15 @@
 import * as functions from 'firebase-functions';
 import * as util from "util";
-import {AppVersion, Artifact, CollectionName, JobTask, LogsModel, TestModel, TestResult} from "pandalab-commons";
+import {
+    AppModel,
+    AppVersion,
+    Artifact,
+    CollectionName,
+    JobTask,
+    LogsModel,
+    TestModel,
+    TestResult
+} from "pandalab-commons";
 import {FileData} from "../../commons/src/models/storage.models";
 import {TestLog} from "../../commons/src/models";
 import DocumentReference = FirebaseFirestore.DocumentReference;
@@ -164,6 +173,8 @@ async function extractApk(directory: string, filename: string) {
         appData.versionName = manifest.versionName;
         artifactData.versionName = manifest.versionName;
     }
+
+    await admin.firestore().collection("applications").doc(appName).set(<AppModel>{name: appName}, {merge: true} );
 
     const doc = admin.firestore().collection("applications").doc(appName).collection("versions").doc(uuid);
     try {
