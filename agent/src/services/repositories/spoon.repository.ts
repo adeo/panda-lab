@@ -24,7 +24,6 @@ export class SpoonRepository {
                 private jobsService: JobsService,
                 private workspace: WorkspaceRepository) {
 
-
     }
 
     public setup() {
@@ -51,7 +50,7 @@ export class SpoonRepository {
             .pipe(
                 map(tasks => {
                     return tasks.filter(task => {
-                        return task.device !== undefined;
+                        return task.device !== undefined && task.device !== null;
                     });
                 }),
             );
@@ -89,11 +88,15 @@ export class SpoonRepository {
                 const availableDevices = tupleDevicesTasks.availableDevices;
                 const tasks = tupleDevicesTasks.tasks;
 
+                console.log('step 1');
+
                 const findDevice = (deviceId: string) => {
+                    console.log('step 3');
                     return availableDevices.find(value => value._ref.id === deviceId);
                 };
 
                 if (tasks.length == 0 || availableDevices.length == 0) {
+                    console.log('step 2');
                     this.logger.info("Task or device missing");
                     return EMPTY;
                 }
@@ -102,18 +105,22 @@ export class SpoonRepository {
                     first(task => !!findDevice(task.device.id)),
                     tap(() => working = true),
                     map(task => {
+                        console.log('step 4');
                         return {
                             task,
                             device: findDevice(task.device.id),
                         };
                     }),
                     flatMap(tuple => {
+                        console.log('step 5', tuple.device);
                         const saveDeviceOffline = this.saveDeviceStatus(tuple.device, DeviceStatus.offline)
                             .pipe(
-                                switchMapTo(of({
-                                    ...tuple,
-                                    error: `Device is offline`,
-                                }))
+                                map(() => {
+                                    return {
+                                        ...tuple,
+                                        error: `Device is offline`,
+                                    };
+                                })
                             );
 
                         return this.agentService.getDeviceAdb(tuple.device._ref.id).pipe(
@@ -149,13 +156,12 @@ export class SpoonRepository {
                         } else {
                             this.logger.verbose(`Default timeout : ${timeoutInSeconds}s`);
                         }
-                        this.logger.info('run test', tuple);
                         return this.saveDeviceStatus(tuple.device, DeviceStatus.working)
                             .pipe(
                                 switchMapTo(this.runTest(tuple.task, tuple.device, tuple.serial)),
                                 switchMapTo(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
                                 onErrorResumeNext(this.saveDeviceStatus(tuple.device, DeviceStatus.available)),
-                                timeout(timeoutInSeconds),
+                                // timeout(timeoutInSeconds),
                             );
                     }),
                 );
@@ -165,7 +171,7 @@ export class SpoonRepository {
                     resetWorking();
                 },
                 (error) => {
-                    this.logger.error(error);
+                    this.logger.error('global error', error);
                     resetWorking();
                 }
             ),
@@ -200,7 +206,7 @@ export class SpoonRepository {
                             }),
                             flatMap(() => this.saveJobTaskStatus(perform.task, TaskStatus.success)),
                             catchError(err => {
-                                console.error(err);
+                                console.error('saveJobTaskStatus', err);
                                 return this.saveJobTaskStatus(perform.task, TaskStatus.error, err.message);
                             }),
                         );
@@ -308,23 +314,61 @@ export class SpoonRepository {
 
         this.logger.info(`End download apk for job : ${perform.job._ref.id}`);
 
+        this.uploadFiles(perform.job._ref.id, reportDirectory).then(() => {
+            this.logger.info('upload file success');
+        }).catch(err => {
+            this.logger.error('error when upload images', err);
+        });
+
+        return null;
+    }
+
+    async uploadFiles(jobId: string, reportDirectory: string) {
         const fs = require('fs');
-        const buffer = fs.readFileSync(`${reportDirectory}/spoon.json`);
-        await this.firebaseRepo.firebase.storage().ref(`/reports/${perform.job._ref.id}/spoon.json`).put(buffer);
-        // const json = fs.readFileSync(`${reportDirectory}/result.json`);
-        // fs.unlinkSync(`${reportDirectory}/result.json`);
+        const path = require('path');
 
+        const buffer = fs.readFileSync(`${reportDirectory}/result.json`);
+        await this.firebaseRepo.firebase.storage().ref(`/reports/${jobId}/spoon.json`).put(buffer);
 
-        // const saveSpoonResult = this.firebaseRepo.firebase.functions().httpsCallable("saveSpoonResult");
-        // const result = await saveSpoonResult({
-        //     jobId: perform.job._ref.id,
-        //     deviceId: perform.device._ref.id,
-        //     result: JSON.parse(json)
-        // });
-        //
-        // if (result.data.success) {
-        //     throw new Error("Can't save document in storage");
-        // }
+        const read = (dir) =>
+            fs.readdirSync(dir)
+                .reduce((files, file) =>
+                        fs.statSync(path.join(dir, file)).isDirectory() ?
+                            files.concat(read(path.join(dir, file))) :
+                            files.concat(path.join(dir, file)),
+                    []);
+
+        this.walk(`${reportDirectory}`).forEach(image => {
+            const imageBuffer = fs.readFileSync(image);
+            const firebaseFilename = image.replace(reportDirectory, '');
+            console.log(image);
+            console.log(firebaseFilename);
+            this.firebaseRepo.firebase.storage().ref(`/reports/${jobId}/images${firebaseFilename}`).put(imageBuffer)
+                .then(() => {
+                    console.log('upload file ' + image + ' ok ');
+                })
+                .catch(err => console.error('uploadFiles', err));
+        });
+    }
+
+    private walk(dir, baseDir = null) {
+        const fs = require('fs');
+        let results = [];
+        if (baseDir === null) {
+            baseDir = dir;
+        }
+        const list = fs.readdirSync(dir);
+        list.forEach((file) => {
+            file = dir + '/' + file;
+            let stat = fs.statSync(file);
+            if (stat && stat.isDirectory()) {
+                results = results.concat(this.walk(file, baseDir));
+            } else {
+                results.push(file);
+            }
+        });
+        return results
+            .filter(filename => filename.endsWith('.png') || filename.endsWith('.gif'));
     }
 
     private saveJobTaskStatus(jobTask: JobTask, status: TaskStatus, errorMessage: string = null): Observable<JobTask> {
@@ -339,8 +383,9 @@ export class SpoonRepository {
     }
 
     private saveDeviceStatus(device: Device, deviceStatus: DeviceStatus): Observable<Device> {
+        this.logger.info('save device state');
         device.status = deviceStatus;
-        return this.firebaseRepo.saveDocument(device);
+        return of(device); //this.firebaseRepo.saveDocument(device);
         // firebase error, DocumentReference.set() called with invalid data
         // return this.firebaseRepo.saveDocument<Device>(device);
     }
