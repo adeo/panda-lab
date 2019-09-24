@@ -1,6 +1,18 @@
 import * as admin from "firebase-admin";
-import {DeviceStatus, Job, JobRequest, JobStatus, JobTask, TaskStatus} from "pandalab-commons";
+import {
+    CollectionName,
+    DeviceStatus,
+    Job,
+    JobRequest,
+    JobStatus,
+    JobTask,
+    TaskStatus,
+    TestModel,
+    TestReport,
+    TestStatus
+} from "pandalab-commons";
 import DocumentSnapshot = admin.firestore.DocumentSnapshot;
+import DocumentReference = FirebaseFirestore.DocumentReference;
 
 
 export enum JobError {
@@ -132,7 +144,66 @@ class JobService {
         let jobStatus = JobStatus.inprogress;
         if (completed) {
 
+
+            admin.firestore().collection(CollectionName.TASK_REPORTS).doc();
+
             const successTasks = jobTasks.filter(value => value.status === TaskStatus.success);
+
+
+            const testsMap = new Map<string, number>();
+
+
+            for (const jobTask of jobTasks.filter(value => value.status === TaskStatus.success)) {
+                const reportRequest = await admin.firestore().collection(CollectionName.TASK_REPORTS).doc((jobTask._ref as any as DocumentReference).id).get();
+
+                const testResult = reportRequest.data() as TestModel;
+                testResult.tests.forEach(
+                    test => {
+                        let currentCount = 0;
+                        if (testsMap.has(test.id)) {
+                            currentCount = testsMap.get(test.id) as number
+                        }
+
+                        switch (test.status) {
+                            case TestStatus.error:
+                            case TestStatus.fail:
+                                break;
+                            case TestStatus.pass:
+                                testsMap.set(test.id, currentCount + 1);
+                                break;
+                        }
+                    }
+                )
+
+            }
+
+            let testSuccess = 0;
+            let testFailure = 0;
+            let testUnstable = 0;
+
+            for (const entry of testsMap.entries()) {
+                const count = entry[1];
+                if (count === jobTasks.length) {
+                    testSuccess = testSuccess + 1;
+                } else if (count > 0) {
+                    testUnstable = testUnstable + 1;
+                } else {
+                    testFailure = testFailure + 1;
+                }
+            }
+
+
+            const testReport = <TestReport>{
+                date: new Date(),
+                job: jobRef,
+                devices: jobTasks.map(value => value.device),
+                totalTests: testsMap.size,
+                testSuccess: testSuccess,
+                testFailure: testFailure,
+                testUnstable: testUnstable,
+            };
+
+            await admin.firestore().collection(CollectionName.JOB_REPORTS).doc(jobRef.id).set(testReport, {merge: false});
 
             const onlySuccess = jobTasks.length === successTasks.length;
 
@@ -195,8 +266,7 @@ class JobService {
 
             const devices = devicesQuerySnapshot.docs;
 
-            for (let i = 0; i < tasksDocs.length; i++) {
-                const taskDoc = tasksDocs[i];
+            for (const taskDoc of tasksDocs) {
                 const task = taskDoc.data() as JobTask;
 
                 const jobTasksQuery = await admin.firestore().collection('jobs-tasks')

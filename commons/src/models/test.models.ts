@@ -1,5 +1,6 @@
-import * as firebase from "firebase";
-import DocumentReference = firebase.firestore.DocumentReference;
+import {firestore} from "firebase";
+import DocumentReference = firestore.DocumentReference;
+import {FirebaseModel} from "./firebase.models";
 
 // export interface Spoon {
 //     title: string;
@@ -16,9 +17,8 @@ export enum TestStatus {
 }
 
 
-export interface TestModel {
+export interface TestModel extends FirebaseModel{
     id: string;
-    installFailed: boolean;
     device: DocumentReference;
     tests: TestResult[];
     started: Date;
@@ -34,8 +34,8 @@ export interface TestResult {
     logs: DocumentReference;
 }
 
-export interface LogsModel{
-    logs : TestLog[]
+export interface LogsModel extends FirebaseModel{
+    logs: TestLog[]
 }
 
 export interface TestLog {
@@ -45,3 +45,13 @@ export interface TestLog {
     message: string;
 }
 
+
+export interface TestReport extends FirebaseModel {
+    date: Date;
+    job: DocumentReference;
+    devices: DocumentReference[];
+    totalTests: number;
+    testFailure: number;
+    testUnstable: number;
+    testSuccess: number;
+}

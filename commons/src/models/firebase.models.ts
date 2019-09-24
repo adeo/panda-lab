@@ -16,5 +16,6 @@ export enum CollectionName {
     DEVICE_GROUPS = "deviceGroups",
     AGENTS = "agents",
     TASK_REPORTS = "task-reports",
-    LOGS = "logs"
+    LOGS = "logs",
+    JOB_REPORTS = 'job-reports',
 }

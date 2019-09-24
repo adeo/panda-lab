@@ -2,7 +2,7 @@ import {Change, EventContext} from "firebase-functions";
 import {UserRecord} from "firebase-functions/lib/providers/auth";
 import {DocumentSnapshot} from "firebase-functions/lib/providers/firestore";
 import {API_FUNCTION, CREATE_JOB} from "./api";
-import {ANALYSE_APK, CLEAN_ARTIFACT, GET_FILE_DATA, SAVE_SPOON_RESULT} from "./storage";
+import {ANALYSE_FILE, CLEAN_ARTIFACT, GET_FILE_DATA, SAVE_SPOON_RESULT} from "./storage";
 import * as admin from "firebase-admin";
 import {jobService} from "./services/job.service";
 import {CallableContext} from "firebase-functions/lib/providers/https";
@@ -194,7 +194,7 @@ exports.onRemoveJob = functions.firestore.document('jobs/{jobId}').onDelete(asyn
     query.docs.forEach(doc => doc.ref.delete());
 });
 
-exports.analyse_apk = ANALYSE_APK;
+exports.analyse_file = ANALYSE_FILE;
 exports.clean_artifact = CLEAN_ARTIFACT;
 exports.getFileData = GET_FILE_DATA;
 exports.saveSpoonResult = SAVE_SPOON_RESULT;

@@ -21,7 +21,7 @@ class ApkReaderFromBuffer extends ApkReader {
 
 ApkReader.prototype._open = ApkReaderFromBuffer.prototype._openBuffer;
 
-export const ANALYSE_APK = functions.storage.bucket().object().onFinalize(async (object, context) => {
+export const ANALYSE_FILE = functions.storage.bucket().object().onFinalize(async (object, context) => {
     const path = `${object.name}`;
 
     // const filename = path.split('/').slice(-1);
@@ -70,8 +70,8 @@ async function extractSpoonReport(path: string) {
     const testLogs = new Map<DocumentReference, LogsModel>();
     const result = <TestModel>{
         id,
-        installFailed: value.installFailed,
         device: jobTask.device,
+        duration: json.duration,
         tests: value.testResults.map(test => {
                 const testHeader = test[0];
                 const testValue = test[1];
@@ -109,7 +109,7 @@ async function extractSpoonReport(path: string) {
                 };
             },
         ),
-        started: new Date(value.started),
+        started: new Date(json.started),
     };
 
     await admin.firestore().collection(CollectionName.TASK_REPORTS).doc(taskId).set(result, {merge: false});
