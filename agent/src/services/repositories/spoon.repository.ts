@@ -200,7 +200,7 @@ export class SpoonRepository {
                             flatMap(() => {
                                 return this.firebaseRepo.listenDocument(CollectionName.TASK_REPORTS, perform.task._ref.id)
                                     .pipe(
-                                        first(),
+                                        first(value => value !== null),
                                         timeout(30 * 1000),
                                     );
                             }),
@@ -308,13 +308,18 @@ export class SpoonRepository {
             this.logger.warn('stderr:', stderr);
         }
 
-        if (error !== null) {
+        const fs = require('fs');
+        const reportFile = `${reportDirectory}/result.json`;
+        if (!fs.existsSync(reportFile)) {
             throw new Error(stderr);
         }
 
         this.logger.info(`End download apk for job : ${perform.job._ref.id}`);
 
-        this.uploadFiles(perform.job._ref.id, reportDirectory).then(() => {
+        const buffer = fs.readFileSync(`${reportDirectory}/result.json`);
+        await this.firebaseRepo.firebase.storage().ref(`/reports/${perform.task._ref.id}/spoon.json`).put(buffer);
+
+        this.uploadFiles(perform.task._ref.id, reportDirectory).then(() => {
             this.logger.info('upload file success');
         }).catch(err => {
             this.logger.error('error when upload images', err);
@@ -323,12 +328,9 @@ export class SpoonRepository {
         return null;
     }
 
-    async uploadFiles(jobId: string, reportDirectory: string) {
+    async uploadFiles(taskId: string, reportDirectory: string) {
         const fs = require('fs');
         const path = require('path');
-
-        const buffer = fs.readFileSync(`${reportDirectory}/result.json`);
-        await this.firebaseRepo.firebase.storage().ref(`/reports/${jobId}/spoon.json`).put(buffer);
 
         const read = (dir) =>
             fs.readdirSync(dir)
@@ -343,7 +345,7 @@ export class SpoonRepository {
             const firebaseFilename = image.replace(reportDirectory, '');
             console.log(image);
             console.log(firebaseFilename);
-            this.firebaseRepo.firebase.storage().ref(`/reports/${jobId}/images${firebaseFilename}`).put(imageBuffer)
+            this.firebaseRepo.firebase.storage().ref(`/reports/${taskId}/images${firebaseFilename}`).put(imageBuffer)
                 .then(() => {
                     console.log('upload file ' + image + ' ok ');
                 })
