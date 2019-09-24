@@ -192,15 +192,17 @@ class JobService {
                 }
             }
 
-
+            const jobResult = await jobRef.get();
+            const job = jobResult.data() as Job;
             const testReport = <TestReport>{
-                date: new Date(),
+                date: admin.firestore.Timestamp.now(),
                 job: jobRef,
                 devices: jobTasks.map(value => value.device),
                 totalTests: testsMap.size,
                 testSuccess: testSuccess,
                 testFailure: testFailure,
                 testUnstable: testUnstable,
+                app: job.app,
             };
 
             await admin.firestore().collection(CollectionName.JOB_REPORTS).doc(jobRef.id).set(testReport, {merge: false});

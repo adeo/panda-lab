@@ -194,8 +194,8 @@ exports.onRemoveJob = functions.firestore.document('jobs/{jobId}').onDelete(asyn
     query.docs.forEach(doc => doc.ref.delete());
 });
 
-exports.analyse_file = ANALYSE_FILE;
-exports.clean_artifact = CLEAN_ARTIFACT;
+exports.analyseFile = ANALYSE_FILE;
+exports.cleanArtifact = CLEAN_ARTIFACT;
 exports.getFileData = GET_FILE_DATA;
 exports.saveSpoonResult = SAVE_SPOON_RESULT;
 exports.createJob = CREATE_JOB;

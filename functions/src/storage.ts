@@ -81,11 +81,11 @@ async function extractSpoonReport(path: string) {
                 const logs = testValue.log.map(log => {
                     const timestamp = log.mTimestamp;
                     const date = timestamp ? new Date(new Date().getFullYear(), timestamp.mMonth, timestamp.mDay, timestamp.mHour,
-                        timestamp.mMinute, timestamp.mSecond, timestamp.mMilli) : null;
+                        timestamp.mMinute, timestamp.mSecond, timestamp.mMilli) : new Date();
                     return <TestLog>{
                         level: log.mHeader.mLogLevel,
                         tag: log.mHeader.mTag,
-                        date: date,
+                        date: admin.firestore.Timestamp.fromDate(date),
                         message: log.mMessage,
                     };
                 });
@@ -109,7 +109,7 @@ async function extractSpoonReport(path: string) {
                 };
             },
         ),
-        started: new Date(json.started),
+        started: admin.firestore.Timestamp.fromMillis(json.started),
     };
 
     await admin.firestore().collection(CollectionName.TASK_REPORTS).doc(taskId).set(result, {merge: false});

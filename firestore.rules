@@ -44,6 +44,16 @@ service cloud.firestore {
         allow write: if false;
     }
 
+    match /job-reports/{reportId} {
+        allow read: if isAgent() || isAdmin() || isUser();
+        allow write: if false;
+    }
+
+    match /task-reports/{reportId} {
+        allow read: if isAgent() || isAdmin() || isUser();
+        allow write: if false;
+    }
+
     match /applications/{document=**} {
         allow read: if isAgent() || isAdmin() || isUser();
         allow write: if false;

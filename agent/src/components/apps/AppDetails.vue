@@ -32,7 +32,9 @@
 
                 </div>
                 <div class="md-layout-item">
-
+                    <md-card>
+                        <area-chart :data="data" :stacked="true"></area-chart>
+                    </md-card>
                 </div>
 
 
@@ -67,6 +69,9 @@
         private flavors: string[] = [];
         private flavor: string = "";
 
+
+        protected data = [];
+
         mounted() {
 
 
@@ -91,7 +96,19 @@
                 this.updateVersions()
             });
 
-            this.$subscribeTo(Services.getInstance().jobsService.listenAppJobs(appId), jobs => {
+            this.$subscribeTo(Services.getInstance().jobsService.listenAppReports(appId), reports => {
+
+                const successData = {};
+                reports.forEach(report => {
+                    successData[report.date.toDate().toDateString()] = report.testSuccess
+
+
+                })
+
+                this.data = [
+                    {name: "Success", data: successData}
+                ]
+
 
             })
         }

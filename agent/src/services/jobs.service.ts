@@ -1,4 +1,4 @@
-import {Artifact, Job, JobRequest, JobTask, CollectionName} from 'pandalab-commons';
+import {Artifact, CollectionName, Job, JobRequest, JobTask, TestReport} from 'pandalab-commons';
 import {FirebaseRepository} from "./repositories/firebase.repository";
 import '@firebase/auth';
 import '@firebase/firestore';
@@ -98,10 +98,9 @@ export class JobsService {
             );
     }
 
-    listenAppJobs(appId: string): Observable<Job[]> {
-        return this.firebaseRepo.getQuery<Job>(this.firebaseRepo.getCollection(CollectionName.JOBS)
-            .orderBy("createdAt", "asc")
-            .where('completed', "==", true)
+    listenAppReports(appId: string): Observable<TestReport[]> {
+        return this.firebaseRepo.getQuery<TestReport>(this.firebaseRepo.getCollection(CollectionName.JOB_REPORTS)
+            .orderBy("date", "asc")
             .where('app', '==', this.firebaseRepo.getCollection(CollectionName.APPLICATIONS).doc(appId)))
     }
 }

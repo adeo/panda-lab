@@ -1,6 +1,7 @@
 import {firestore} from "firebase";
 import DocumentReference = firestore.DocumentReference;
 import {FirebaseModel} from "./firebase.models";
+import Timestamp = firestore.Timestamp;
 
 // export interface Spoon {
 //     title: string;
@@ -21,7 +22,7 @@ export interface TestModel extends FirebaseModel{
     id: string;
     device: DocumentReference;
     tests: TestResult[];
-    started: Date;
+    started: Timestamp;
     duration: number;
 }
 
@@ -41,13 +42,14 @@ export interface LogsModel extends FirebaseModel{
 export interface TestLog {
     level: string;
     tag: string;
-    date: Date;
+    date: Timestamp;
     message: string;
 }
 
 
 export interface TestReport extends FirebaseModel {
-    date: Date;
+    date: Timestamp;
+    app: DocumentReference;
     job: DocumentReference;
     devices: DocumentReference[];
     totalTests: number;

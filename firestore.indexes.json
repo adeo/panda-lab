@@ -45,6 +45,20 @@
           "mode": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "job-reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "app",
+          "mode": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "mode": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []
