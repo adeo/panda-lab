@@ -1,8 +1,18 @@
 import * as admin from "firebase-admin";
-import * as firebase from "firebase";
-import {DeviceStatus, Job, JobRequest, JobStatus, JobTask, TaskStatus, TestStatus} from "pandalab-commons";
+import {
+    CollectionName,
+    DeviceStatus,
+    Job,
+    JobRequest,
+    JobStatus,
+    JobTask,
+    TaskStatus,
+    TestModel,
+    TestReport,
+    TestStatus
+} from "pandalab-commons";
 import DocumentSnapshot = admin.firestore.DocumentSnapshot;
-import DocumentReference = firebase.firestore.DocumentReference;
+import DocumentReference = FirebaseFirestore.DocumentReference;
 
 
 export enum JobError {
@@ -68,10 +78,10 @@ class JobService {
 
 
         //Create job and tasks
-        const versionRef = artifactDoc.ref.parent.parent as any as DocumentReference;
-        const createdJob = <Job> {
-            apk: artifactDoc.ref as any as DocumentReference,
-            apk_test: artifactTestDoc.ref as any as DocumentReference,
+        const versionRef = artifactDoc.ref.parent.parent as any;
+        const createdJob = <Job>{
+            apk: artifactDoc.ref as any,
+            apk_test: artifactTestDoc.ref as any,
             completed: false,
             status: JobStatus.pending,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -81,11 +91,11 @@ class JobService {
 
         const jobRef = await admin.firestore().collection('jobs').add(createdJob);
 
-        const timeoutInMillis = ((job.timeoutInSecond || 60 * 60) * 1000);
+        const timeoutInMillis = ((job.timeoutInSecond || 60 * 60) * 1000);
         await Promise.all(new Array(taskCount).fill(0).map(
             async () => {
                 const taskObj = {
-                    job: admin.firestore().collection('jobs').doc(jobRef.id) as any as DocumentReference,
+                    job: admin.firestore().collection('jobs').doc(jobRef.id) as any,
                     devices: finalDevices,
                     status: TaskStatus.pending,
                     completed: false,
@@ -100,7 +110,7 @@ class JobService {
     }
 
 
-    async onTaskUpdate(taskDoc: DocumentSnapshot) : Promise<any> {
+    async onTaskUpdate(taskDoc: DocumentSnapshot): Promise<any> {
         const task = taskDoc.data() as JobTask;
 
 
@@ -115,13 +125,15 @@ class JobService {
         }
 
 
-
         const jobRef = task.job;
 
         const tasksList = await admin.firestore().collection("jobs-tasks").where("job", "==", jobRef).get();
 
 
-        const jobTasks = tasksList.docs.map(value => value.data() as JobTask);
+        const jobTasks = tasksList.docs.map(value => <JobTask>{
+            ...value.data(),
+            _ref: value.ref as any
+        });
         const finishTasks = jobTasks.filter(value => value.completed).length;
 
 
@@ -131,20 +143,80 @@ class JobService {
 
         let jobStatus = JobStatus.inprogress;
         if (completed) {
-            const hasTestFailure = jobTasks.filter(value => value.status === TaskStatus.success)
-                .filter(value => value.result.results
-                    .filter(r => r.installFailed || r.tests.filter(test => test.status !== TestStatus.pass).length > 0)
-                    .length > 0
-                ).length > 0;
 
-            const hasErrorTask = jobTasks.filter(value => value.status === TaskStatus.error).length > 0;
 
-            if (hasTestFailure) {
-                jobStatus = JobStatus.failure
-            } else if (hasErrorTask) {
-                jobStatus = JobStatus.unstable
-            } else {
+            admin.firestore().collection(CollectionName.TASK_REPORTS).doc();
+
+            const successTasks = jobTasks.filter(value => value.status === TaskStatus.success);
+
+
+            const testsMap = new Map<string, number>();
+
+
+            for (const jobTask of jobTasks.filter(value => value.status === TaskStatus.success)) {
+                const reportRequest = await admin.firestore().collection(CollectionName.TASK_REPORTS).doc((jobTask._ref as any as DocumentReference).id).get();
+
+                const testResult = reportRequest.data() as TestModel;
+                testResult.tests.forEach(
+                    test => {
+                        let currentCount = 0;
+                        if (testsMap.has(test.id)) {
+                            currentCount = testsMap.get(test.id) as number
+                        }
+
+                        switch (test.status) {
+                            case TestStatus.error:
+                            case TestStatus.fail:
+                                break;
+                            case TestStatus.pass:
+                                testsMap.set(test.id, currentCount + 1);
+                                break;
+                        }
+                    }
+                )
+
+            }
+
+            let testSuccess = 0;
+            let testFailure = 0;
+            let testUnstable = 0;
+
+            for (const entry of testsMap.entries()) {
+                const count = entry[1];
+                if (count === jobTasks.length) {
+                    testSuccess = testSuccess + 1;
+                } else if (count > 0) {
+                    testUnstable = testUnstable + 1;
+                } else {
+                    testFailure = testFailure + 1;
+                }
+            }
+
+            const jobResult = await jobRef.get();
+            const job = jobResult.data() as Job;
+            const testReport = <TestReport>{
+                date: admin.firestore.Timestamp.now(),
+                job: jobRef,
+                devices: jobTasks.map(value => value.device),
+                totalTests: testsMap.size,
+                testSuccess: testSuccess,
+                testFailure: testFailure,
+                testUnstable: testUnstable,
+                app: job.app,
+            };
+
+            await admin.firestore().collection(CollectionName.JOB_REPORTS).doc(jobRef.id).set(testReport, {merge: false});
+
+            const onlySuccess = jobTasks.length === successTasks.length;
+
+            const onlyError = jobTasks.length === jobTasks.filter(value => value.status === TaskStatus.error).length;
+
+            if (onlySuccess) {
                 jobStatus = JobStatus.success
+            } else if (onlyError) {
+                jobStatus = JobStatus.failure
+            } else {
+                jobStatus = JobStatus.unstable
             }
         }
         return jobRef.set({completed: completed, status: jobStatus}, {merge: true});
@@ -196,8 +268,7 @@ class JobService {
 
             const devices = devicesQuerySnapshot.docs;
 
-            for(let i = 0; i < tasksDocs.length; i++) {
-                const taskDoc = tasksDocs[i];
+            for (const taskDoc of tasksDocs) {
                 const task = taskDoc.data() as JobTask;
 
                 const jobTasksQuery = await admin.firestore().collection('jobs-tasks')
@@ -220,7 +291,7 @@ class JobService {
                     const selectedDevice = devices.splice(deviceIndex, 1)[0];
                     console.log("assign task " + taskDoc.id + " to " + selectedDevice.id);
                     await transaction.set(taskDoc.ref, {
-                        "device": selectedDevice.ref as any as DocumentReference
+                        "device": selectedDevice.ref as any
                     } as JobTask, {merge: true})
                 }
             }

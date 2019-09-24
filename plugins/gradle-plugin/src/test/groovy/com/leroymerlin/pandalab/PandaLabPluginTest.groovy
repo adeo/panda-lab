@@ -9,6 +9,7 @@ import org.gradle.internal.impldep.org.apache.http.util.Asserts
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
 class PandaLabPluginTest {
@@ -45,7 +46,7 @@ class PandaLabPluginTest {
     void testGenerateTasks() {
         def pandalab = project.extensions.getByType(PandaLabExtension)
 
-        pandalab.endpoint = "https://laburl.com?appName=myAppName&token=secureToken"
+        pandalab.apiUrl = "https://laburl.com?appName=myAppName&token=secureToken"
         project.evaluate()
 
     }
@@ -56,8 +57,6 @@ class PandaLabPluginTest {
         def pandalab = project.extensions.getByType(PandaLabExtension)
         def authent = project.task("testAuthent", type: FirebaseAuthentificationTask) {
             serviceAccountFile = new File("../../.config/firebase-adminsdk.json")
-            bucketUrl = "panda-lab-lm.appspot.com"
-            apiUrl = "https://us-central1-panda-lab-lm.cloudfunctions.net"
         }
         authent.login()
 
@@ -66,7 +65,11 @@ class PandaLabPluginTest {
 
         def upload = project.task("testUpload", type: UploadApkTask) {
             apkFile = testFile
-            uploadName = "test.apk"
+            appName = "testapp"
+            versionUID = "1.0.0-SNAPSHOT"
+            buildType = "debug"
+            flavorName = "debug"
+            apkType = "test"
         }
 
 
@@ -77,13 +80,13 @@ class PandaLabPluginTest {
     }
 
     @Test
+    @Ignore
     void testPandalabTest() {
         def pandalab = project.extensions.getByType(PandaLabExtension)
 
         pandalab.apiUrl = "https://us-central1-panda-lab-lm.cloudfunctions.net"
         def authent = project.task("testAuthent", type: FirebaseAuthentificationTask) {
             serviceAccountFile = new File("../../.config/firebase-adminsdk.json")
-            bucketUrl = "panda-lab-lm.appspot.com"
         }
         authent.login()
 

@@ -1,7 +1,9 @@
 import * as functions from 'firebase-functions';
 import * as util from "util";
-import {AppVersion, Artifact} from "pandalab-commons";
+import {AppVersion, Artifact, CollectionName, JobTask, LogsModel, TestModel, TestResult} from "pandalab-commons";
 import {FileData} from "../../commons/src/models/storage.models";
+import {TestLog} from "../../commons/src/models";
+import DocumentReference = FirebaseFirestore.DocumentReference;
 
 const admin = require('firebase-admin');
 
@@ -19,23 +21,30 @@ class ApkReaderFromBuffer extends ApkReader {
 
 ApkReader.prototype._open = ApkReaderFromBuffer.prototype._openBuffer;
 
-export const ANALYSE_APK = functions.storage.bucket().object().onFinalize(async (object, context) => {
+export const ANALYSE_FILE = functions.storage.bucket().object().onFinalize(async (object, context) => {
     const path = `${object.name}`;
 
     // const filename = path.split('/').slice(-1);
-    const filename = path.split('/').slice(-1).join();
     const directory = path.split('/').slice(0, -1).join();
 
-    if (directory !== "upload" || !filename || !filename.endsWith(".apk")) {
-        console.log("File ignored :", path);
-        return Promise.resolve("ignore file");
+    if (directory === 'upload') {
+        if (path.endsWith(".apk")) {
+            const filename = path.split('/').slice(-1).join();
+            return extractApk(directory, filename)
+                .catch(reason => {
+                    console.error("Can't process file", reason);
+                    return admin.storage().bucket().file(path).delete()
+                });
+        }
+    } else if (directory === 'reports' && path.endsWith('spoon.json')) {
+        return extractSpoonReport(path);
     }
 
-    return extractApk(directory, filename)
-        .catch(reason => {
-            console.error("Can't process file", reason);
-            return admin.storage().bucket().file(path).delete()
-        });
+
+    console.log("File ignored :", path);
+    return Promise.resolve("ignore file");
+
+
 });
 
 export const CLEAN_ARTIFACT = functions.firestore.document('applications/{appId}/versions/{versionId}/artifacts/{artifactId}')
@@ -45,6 +54,74 @@ export const CLEAN_ARTIFACT = functions.firestore.document('applications/{appId}
         return admin.storage().bucket().file(path).delete()
     });
 
+
+async function extractSpoonReport(path: string) {
+
+    const taskId = path.split('/')[1];
+
+    const downloadResponses = await admin.storage().bucket().file(path).download();
+    const buffer: Buffer = downloadResponses[0];
+    const json: any = buffer.toJSON();
+
+    const id = Object.keys(json.results)[0];
+    const value = json.results[id];
+    const jobTask = (await admin.firestore().collection(CollectionName.JOBS_TASKS).doc(taskId).get()).data() as JobTask;
+
+    const testLogs = new Map<DocumentReference, LogsModel>();
+    const result = <TestModel>{
+        id,
+        device: jobTask.device,
+        duration: json.duration,
+        tests: value.testResults.map(test => {
+                const testHeader = test[0];
+                const testValue = test[1];
+
+                const testId = testHeader.className + "_" + testHeader.methodName;
+
+                const logs = testValue.log.map(log => {
+                    const timestamp = log.mTimestamp;
+                    const date = timestamp ? new Date(new Date().getFullYear(), timestamp.mMonth, timestamp.mDay, timestamp.mHour,
+                        timestamp.mMinute, timestamp.mSecond, timestamp.mMilli) : new Date();
+                    return <TestLog>{
+                        level: log.mHeader.mLogLevel,
+                        tag: log.mHeader.mTag,
+                        date: admin.firestore.Timestamp.fromDate(date),
+                        message: log.mMessage,
+                    };
+                });
+
+                const logsRef = admin.firestore()
+                    .collection(CollectionName.TASK_REPORTS)
+                    .doc(taskId)
+                    .collection(CollectionName.LOGS)
+                    .doc(testId);
+
+                testLogs.set(logsRef, <LogsModel>{
+                    logs: logs
+                });
+
+
+                return <TestResult>{
+                    id: testId,
+                    status: testValue.status,
+                    screenshots: testValue.screenshots.map(imagePath => "reports/" + taskId + "/images/" + imagePath.split('/').slice(-1).join()),
+                    logs: logsRef,
+                };
+            },
+        ),
+        started: admin.firestore.Timestamp.fromMillis(json.started),
+    };
+
+    await admin.firestore().collection(CollectionName.TASK_REPORTS).doc(taskId).set(result, {merge: false});
+
+    for (const entry of testLogs.entries()) {
+        await entry[0].set(entry[1], {merge: false})
+    }
+
+    return Promise.resolve(result);
+
+
+}
 
 async function extractApk(directory: string, filename: string) {
     const fullPath = directory + '/' + filename;

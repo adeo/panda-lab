@@ -29,12 +29,24 @@
     import "rxjs-compat/add/operator/toArray";
     import {AppModel} from "pandalab-commons";
     import AppCell from "./AppCell.vue";
+    import {Services} from "../../services/services.provider";
 
     @Component({
         components: {AppCell},
     })
     export default class Apps extends Vue {
         private apps: AppModel[] = [];
+
+        mounted() {
+
+
+            this.$subscribeTo(Services.getInstance().appsService.listenApps(), apps => {
+                this.apps = apps;
+            })
+
+
+        }
+
     }
 
 </script>

@@ -1,7 +1,7 @@
-import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
+import {FirebaseRepository} from "./repositories/firebase.repository";
 import * as winston from "winston";
 import {filter, flatMap, map} from "rxjs/operators";
-import {AppModel, AppVersion, Job} from "pandalab-commons";
+import {AppModel, AppVersion, Job, CollectionName} from "pandalab-commons";
 import {Observable} from "rxjs";
 
 

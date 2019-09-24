@@ -1,6 +1,6 @@
-import {CollectionName, FirebaseRepository} from "./repositories/firebase.repository";
+import {FirebaseRepository} from "./repositories/firebase.repository";
 import {DevicesRepository} from "./repositories/devices.repository";
-import {Device, DevicesGroup} from 'pandalab-commons';
+import {Device, DevicesGroup, CollectionName} from 'pandalab-commons';
 import {from, Observable} from "rxjs";
 import {flatMap} from "rxjs/operators";
 
