@@ -1,4 +1,15 @@
-import {Artifact, CollectionName, Job, JobRequest, JobTask, TestReport} from 'pandalab-commons';
+import {
+    Artifact,
+    CollectionName,
+    Device,
+    Job,
+    JobRequest,
+    JobTask,
+    TestModel,
+    TestReport,
+    TestResult,
+    TestStatus
+} from 'pandalab-commons';
 import {FirebaseRepository} from "./repositories/firebase.repository";
 import '@firebase/auth';
 import '@firebase/firestore';
@@ -78,17 +89,17 @@ export class JobsService {
         return this.firebaseRepo.listenCollection(CollectionName.JOBS)
     }
 
-    public createNewJob(artifact: Artifact): Observable<string> {
+    public createNewJob(artifact: Artifact, devices: string[], groups: string[], timeout: number, devicesCount: number = 0): Observable<string> {
         return of(artifact)
             .pipe(
                 flatMap(artifact => {
                     console.log(artifact.path);
                     const promise = this.firebaseRepo.firebase.functions().httpsCallable('createJob')(<JobRequest>{
                         artifact: artifact._ref.path,
-                        devices: [],
-                        groups: [],
-                        devicesCount: 0,
-                        timeoutInSecond: 60
+                        devices: devices,
+                        groups: groups,
+                        devicesCount: devicesCount,
+                        timeoutInSecond: timeout
                     });
                     return from(promise);
                 }),
@@ -103,4 +114,59 @@ export class JobsService {
             .orderBy("date", "asc")
             .where('app', '==', this.firebaseRepo.getCollection(CollectionName.APPLICATIONS).doc(appId)))
     }
+
+    getReport(jobId: string): Observable<TestReport> {
+        return this.firebaseRepo.getDocument(this.firebaseRepo.getCollection(CollectionName.JOB_REPORTS).doc(jobId));
+    }
+
+    getTaskReports(jobId: string): Observable<TestReportModel[]> {
+        return this.firebaseRepo.getQuery<TestModel>(this.firebaseRepo.getCollection(CollectionName.TASK_REPORTS)
+            .where("job", '==', this.firebaseRepo.getCollection(CollectionName.JOBS).doc(jobId)))
+            .pipe(
+                flatMap(values => from(values)
+                    .pipe(
+                        flatMap(value => this.firebaseRepo.getDocument<Device>(value.device as any)
+                            .pipe(
+                                map(device => {
+                                    value.device = device as any;
+                                    return value;
+                                }))
+                        ),
+                        toArray(),
+                    )),
+                map(values => {
+                    const resultMap = new Map<string, TestReportModel>();
+
+                    values.forEach((testModel: TestModel) => {
+                        testModel.tests.forEach(testResult => {
+                            if (!resultMap.has(testResult.id)) {
+                                resultMap.set(testResult.id, {id: testResult.id, tests: [], status: "success"})
+                            }
+                            const report = resultMap.get(testResult.id);
+                            report.tests.push({result: testResult, device: testModel.device as any})
+                        })
+                    });
+
+                    let testReportModels = Array.from(resultMap.values());
+                    testReportModels.forEach(value => {
+                        const successCount = value.tests.filter(test => test.result.status === TestStatus.pass).length;
+                        if (successCount === value.tests.length) {
+                            value.status = "success"
+                        } else if (successCount == 0) {
+                            value.status = "error"
+                        } else {
+                            value.status = "unstable"
+                        }
+                    });
+                    return testReportModels
+                })
+            );
+    }
+}
+
+
+export interface TestReportModel {
+    id: string,
+    status: "success" | "unstable" | "error",
+    tests: { result: TestResult, device: Device }[]
 }

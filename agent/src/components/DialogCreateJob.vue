@@ -94,7 +94,8 @@
          */
         onSubmit() {
             this.loading = true;
-            this.$subscribeTo(this.jobService.createNewJob(this.artifactSelected as Artifact), jobId => {
+            //TODO add form to select devices, groups, timeout, ...
+            this.$subscribeTo(this.jobService.createNewJob(this.artifactSelected as Artifact, [], [], 60 * 5, 1), jobId => {
                 console.log(`Create job id = ${jobId}`);
                 this.onClose();
                 this.snackbar.message = `Le job ${jobId} a bien été créé`;

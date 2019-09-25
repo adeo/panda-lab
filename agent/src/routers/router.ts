@@ -15,6 +15,7 @@ import Groups from "../components/groups/Groups.vue";
 import GroupDetails from "../components/groups/GroupDetails.vue";
 import Apps from "../components/apps/Apps.vue";
 import AppDetails from "../components/apps/AppDetails.vue";
+import Report from "../components/report/Report.vue";
 
 Vue.use(VueRouter);
 
@@ -49,6 +50,7 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'devices/:deviceId', component: Device,},
         {path: 'applications', component: Apps,},
         {path: 'applications/:applicationId', component: AppDetails,},
+        {path: 'reports/:reportId', component: Report,},
     ]
 };
 

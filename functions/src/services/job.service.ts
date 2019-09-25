@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import {
+    AppVersion,
     CollectionName,
     DeviceStatus,
     Job,
@@ -122,6 +123,10 @@ class JobService {
             }
             console.log("onTaskWrited task pending. skip job update");
             return Promise.resolve();
+        } else if (!task.completed && (task.status === TaskStatus.error || task.status === TaskStatus.success)) {
+            console.log("pass task to completed");
+            task.completed = true;
+            return taskDoc.ref.set(task, {merge: true});
         }
 
 
@@ -179,7 +184,7 @@ class JobService {
 
             let testSuccess = 0;
             let testFailure = 0;
-            let testUnstable = 0;
+            let testUnstable = testsMap.size === 0 ? jobTasks.length : 0; // If all tasks failed set unstable
 
             for (const entry of testsMap.entries()) {
                 const count = entry[1];
@@ -194,15 +199,19 @@ class JobService {
 
             const jobResult = await jobRef.get();
             const job = jobResult.data() as Job;
+            const versionResult = await job.version.get();
+            const version = versionResult.data() as AppVersion;
             const testReport = <TestReport>{
-                date: admin.firestore.Timestamp.now(),
+                date: admin.firestore.Timestamp.now() as any,
                 job: jobRef,
                 devices: jobTasks.map(value => value.device),
+                app: job.app,
+                version: job.version,
+                versionName: version.versionName + "-" + version.versionCode,
                 totalTests: testsMap.size,
                 testSuccess: testSuccess,
                 testFailure: testFailure,
                 testUnstable: testUnstable,
-                app: job.app,
             };
 
             await admin.firestore().collection(CollectionName.JOB_REPORTS).doc(jobRef.id).set(testReport, {merge: false});

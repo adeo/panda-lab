@@ -26,14 +26,25 @@
                             <md-table-cell md-label="Version" md-sort-by="id" md-numeric>{{ item.versionName }}
                             </md-table-cell>
                             <md-table-cell md-label="VersionCode">{{ item.versionCode }}</md-table-cell>
-                            <md-table-cell md-label="Date">{{ item.timestamp }}</md-table-cell>
+                            <md-table-cell md-label="Date">{{ formatDate(item.timestamp.toDate()) }}</md-table-cell>
+
+                            <md-table-cell md-label="Actions">
+                                <md-button @click=createJob(item) class="md-icon-button">
+                                    <md-icon>add</md-icon>
+                                </md-button>
+
+                                <md-button @click=openVersion(item) class="md-icon-button">
+                                    <md-icon>chevron_right</md-icon>
+                                </md-button>
+
+                            </md-table-cell>
                         </md-table-row>
                     </md-table>
 
                 </div>
                 <div class="md-layout-item">
                     <md-card>
-                        <area-chart :data="data" :stacked="true"></area-chart>
+                        <LineChart :data="data" v-on:index="openReportAtIndex($event)"></LineChart>
                     </md-card>
                 </div>
 
@@ -48,20 +59,28 @@
                     md-label="Application is loading">
             </md-empty-state>
         </template>
+        <dialog-create-job v-bind:display="false"/>
     </div>
 
 
 </template>
 <script lang="ts">
 
-    import {Component, Vue} from "vue-property-decorator";
+    import {Component, Emit, Vue} from "vue-property-decorator";
     import "rxjs-compat/add/operator/map";
     import "rxjs-compat/add/operator/mergeMap";
     import "rxjs-compat/add/operator/toArray";
-    import {AppModel, AppVersion} from "pandalab-commons";
+    import {AppModel, AppVersion, TestReport} from "pandalab-commons";
     import {Services} from "../../services/services.provider";
+    import LineChart from "./LineChart.vue";
+    import {ChartData, ChartDataSets} from "chart.js"
+    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "../events";
+    import DialogCreateJob from "../DialogCreateJob.vue";
 
-    @Component
+    @Component({
+        components: {LineChart, DialogCreateJob},
+
+    })
     export default class AppDetails extends Vue {
         private app: AppModel = null;
         private allVersions: AppVersion[] = [];
@@ -70,10 +89,10 @@
         private flavor: string = "";
 
 
-        protected data = [];
+        private data: Chart.ChartData = {labels: [], datasets: []};
+        private reports: TestReport[];
 
         mounted() {
-
 
             let appId = this.$route.params.applicationId;
             this.$subscribeTo(Services.getInstance().appsService.listenApp(appId), app => {
@@ -98,19 +117,53 @@
 
             this.$subscribeTo(Services.getInstance().jobsService.listenAppReports(appId), reports => {
 
-                const successData = {};
+                //:colors="['#2E4EC0', '#EC870A', '#D12311']"
+                const successData: ChartDataSets = {
+                    data: [],
+                    backgroundColor: '#5dc050',
+                    borderColor: '#5dc050',
+                    label: "Success"
+                };
+                const unstableData: ChartDataSets = {
+                    data: [],
+                    backgroundColor: '#EC870A',
+                    borderColor: '#EC870A',
+                    label: "Unstable"
+                };
+                const failureData: ChartDataSets = {
+                    data: [],
+                    backgroundColor: '#D12311',
+                    borderColor: '#D12311',
+                    label: "Error"
+                };
+
+                const chartData: ChartData = {labels: [], datasets: [successData, unstableData, failureData]};
+
                 reports.forEach(report => {
-                    successData[report.date.toDate().toDateString()] = report.testSuccess
+                    let date = this.formatDate(report.date.toDate());
+                    chartData.labels.push(date + "\n" + report.versionName);
+                    successData.data.push(report.testSuccess);
+                    unstableData.data.push(report.testUnstable);
+                    failureData.data.push(report.testFailure);
+                });
 
-
-                })
-
-                this.data = [
-                    {name: "Success", data: successData}
-                ]
+                this.data = chartData;
+                this.reports = reports;
 
 
             })
+        }
+
+
+
+        protected formatDate(date) {
+            const hours = date.getHours();
+            let minutes = date.getMinutes();
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            const strTime = hours + ':' + minutes;
+            let month = (date.getMonth() + 1)
+            month = month < 10 ? '0' + month : month;
+            return date.getDate() + "/" + month + "/" + date.getFullYear() + " " + strTime;
         }
 
         protected updateVersions() {
@@ -126,6 +179,21 @@
             this.$router.back();
         }
 
+        protected createJob(version: AppVersion){
+            this.$emit(DIALOG_CREATE_JOB_DISPLAY_EVENT, {
+                applicationId: this.$route.params.applicationId,
+                versionId: version._ref.id,
+            })
+        }
+
+        protected openReportAtIndex(index: number) {
+            let testReport = this.reports[index];
+            this.$router.push('/reports/' + testReport._ref.id)
+        }
+
+        protected openVersion(version: AppVersion){
+            console.log("open version ", version)
+        }
     }
 
 </script>

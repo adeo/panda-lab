@@ -1,6 +1,6 @@
 import {firestore} from "firebase";
-import DocumentReference = firestore.DocumentReference;
 import {FirebaseModel} from "./firebase.models";
+import DocumentReference = firestore.DocumentReference;
 import Timestamp = firestore.Timestamp;
 
 // export interface Spoon {
@@ -18,8 +18,9 @@ export enum TestStatus {
 }
 
 
-export interface TestModel extends FirebaseModel{
+export interface TestModel extends FirebaseModel {
     id: string;
+    job: DocumentReference;
     device: DocumentReference;
     tests: TestResult[];
     started: Timestamp;
@@ -35,7 +36,7 @@ export interface TestResult {
     logs: DocumentReference;
 }
 
-export interface LogsModel extends FirebaseModel{
+export interface LogsModel extends FirebaseModel {
     logs: TestLog[]
 }
 
@@ -51,7 +52,9 @@ export interface TestReport extends FirebaseModel {
     date: Timestamp;
     app: DocumentReference;
     job: DocumentReference;
+    version: DocumentReference;
     devices: DocumentReference[];
+    versionName: string;
     totalTests: number;
     testFailure: number;
     testUnstable: number;

@@ -10,8 +10,7 @@ import {
     TestModel,
     TestResult
 } from "pandalab-commons";
-import {FileData} from "../../commons/src/models/storage.models";
-import {TestLog} from "../../commons/src/models";
+import {FileData, TestLog} from "../../commons/src/models";
 import DocumentReference = FirebaseFirestore.DocumentReference;
 
 const admin = require('firebase-admin');
@@ -33,19 +32,16 @@ ApkReader.prototype._open = ApkReaderFromBuffer.prototype._openBuffer;
 export const ANALYSE_FILE = functions.storage.bucket().object().onFinalize(async (object, context) => {
     const path = `${object.name}`;
 
-    // const filename = path.split('/').slice(-1);
-    const directory = path.split('/').slice(0, -1).join();
-
-    if (directory === 'upload') {
+    if (path.startsWith('upload')) {
         if (path.endsWith(".apk")) {
             const filename = path.split('/').slice(-1).join();
-            return extractApk(directory, filename)
+            return extractApk(filename)
                 .catch(reason => {
                     console.error("Can't process file", reason);
                     return admin.storage().bucket().file(path).delete()
                 });
         }
-    } else if (directory === 'reports' && path.endsWith('spoon.json')) {
+    } else if (path.startsWith('reports') && path.endsWith('spoon.json')) {
         return extractSpoonReport(path);
     }
 
@@ -70,7 +66,10 @@ async function extractSpoonReport(path: string) {
 
     const downloadResponses = await admin.storage().bucket().file(path).download();
     const buffer: Buffer = downloadResponses[0];
-    const json: any = buffer.toJSON();
+
+    const json: any = JSON.parse(buffer.toString());
+
+    console.log("json test", json);
 
     const id = Object.keys(json.results)[0];
     const value = json.results[id];
@@ -78,7 +77,8 @@ async function extractSpoonReport(path: string) {
 
     const testLogs = new Map<DocumentReference, LogsModel>();
     const result = <TestModel>{
-        id,
+        id: id,
+        job: jobTask._ref,
         device: jobTask.device,
         duration: json.duration,
         tests: value.testResults.map(test => {
@@ -113,6 +113,7 @@ async function extractSpoonReport(path: string) {
                 return <TestResult>{
                     id: testId,
                     status: testValue.status,
+
                     screenshots: testValue.screenshots.map(imagePath => "reports/" + taskId + "/images/" + imagePath.split('/').slice(-1).join()),
                     logs: logsRef,
                 };
@@ -132,8 +133,8 @@ async function extractSpoonReport(path: string) {
 
 }
 
-async function extractApk(directory: string, filename: string) {
-    const fullPath = directory + '/' + filename;
+async function extractApk(filename: string) {
+    const fullPath = 'upload/' + filename;
     const part = filename.replace('.apk', '').split('_');
     const appName = part[0];
     const uuid = part[1];
@@ -174,7 +175,7 @@ async function extractApk(directory: string, filename: string) {
         artifactData.versionName = manifest.versionName;
     }
 
-    await admin.firestore().collection("applications").doc(appName).set(<AppModel>{name: appName}, {merge: true} );
+    await admin.firestore().collection("applications").doc(appName).set(<AppModel>{name: appName}, {merge: true});
 
     const doc = admin.firestore().collection("applications").doc(appName).collection("versions").doc(uuid);
     try {
