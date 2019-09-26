@@ -192,7 +192,7 @@
         }
 
         protected openVersion(version: AppVersion){
-            console.log("open version ", version)
+            this.$router.push(`/applications/${this.$route.params.applicationId}/versions/` + version._ref.id);
         }
     }
 

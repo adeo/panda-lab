@@ -4,7 +4,6 @@ import {AuthentGuard} from "./authent.guards";
 import Home from "@/components/Home.vue";
 import Jobs from "@/components/Jobs.vue";
 import Device from "../components/devices/Device.vue";
-import Applications from "@/components/Applications.vue";
 // import Job from "@/components/Job.vue";
 import JobTaskDetail from "@/components/JobTaskDetail.vue";
 import Auth from "@/components/auth/Auth.vue";
@@ -16,6 +15,7 @@ import GroupDetails from "../components/groups/GroupDetails.vue";
 import Apps from "../components/apps/Apps.vue";
 import AppDetails from "../components/apps/AppDetails.vue";
 import Report from "../components/report/Report.vue";
+import VersionDetail from '../components/apps/VersionDetail.vue';
 
 Vue.use(VueRouter);
 
@@ -50,6 +50,7 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'devices/:deviceId', component: Device,},
         {path: 'applications', component: Apps,},
         {path: 'applications/:applicationId', component: AppDetails,},
+        {path: 'applications/:applicationId/versions/:versionId', component: VersionDetail,},
         {path: 'reports/:reportId', component: Report,},
     ]
 };

@@ -18,7 +18,6 @@ import {from, Observable, of} from "rxjs";
 import {filter, flatMap, map, tap, toArray} from "rxjs/operators";
 import HttpsCallableResult = firebase.functions.HttpsCallableResult;
 
-
 export class JobsService {
 
 
@@ -116,6 +115,13 @@ export class JobsService {
             .where('app', '==', this.firebaseRepo.getCollection(CollectionName.APPLICATIONS).doc(appId)))
     }
 
+    listenVersionReports(appId: string, versionId): Observable<TestReport[]> {
+        return this.firebaseRepo.getQuery<TestReport>(this.firebaseRepo.getCollection(CollectionName.JOB_REPORTS)
+            .orderBy("date", "asc")
+            .where('version', '==', this.firebaseRepo.getCollection(CollectionName.APPLICATIONS).doc(appId).collection(CollectionName.VERSIONS).doc(versionId)));
+    }
+
+
     getReport(jobId: string): Observable<TestReport> {
         return this.firebaseRepo.getDocument(this.firebaseRepo.getCollection(CollectionName.JOB_REPORTS).doc(jobId));
     }
@@ -167,7 +173,7 @@ export class JobsService {
     }
 
     public getReportLogs(report: TestResult): Observable<LogsModel> {
-        return this.firebaseRepo.getDocument<LogsModel>(report.logs);
+        return this.firebaseRepo.getDocument<LogsModel>(report.logs as any);
     }
 
     public getImagesUrl(imgPaths: string[]): Observable<string[]> {
