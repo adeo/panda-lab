@@ -342,10 +342,10 @@ export class SpoonRepository {
 
         this.walk(`${reportDirectory}`).forEach(image => {
             const imageBuffer = fs.readFileSync(image);
-            const firebaseFilename = image.replace(reportDirectory, '');
+            const firebaseFilename = image.split(/(\\|\/)/g).pop();
             console.log(image);
             console.log(firebaseFilename);
-            this.firebaseRepo.firebase.storage().ref(`/reports/${taskId}/images${firebaseFilename}`).put(imageBuffer)
+            this.firebaseRepo.firebase.storage().ref(`/reports/${taskId}/images/${firebaseFilename}`).put(imageBuffer)
                 .then(() => {
                     console.log('upload file ' + image + ' ok ');
                 })
