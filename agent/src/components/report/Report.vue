@@ -59,7 +59,8 @@
 
                             <md-card-content v-if="selectedTestResult">
 
-                                {{selectedTestResult.id}}
+
+                                <DeviceTestReport :report="selectedTestResult" :key="selectedTestResult.id"></DeviceTestReport>
 
 
                             </md-card-content>
@@ -92,9 +93,11 @@
     import PieChart from "./PieChart.vue";
     import {ChartData} from "chart.js";
     import {TestReportModel} from "../../services/jobs.service";
+    import DeviceTestReport from "./DeviceTestReport.vue";
+    import {from} from "rxjs";
 
     @Component({
-        components: {PieChart}
+        components: {PieChart, DeviceTestReport}
     })
     export default class Report extends Vue {
         protected report: TestReport = null;
@@ -131,8 +134,6 @@
         }
 
         protected selectDevice(deviceId: string) {
-            console.log("deviceId", deviceId)
-
             let selectedReport = this.selectedReportModel.tests.find(value => {
                 return value.device._ref.id == deviceId
             });
@@ -140,8 +141,6 @@
                 return;
             }
             this.selectedTestResult = selectedReport.result
-            console.log("selectedReportDevice", this.selectedReportDevice)
-            //this.selectedDeviceName = selectedReport.device.name
         }
 
         protected selectTest(selectedTest: TestReportModel) {
@@ -153,8 +152,8 @@
             //this.selectedReportDevice = null;
 
             //setTimeout(() => {
-                this.selectedTestResult = this.selectedReportModel.tests[0].result;
-                this.selectedReportDevice = this.selectedReportModel.tests[0].device._ref.id;
+            this.selectedTestResult = this.selectedReportModel.tests[0].result;
+            this.selectedReportDevice = this.selectedReportModel.tests[0].device._ref.id;
             //}, 10)
         }
 

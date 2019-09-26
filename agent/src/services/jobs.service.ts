@@ -5,6 +5,7 @@ import {
     Job,
     JobRequest,
     JobTask,
+    LogsModel,
     TestModel,
     TestReport,
     TestResult,
@@ -123,17 +124,19 @@ export class JobsService {
         return this.firebaseRepo.getQuery<TestModel>(this.firebaseRepo.getCollection(CollectionName.TASK_REPORTS)
             .where("job", '==', this.firebaseRepo.getCollection(CollectionName.JOBS).doc(jobId)))
             .pipe(
-                flatMap(values => from(values)
-                    .pipe(
-                        flatMap(value => this.firebaseRepo.getDocument<Device>(value.device as any)
-                            .pipe(
-                                map(device => {
-                                    value.device = device as any;
-                                    return value;
-                                }))
-                        ),
-                        toArray(),
-                    )),
+                flatMap(values => {
+                    return from(values)
+                        .pipe(
+                            flatMap(value => this.firebaseRepo.getDocument<Device>(value.device as any)
+                                .pipe(
+                                    map(device => {
+                                        value.device = device as any;
+                                        return value;
+                                    }))
+                            ),
+                            toArray(),
+                        )
+                }),
                 map(values => {
                     const resultMap = new Map<string, TestReportModel>();
 
@@ -161,6 +164,18 @@ export class JobsService {
                     return testReportModels
                 })
             );
+    }
+
+    public getReportLogs(report: TestResult): Observable<LogsModel> {
+        return this.firebaseRepo.getDocument<LogsModel>(report.logs);
+    }
+
+    public getImagesUrl(imgPaths: string[]): Observable<string[]> {
+        return from(imgPaths)
+            .pipe(
+                flatMap(img => this.firebaseRepo.getFileUrl(img)),
+                toArray(),
+            )
     }
 }
 

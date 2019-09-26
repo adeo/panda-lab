@@ -7,7 +7,7 @@ import {firestore} from "firebase";
 import {FirebaseNamespace} from '@firebase/app-types';
 import {from, Observable, of, throwError} from "rxjs";
 import {CollectionName, FirebaseModel} from "pandalab-commons";
-import {catchError, flatMap, map} from "rxjs/operators";
+import {catchError, flatMap, map, tap} from "rxjs/operators";
 import CollectionReference = firestore.CollectionReference;
 import DocumentSnapshot = firestore.DocumentSnapshot;
 import DocumentReference = firestore.DocumentReference;
@@ -30,6 +30,10 @@ export class FirebaseRepository {
     constructor(config: FirebaseConfig) {
         firebase.initializeApp(config);
         this.firebase = firebase
+    }
+
+    getFileUrl(filePath: string): Observable<string>{
+        return from(this.firebase.storage().ref("/"+filePath).getDownloadURL());
     }
 
 

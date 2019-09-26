@@ -186,6 +186,10 @@ class JobService {
             let testFailure = 0;
             let testUnstable = testsMap.size === 0 ? jobTasks.length : 0; // If all tasks failed set unstable
 
+            console.log("testsMap", testsMap);
+            console.log("tasks count", jobTasks.length);
+
+
             for (const entry of testsMap.entries()) {
                 const count = entry[1];
                 if (count === jobTasks.length) {

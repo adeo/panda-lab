@@ -41,7 +41,7 @@ export interface LogsModel extends FirebaseModel {
 }
 
 export interface TestLog {
-    level: string;
+    level: 'INFO' | 'DEBUG' | 'WARN' | 'ERROR';
     tag: string;
     date: Timestamp;
     message: string;

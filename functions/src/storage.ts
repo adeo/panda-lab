@@ -73,12 +73,13 @@ async function extractSpoonReport(path: string) {
 
     const id = Object.keys(json.results)[0];
     const value = json.results[id];
-    const jobTask = (await admin.firestore().collection(CollectionName.JOBS_TASKS).doc(taskId).get()).data() as JobTask;
+    const jobTaskRef = admin.firestore().collection(CollectionName.JOBS_TASKS).doc(taskId);
+    const jobTask = (await jobTaskRef.get()).data() as JobTask;
 
     const testLogs = new Map<DocumentReference, LogsModel>();
     const result = <TestModel>{
         id: id,
-        job: jobTask._ref,
+        job: jobTask.job,
         device: jobTask.device,
         duration: json.duration,
         tests: value.testResults.map(test => {
@@ -113,7 +114,7 @@ async function extractSpoonReport(path: string) {
                 return <TestResult>{
                     id: testId,
                     status: testValue.status,
-
+                    duration: testValue.duration,
                     screenshots: testValue.screenshots.map(imagePath => "reports/" + taskId + "/images/" + imagePath.split('/').slice(-1).join()),
                     logs: logsRef,
                 };
