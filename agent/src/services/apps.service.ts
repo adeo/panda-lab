@@ -64,6 +64,8 @@ export class AppsService {
     public listenAppVersions(applicationId: string): Observable<AppVersion[]> {
         return this.firebaseRepo.listenQuery<AppVersion>(this.firebaseRepo.getCollection(CollectionName.APPLICATIONS)
             .doc(applicationId)
-            .collection(CollectionName.VERSIONS));
+            .collection(CollectionName.VERSIONS)
+            .orderBy("versionCode", "desc")
+        );
     }
 }
