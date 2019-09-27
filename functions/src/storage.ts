@@ -176,13 +176,13 @@ async function extractApk(filename: string) {
         artifactData.versionName = manifest.versionName;
     }
 
-    await admin.firestore().collection("applications").doc(appName).set(<AppModel>{name: appName}, {merge: true});
+    await admin.firestore().collection(CollectionName.APPLICATIONS).doc(appName).set(<AppModel>{name: appName}, {merge: true});
 
-    const doc = admin.firestore().collection("applications").doc(appName).collection("versions").doc(uuid);
+    const doc = admin.firestore().collection(CollectionName.APPLICATIONS).doc(appName).collection(CollectionName.VERSIONS).doc(uuid);
     try {
         await admin.storage().bucket().file(fullPath).move(newPath);
         await doc.set(appData, {merge: true});
-        await doc.collection('artifacts').doc(filename.replace('.apk', '')).set(artifactData, {merge: false});
+        await doc.collection(CollectionName.ARTIFACTS).doc(filename.replace('.apk', '')).set(artifactData, {merge: false});
     } catch (e) {
         console.warn("delete moved file in " + newPath);
         await admin.storage().bucket().file(newPath).delete()

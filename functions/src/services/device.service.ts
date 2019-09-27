@@ -1,11 +1,12 @@
 import * as admin from "firebase-admin";
+import {CollectionName} from "pandalab-commons";
 
 class DeviceService {
 
 
     async updateDevicesInfos() {
 
-        const devices = await admin.firestore().collection("devices")
+        const devices = await admin.firestore().collection(CollectionName.DEVICES)
             .where("lastConnexion", '<', Date.now() - 1000 * 60 * 60)
             .get();
 

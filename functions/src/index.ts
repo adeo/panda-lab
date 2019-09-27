@@ -6,13 +6,14 @@ import {ANALYSE_FILE, CLEAN_ARTIFACT, GET_FILE_DATA, SAVE_SPOON_RESULT} from "./
 import * as admin from "firebase-admin";
 import {jobService} from "./services/job.service";
 import {CallableContext} from "firebase-functions/lib/providers/https";
+import {deviceService} from "./services/device.service";
+import {CollectionName} from "pandalab-commons";
 import QuerySnapshot = admin.firestore.QuerySnapshot;
 import DecodedIdToken = admin.auth.DecodedIdToken;
-import {deviceService} from "./services/device.service";
 
 admin.initializeApp({
     credential: admin.credential.applicationDefault(),
-    databaseURL: "https://panda-lab-lm.firebaseio.com",
+    databaseURL: "https://panda-lab-lm.firebaseio.com",//TODO remove me
     storageBucket: "panda-lab-lm.appspot.com"
 });
 
@@ -124,7 +125,7 @@ exports.createAgent = functions.https.onCall(async (data: any, context: Callable
     console.log("createMobileAgent() data = ", data);
     const token: DecodedIdToken = context.auth!.token;
     if (token.role === ADMIN) {
-        await admin.firestore().collection('agents').doc(data.uid).set({
+        await admin.firestore().collection(CollectionName.AGENTS).doc(data.uid).set({
             uid: data.uid,
             devices: [],
             finalize: false,
@@ -171,25 +172,25 @@ exports.cron = functions.pubsub.schedule('every 1 minutes').onRun(async (context
     return jobService.checkTaskTimeout()
 });
 
-exports.onDeviceUpdated = functions.firestore.document('devices/{deviceId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
+exports.onDeviceUpdated = functions.firestore.document(CollectionName.DEVICES + '/{deviceId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
     return jobService.assignTasksToDevices();
 });
 
 
-exports.onTaskWrited = functions.firestore.document('jobs-tasks/{taskId}').onWrite(async (change: Change<DocumentSnapshot>, context: EventContext) => {
-    console.log('onTaskWrited');
+exports.onTaskWrite = functions.firestore.document(CollectionName.JOBS_TASKS + '/{taskId}').onWrite(async (change: Change<DocumentSnapshot>, context: EventContext) => {
+    console.log('onTaskWrite');
     if (!change.after.exists) {
-        console.log('onTaskWrited value not exist');
+        console.log('onTaskWrite value don\'t exist');
         return;
     } else {
-        console.log('onTaskWrited value exist');
+        console.log('onTaskWrite value exist');
     }
 
     return jobService.onTaskUpdate(change.after);
 });
 
-exports.onRemoveJob = functions.firestore.document('jobs/{jobId}').onDelete(async (snapshot: DocumentSnapshot, context: EventContext) => {
-    const collection = admin.firestore().collection('jobs-tasks');
+exports.onRemoveJob = functions.firestore.document(CollectionName.JOBS + '/{jobId}').onDelete(async (snapshot: DocumentSnapshot, context: EventContext) => {
+    const collection = admin.firestore().collection(CollectionName.JOBS_TASKS);
     const query: QuerySnapshot = await collection.where('job', '==', snapshot.id).get();
     query.docs.forEach(doc => doc.ref.delete());
 });

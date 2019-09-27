@@ -46,7 +46,7 @@ class JobService {
         //Check devices ids
         const devicesQuery: string[][] = await Promise.all(
             job.groups.map(async (group: string) => {
-                const result = await admin.firestore().collection("deviceGroups").doc(group).get();
+                const result = await admin.firestore().collection(CollectionName.DEVICE_GROUPS).doc(group).get();
                 return result.get("devices")
             })
         );
@@ -60,10 +60,10 @@ class JobService {
         //No device set we use all devices by default
         let finalDevices: string[] = [];
         if (devicesList.length === 0) {
-            finalDevices = (await admin.firestore().collection("devices").listDocuments()).map(value => value.id)
+            finalDevices = (await admin.firestore().collection(CollectionName.DEVICES).listDocuments()).map(value => value.id)
         } else {
             finalDevices = await Promise.all(Array.from<string>(devicesSet.values()).filter(async deviceId => {
-                const deviceDoc = await admin.firestore().collection("devices").doc(deviceId).get();
+                const deviceDoc = await admin.firestore().collection(CollectionName.DEVICES).doc(deviceId).get();
                 return deviceDoc.exists
             }));
         }
@@ -132,7 +132,7 @@ class JobService {
 
         const jobRef = task.job;
 
-        const tasksList = await admin.firestore().collection("jobs-tasks").where("job", "==", jobRef).get();
+        const tasksList = await admin.firestore().collection(CollectionName.JOBS_TASKS).where("job", "==", jobRef).get();
 
 
         const jobTasks = tasksList.docs.map(value => <JobTask>{
@@ -235,7 +235,7 @@ class JobService {
     }
 
     async checkTaskTimeout() {
-        const timeoutTasks = await admin.firestore().collection('jobs-tasks')
+        const timeoutTasks = await admin.firestore().collection(CollectionName.JOBS_TASKS)
             .where("completed", "==", false)
             .where("timeout", '<', admin.firestore.Timestamp.now())
             .get();
@@ -255,7 +255,7 @@ class JobService {
         if (currentTask) {
             tasksDocs = [currentTask]
         } else {
-            const tasksQuery = await admin.firestore().collection('jobs-tasks')
+            const tasksQuery = await admin.firestore().collection(CollectionName.JOBS_TASKS)
                 .where("status", "==", JobStatus.pending)
                 .where("device", "==", null)
                 .get();
@@ -270,7 +270,7 @@ class JobService {
         }
 
         await admin.firestore().runTransaction(async transaction => {
-            const devicesQuery = admin.firestore().collection("devices")
+            const devicesQuery = admin.firestore().collection(CollectionName.DEVICES)
                 .where("status", "==", DeviceStatus.available)
                 .orderBy("lastConnexion", "asc");
 
@@ -281,7 +281,7 @@ class JobService {
             for (const taskDoc of tasksDocs) {
                 const task = taskDoc.data() as JobTask;
 
-                const jobTasksQuery = await admin.firestore().collection('jobs-tasks')
+                const jobTasksQuery = await admin.firestore().collection(CollectionName.JOBS_TASKS)
                     .where("job", "==", task.job);
 
                 const jobTasksSnapshot = await transaction.get(jobTasksQuery);
