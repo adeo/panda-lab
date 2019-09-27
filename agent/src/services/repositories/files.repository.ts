@@ -6,7 +6,7 @@ import * as winston from "winston";
 
 
 
-export class WorkspaceRepository {
+export class FilesRepository {
 
     private readonly homeDir: string;
     private readonly workspacePath: string;

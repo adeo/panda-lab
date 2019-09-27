@@ -170,10 +170,6 @@
             this.versions = this.allVersions.filter(value => value.flavor === this.flavor)
         }
 
-        openAppDetails() {
-            console.log("open app page");
-            this.$router.push('applications/' + this.app._ref.id)
-        }
 
         protected onBack() {
             this.$router.back();

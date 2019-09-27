@@ -81,7 +81,9 @@ export class FirebaseRepository {
                 }, error => {
                     console.log('query error', error);
                     emitter.error(error)
-                }, emitter.complete);
+                }, () => {
+                    emitter.complete();
+                });
             emitter.add(subs);
         });
     }

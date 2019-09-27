@@ -111,7 +111,7 @@ export class JobsService {
     }
 
     listenAppReports(appId: string): Observable<TestReport[]> {
-        return this.firebaseRepo.getQuery<TestReport>(this.firebaseRepo.getCollection(CollectionName.JOB_REPORTS)
+        return this.firebaseRepo.listenQuery<TestReport>(this.firebaseRepo.getCollection(CollectionName.JOB_REPORTS)
             .orderBy("date", "asc")
             .where('app', '==', this.firebaseRepo.getCollection(CollectionName.APPLICATIONS).doc(appId)))
     }

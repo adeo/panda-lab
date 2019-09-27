@@ -11,7 +11,7 @@ export class DevicesRepository {
     }
 
     searchDeviceData(phoneDevice: string, phoneModel: string): DeviceData | null {
-        return devicesData.find(
+        return this.getDevicesData().find(
             (device) => {
                 return device.deviceName === phoneDevice ||
                     device.deviceCode === phoneDevice ||

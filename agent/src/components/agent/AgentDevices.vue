@@ -1,7 +1,3 @@
-import {DeviceStatus} from "pandalab-commons";
-import {AdbStatusState} from "../models/adb";
-import {ActionType} from "../services/agent.service";
-import {DeviceLogType} from "../models/device";
 <template>
     <div class="devices-container">
         <div class="devices-list-container md-elevation-4">
@@ -58,7 +54,7 @@ import {DeviceLogType} from "../models/device";
     import {Services} from "../../services/services.provider";
     import {DevicesService} from "../../services/devices.service";
     import {AgentDeviceData, AgentService} from "../../services/agent.service";
-    import {AdbRepository} from "../../services/repositories/adb.repository";
+    import {AdbService} from "../../services/node/adb.service";
     import {EMPTY, Observable, Timestamp} from "rxjs";
     import AgentDevice from "./AgentDevice.vue";
     import {DeviceStatus} from "pandalab-commons";
@@ -78,7 +74,7 @@ import {DeviceLogType} from "../models/device";
 
         private devicesService: DevicesService;
         private agentService: AgentService;
-        private adb: AdbRepository;
+        private adb: AdbService;
 
         public devicesVue: AgentDeviceData[] = [];
         public adbStatus: AdbStatus = {state: AdbStatusState.STOPPED, time: Date.now()};
@@ -87,7 +83,7 @@ import {DeviceLogType} from "../models/device";
         constructor(props) {
             super(props);
             this.devicesService = Services.getInstance().devicesService;
-            this.agentService = Services.getInstance().agentService;
+            this.agentService = Services.getInstance().node.agentService;
             this.adb = this.agentService.adbRepo;
             this.enableTcpIpSwitch = this.agentService.enableTCP;
             this.autoEnrollSwitch = this.agentService.autoEnroll;

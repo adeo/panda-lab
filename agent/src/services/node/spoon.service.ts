@@ -1,28 +1,26 @@
-import {AgentRepository, AgentStatus} from "./agent.repository";
+import {SetupService, AgentStatus} from "./setup.service";
 import {BehaviorSubject, combineLatest, EMPTY, from, Observable, of, Subscription, zip} from "rxjs";
-import {FirebaseRepository} from "./firebase.repository";
-import {AdbRepository} from "./adb.repository";
+import {FirebaseRepository} from "../repositories/firebase.repository";
 import {DevicesService} from "../devices.service";
 import {catchError, filter, first, flatMap, map, onErrorResumeNext, switchMapTo, tap, timeout} from "rxjs/operators";
 import {Artifact, CollectionName, Device, DeviceStatus, Job, JobTask, TaskStatus} from 'pandalab-commons';
 import {JobsService} from "../jobs.service";
-import {WorkspaceRepository} from "./workspace.repository";
+import {FilesRepository} from "../repositories/files.repository";
 import {AgentService} from "../agent.service";
 import * as winston from "winston";
 
 
-export class SpoonRepository {
+export class SpoonService {
     private statusSub: Subscription;
 
 
     constructor(private logger: winston.Logger,
-                private agentRepo: AgentRepository,
+                private agentRepo: SetupService,
                 private agentService: AgentService,
                 private firebaseRepo: FirebaseRepository,
-                private adbRepo: AdbRepository,
                 private devicesService: DevicesService,
                 private jobsService: JobsService,
-                private workspace: WorkspaceRepository) {
+                private workspace: FilesRepository) {
 
     }
 

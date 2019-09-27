@@ -19,7 +19,7 @@
     import {Subscription} from "rxjs";
     import {Services} from "../../services/services.provider";
     import {AgentService} from "../../services/agent.service";
-    import {AgentStatus} from "../../services/repositories/agent.repository";
+    import {AgentStatus} from "../../services/node/setup.service";
     // import {ConfigurationService} from "../../services/agent.repository";
 
     enum State {
@@ -38,7 +38,7 @@
 
         constructor(props) {
             super(props);
-            this.agentService = Services.getInstance().agentService
+            this.agentService = Services.getInstance().node.agentService
         }
 
         mounted(){

@@ -90,20 +90,20 @@ class JobService {
             app: versionRef.parent.parent,
         };
 
-        const jobRef = await admin.firestore().collection('jobs').add(createdJob);
+        const jobRef = await admin.firestore().collection(CollectionName.JOBS).add(createdJob);
 
         const timeoutInMillis = ((job.timeoutInSecond || 60 * 60) * 1000);
         await Promise.all(new Array(taskCount).fill(0).map(
             async () => {
                 const taskObj = {
-                    job: admin.firestore().collection('jobs').doc(jobRef.id) as any,
+                    job: admin.firestore().collection(CollectionName.JOBS).doc(jobRef.id) as any,
                     devices: finalDevices,
                     status: TaskStatus.pending,
                     completed: false,
                     timeout: admin.firestore.Timestamp.fromMillis(admin.firestore.Timestamp.now().seconds * 1000 + timeoutInMillis)
                 } as JobTask;
                 (taskObj as any).device = null;
-                return await admin.firestore().collection('jobs-tasks').add(taskObj);
+                return await admin.firestore().collection(CollectionName.JOBS_TASKS).add(taskObj);
             }
         ));
 
@@ -164,10 +164,10 @@ class JobService {
                 const testResult = reportRequest.data() as TestModel;
                 testResult.tests.forEach(
                     test => {
-                        let currentCount = 0;
-                        if (testsMap.has(test.id)) {
-                            currentCount = testsMap.get(test.id) as number
+                        if (!testsMap.has(test.id)) {
+                            testsMap.set(test.id, 0);
                         }
+                        const currentCount = testsMap.get(test.id) as number;
 
                         switch (test.status) {
                             case TestStatus.error:
@@ -185,9 +185,6 @@ class JobService {
             let testSuccess = 0;
             let testFailure = 0;
             let testUnstable = testsMap.size === 0 ? jobTasks.length : 0; // If all tasks failed set unstable
-
-            console.log("testsMap", testsMap);
-            console.log("tasks count", jobTasks.length);
 
 
             for (const entry of testsMap.entries()) {

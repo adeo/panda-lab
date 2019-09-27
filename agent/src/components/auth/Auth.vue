@@ -12,19 +12,16 @@
     import * as firebaseui from 'firebaseui'
     import "rxjs-compat/add/operator/mergeMap";
     import {FirebaseAuthService} from "../../services/firebaseauth.service";
-    import {AgentService} from "../../services/agent.service";
     import UserCredential = firebase.auth.UserCredential;
 
     @Component
     export default class Auth extends Vue {
 
         private authService: FirebaseAuthService;
-        private agentService: AgentService;
 
         constructor() {
             super();
             this.authService = Services.getInstance().authService;
-            this.agentService = Services.getInstance().agentService;
         }
 
         mounted() {
@@ -46,8 +43,10 @@
          */
         private async onSignInSuccessWithAuthResult(): Promise<void> {
             try {
+                const agentService = Services.getInstance().node.agentService;
+
                 const result = await firebase.functions().httpsCallable('createAgent')({
-                    uid: this.agentService.getAgentUUID(),
+                    uid: agentService.getAgentUUID(),
                 });
                 console.log("onSignInSuccessWithAuthResult", result);
                 await this.signInWithAgentToken(result.data.token);
@@ -58,9 +57,11 @@
         }
 
         private async signInWithAgentToken(token: string) {
+            const agentService = Services.getInstance().node.agentService;
+
             console.log("token created ", token);
-            console.log("agent uuid created ", this.agentService.getAgentUUID());
-            await Services.getInstance().authService.signInWithAgentToken(token, this.agentService.getAgentUUID()).toPromise();
+            console.log("agent uuid created ", agentService.getAgentUUID());
+            await Services.getInstance().authService.signInWithAgentToken(token, agentService.getAgentUUID()).toPromise();
             console.log("redirect to splash")
             await this.$router.push({path: '/splash'});
         }

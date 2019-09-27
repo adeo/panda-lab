@@ -35,8 +35,8 @@ import {DeviceAdb} from "../models/adb";
 import {DeviceLog, DeviceLogType} from "../models/device";
 import {Device, DeviceStatus, CollectionName} from 'pandalab-commons';
 import {FirebaseRepository} from "./repositories/firebase.repository";
-import {AgentRepository, AgentStatus} from "./repositories/agent.repository";
-import {AdbRepository} from "./repositories/adb.repository";
+import {SetupService, AgentStatus} from "./node/setup.service";
+import {AdbService} from "./node/adb.service";
 import {FirebaseAuthService} from "./firebaseauth.service";
 import {DevicesService} from "./devices.service";
 import {StoreRepository} from "./repositories/store.repository";
@@ -48,10 +48,10 @@ export class AgentService {
 
 
     constructor(private logger: winston.Logger,
-                public adbRepo: AdbRepository,
+                public adbRepo: AdbService,
                 private authService: FirebaseAuthService,
                 private firebaseRepo: FirebaseRepository,
-                private agentRepo: AgentRepository,
+                private agentRepo: SetupService,
                 private deviceService: DevicesService,
                 private storeRepo: StoreRepository) {
         this.agentRepo.agentStatus.subscribe(value => {

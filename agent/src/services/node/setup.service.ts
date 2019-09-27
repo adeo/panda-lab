@@ -1,23 +1,23 @@
 import {BehaviorSubject, from, Observable, of} from "rxjs";
 import "rxjs-compat/add/operator/delay";
 import "rxjs-compat/add/operator/concat";
-import {WorkspaceRepository} from "./workspace.repository";
+import {FilesRepository} from "../repositories/files.repository";
 import {FirebaseAuthService} from "../firebaseauth.service";
 import {flatMap, map, tap} from "rxjs/operators";
-import {FirebaseRepository} from "./firebase.repository";
-import {StoreRepository} from "./store.repository";
+import {FirebaseRepository} from "../repositories/firebase.repository";
+import {StoreRepository} from "../repositories/store.repository";
 import {FileData} from "pandalab-commons";
 import HttpsCallableResult = firebase.functions.HttpsCallableResult;
 
 
-export class AgentRepository {
+export class SetupService {
     public UUID: string;
 
 
     public agentStatus = new BehaviorSubject<AgentStatus>(AgentStatus.NOT_LOGGED);
 
 
-    constructor(private workspace: WorkspaceRepository,
+    constructor(private workspace: FilesRepository,
                 private authService: FirebaseAuthService,
                 private firebaseRepo: FirebaseRepository,
                 private storeRepo: StoreRepository) {

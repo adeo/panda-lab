@@ -1,10 +1,10 @@
 import {BehaviorSubject, from, interval, merge, Observable, Subscription} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
 import {DeviceLog, DeviceLogType} from "../../models/device";
-import {delay, distinctUntilChanged, map, switchMap, timeout} from "rxjs/operators";
+import {distinctUntilChanged, map, switchMap, timeout} from "rxjs/operators";
 import {doOnSubscribe} from "../../utils/rxjs";
 
-export class AdbRepository {
+export class AdbService {
 
     private adbClient: any;
     private Readable: any;

@@ -67,7 +67,7 @@ import {DeviceLogType} from "../models/device";
         constructor(props) {
             super(props);
 
-            this.agentService = Services.getInstance().agentService;
+            this.agentService = Services.getInstance().node.agentService;
             let deviceId: string = (this.data.adbDevice && this.data.adbDevice.uid) ? this.data.adbDevice.uid : this.data.firebaseDevice ? this.data.firebaseDevice._ref.id : this.data.adbDevice.id;
             this.device = {
                 name: this.data.firebaseDevice ? this.data.firebaseDevice.name : this.data.adbDevice.type,

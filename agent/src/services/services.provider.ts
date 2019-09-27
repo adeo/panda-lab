@@ -1,23 +1,23 @@
 import {ElectronStoreRepository, StoreRepository, WebStoreRepository} from "./repositories/store.repository";
 import {FirebaseConfig, FirebaseRepository} from "./repositories/firebase.repository";
-import {AdbRepository} from './repositories/adb.repository';
+import {AdbService} from './node/adb.service';
 import {FirebaseAuthService} from "./firebaseauth.service";
 import {JobsService} from "./jobs.service";
 import {AgentService} from "./agent.service";
-import {AgentRepository} from "./repositories/agent.repository";
-import {WorkspaceRepository} from "./repositories/workspace.repository";
+import {SetupService} from "./node/setup.service";
+import {FilesRepository} from "./repositories/files.repository";
 import {DevicesService} from "./devices.service";
 import {DevicesRepository} from "./repositories/devices.repository";
-import {SpoonRepository} from "./repositories/spoon.repository";
+import {SpoonService} from "./node/spoon.service";
 import {firebase} from "@firebase/app";
 import * as winston from "winston";
 import {AppsService} from "./apps.service";
-import {delay} from "q";
 
 const jsonStringify = require('fast-safe-stringify');
 
 export interface ServicesProvider {
     config: ServicesConfiguration;
+    logger: winston.Logger
 
     store: StoreRepository;
     firebaseRepo: FirebaseRepository;
@@ -25,9 +25,10 @@ export interface ServicesProvider {
     jobsService: JobsService;
     devicesService: DevicesService;
     appsService: AppsService
-    agentService?: AgentService
 
-    logger: winston.Logger
+    node?: {
+        agentService: AgentService
+    }
 
 }
 
@@ -84,8 +85,10 @@ class LocalServicesProvider implements ServicesProvider {
     jobsService: JobsService;
     devicesService: DevicesService;
     logger: winston.Logger;
-    agentService: AgentService;
     appsService: AppsService;
+    node: {
+        agentService: AgentService;
+    };
 
     private constructor(public config: ServicesConfiguration) {
         console.log("Service provider initialized");
@@ -140,11 +143,11 @@ class LocalServicesProvider implements ServicesProvider {
 
 
                 this.store = new ElectronStoreRepository();
-                const adbRepository = new AdbRepository();
-                const workspaceRepository = new WorkspaceRepository(this.logger.child({context:'Workspace'}));
+                const adbRepository = new AdbService();
+                const workspaceRepository = new FilesRepository(this.logger.child({context: 'Workspace'}));
                 this.authService = new FirebaseAuthService(this.firebaseRepo, this.store);
-                const agentRepository = new AgentRepository(workspaceRepository, this.authService, this.firebaseRepo, this.store);
-                this.agentService = new AgentService(
+                const agentRepository = new SetupService(workspaceRepository, this.authService, this.firebaseRepo, this.store);
+                const agentService = new AgentService(
                     this.logger.child({context: "Agent"}),
                     adbRepository,
                     this.authService, this.firebaseRepo,
@@ -152,15 +155,19 @@ class LocalServicesProvider implements ServicesProvider {
                     this.devicesService,
                     this.store
                 );
-                const spoonRepo = new SpoonRepository(
+                const spoonRepo = new SpoonService(
                     this.logger.child({context: "Spoon"}),
                     agentRepository,
-                    this.agentService,
+                    agentService,
                     this.firebaseRepo,
-                    adbRepository,
                     this.devicesService,
                     this.jobsService,
                     workspaceRepository);
+
+                this.node = {
+                    agentService: agentService
+                }
+
                 spoonRepo.setup();
                 break;
             }
