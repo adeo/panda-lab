@@ -32,7 +32,7 @@
 </template>
 <script lang="ts">
     import {Component, Vue} from "vue-property-decorator";
-    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "./events";
+    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "../models/events";
     import {Services} from "../services/services.provider";
     import {Artifact} from "pandalab-commons";
     import {filter, flatMap, toArray} from "rxjs/operators";

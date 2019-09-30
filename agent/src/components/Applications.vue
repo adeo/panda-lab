@@ -42,7 +42,7 @@
     import * as firebase from "firebase";
     import {catchError, flatMap, map, tap, toArray} from "rxjs/operators";
     import DialogCreateJob from "@/components/DialogCreateJob.vue";
-    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "./events";
+    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "../models/events";
     import "rxjs-compat/add/operator/scan";
     import {Services} from "../services/services.provider";
     import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;

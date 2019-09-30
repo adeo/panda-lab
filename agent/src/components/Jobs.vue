@@ -29,7 +29,7 @@
     import {Observable} from "rxjs";
     import {Subscription,} from "vue-rx-decorators";
     import CreateJob from "@/components/CreateJob.vue";
-    import {CREATE_JOB_EVENT_DISPLAY} from "./events";
+    import {CREATE_JOB_EVENT_DISPLAY} from "../models/events";
     import {Job} from "pandalab-commons";
     import {Services} from "../services/services.provider";
 
