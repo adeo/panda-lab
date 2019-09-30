@@ -12,8 +12,8 @@
                     <h1 class="md-title">Reports</h1>
                 </md-table-toolbar>
 
-                <md-table-row slot="md-table-row" slot-scope="{ item }">
-                    <md-table-cell md-label="Version Name">{{ item.versionName }}</md-table-cell>
+                <md-table-row slot="md-table-row" slot-scope="{ item }" @click="openTestReport(item)">
+                    <md-table-cell md-label="Device Name">{{ item.versionName }}</md-table-cell>
                     <md-table-cell md-label="Tests">{{ item.totalTests }}</md-table-cell>
                     <md-table-cell md-label="Success">{{ item.testSuccess }}</md-table-cell>
                     <md-table-cell md-label="Unstable">{{ item.testUnstable }}</md-table-cell>
@@ -22,6 +22,12 @@
                 </md-table-row>
             </md-table>
         </div>
+
+        <div class="md-layout-item">
+            <md-card>
+                <TestReportLineChart :reports="reports" v-on:index="openReportAtIndex($event)"></TestReportLineChart>
+            </md-card>
+        </div>
     </div>
 </template>
 
@@ -29,8 +35,11 @@
     import {Component, Vue} from "vue-property-decorator";
     import {Services} from "../../services/services.provider";
     import {TestReport} from "pandalab-commons";
+    import TestReportLineChart from "./TestReportLineChart.vue";
 
-    @Component
+    @Component({
+        components: {TestReportLineChart}
+    })
     export default class VersionDetail extends Vue {
 
         private reports: TestReport[] = [];
@@ -41,7 +50,6 @@
             console.log(versionId);
             this.$subscribeTo(Services.getInstance().jobsService.listenVersionReports(applicationId, versionId), reports => {
                 this.reports = reports;
-
             });
         }
 
@@ -57,6 +65,14 @@
             let month = (date.getMonth() + 1);
             month = month < 10 ? '0' + month : month;
             return date.getDate() + "/" + month + "/" + date.getFullYear() + " " + strTime;
+        }
+
+        protected openReportAtIndex(index: number){
+            this.openTestReport(this.reports[index])
+        }
+
+        protected openTestReport(report: TestReport) {
+            this.$router.push("/reports/" + report._ref.id)
         }
 
 

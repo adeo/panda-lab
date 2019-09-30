@@ -2,7 +2,7 @@ import {Change, EventContext} from "firebase-functions";
 import {UserRecord} from "firebase-functions/lib/providers/auth";
 import {DocumentSnapshot} from "firebase-functions/lib/providers/firestore";
 import {API_FUNCTION, CREATE_JOB} from "./api";
-import {ANALYSE_FILE, CLEAN_ARTIFACT, GET_FILE_DATA, SAVE_SPOON_RESULT} from "./storage";
+import {ANALYSE_FILE, CLEAN_ARTIFACT, SAVE_SPOON_RESULT} from "./storage";
 import * as admin from "firebase-admin";
 import {jobService} from "./services/job.service";
 import {CallableContext} from "firebase-functions/lib/providers/https";
@@ -164,6 +164,12 @@ exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, conte
         })
 });
 
+exports.updateDevicesStatus = functions.database.ref("/agents/{agentId}/online").onUpdate((change, context) => {
+   if(change.after.val() === false){
+       return deviceService.setAgentDevicesStatusOffline(context.params['agentId']);
+   }
+   return Promise.resolve()
+});
 
 exports.cron = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
     console.log('Send update notification');
@@ -197,7 +203,6 @@ exports.onRemoveJob = functions.firestore.document(CollectionName.JOBS + '/{jobI
 
 exports.analyseFile = ANALYSE_FILE;
 exports.cleanArtifact = CLEAN_ARTIFACT;
-exports.getFileData = GET_FILE_DATA;
 exports.saveSpoonResult = SAVE_SPOON_RESULT;
 exports.createJob = CREATE_JOB;
 exports.api = API_FUNCTION;

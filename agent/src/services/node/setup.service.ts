@@ -1,13 +1,12 @@
-import {BehaviorSubject, from, Observable, of} from "rxjs";
+import {BehaviorSubject, Observable, of} from "rxjs";
 import "rxjs-compat/add/operator/delay";
 import "rxjs-compat/add/operator/concat";
+import '@firebase/database';
 import {FilesRepository} from "../repositories/files.repository";
 import {FirebaseAuthService} from "../firebaseauth.service";
 import {flatMap, map, tap} from "rxjs/operators";
 import {FirebaseRepository} from "../repositories/firebase.repository";
 import {StoreRepository} from "../repositories/store.repository";
-import {FileData} from "pandalab-commons";
-import HttpsCallableResult = firebase.functions.HttpsCallableResult;
 
 
 export class SetupService {
@@ -15,6 +14,7 @@ export class SetupService {
 
 
     public agentStatus = new BehaviorSubject<AgentStatus>(AgentStatus.NOT_LOGGED);
+    private updateOnlineStatusCallback: (a) => void = null;
 
 
     constructor(private workspace: FilesRepository,
@@ -38,12 +38,15 @@ export class SetupService {
                 this.agentStatus.next(AgentStatus.CONFIGURING);
                 this.configure().subscribe(log => {
                     console.log(log);
+                    this.setStatusOnline(false);
                 }, error => {
                     console.error("can't configure agent", error);
                     this.agentStatus.next(AgentStatus.NOT_LOGGED);
+                    this.setStatusOnline(false);
                 }, () => {
                     console.log("agent configured");
-                    this.agentStatus.next(AgentStatus.READY)
+                    this.agentStatus.next(AgentStatus.READY);
+                    this.setStatusOnline(true);
                 })
             } else {
                 this.agentStatus.next(AgentStatus.NOT_LOGGED)
@@ -60,17 +63,18 @@ export class SetupService {
     }
 
     private configureMobileApk(): Observable<string> {
-        return from(this.firebaseRepo.firebase.functions().httpsCallable("getFileData")({path: 'config/android-agent.apk'}))
+        let filePath = 'config/android-agent.apk';
+        return this.firebaseRepo.getFileMetadata(filePath)
             .pipe(
-                flatMap((result: HttpsCallableResult) => {
-                    const value = result.data as FileData;
+                flatMap((meta) => {
                     const currentDate = parseInt(this.storeRepo.load("agent_last_date", "0"));
-                    const update = currentDate < value.updatedAt;
+                    const update = currentDate < new Date(meta.updated).getTime();
                     if (update || !this.workspace.fileExist(this.workspace.agentApkPath)) {
                         console.log("update local agent apk");
                         this.workspace.delete(this.workspace.agentApkPath);
-                        return this.workspace.downloadFile(this.workspace.agentApkPath, value.downloadUrl)
-                            .pipe(tap(this.storeRepo.save("agent_last_date", String(value.updatedAt))))
+                        return this.firebaseRepo.getFileUrl(filePath)
+                            .pipe(flatMap(url => this.workspace.downloadFile(this.workspace.agentApkPath, url)))
+                            .pipe(tap(this.storeRepo.save("agent_last_date", String(new Date(meta.updated).getTime()))))
                     } else {
                         return of(this.workspace.agentApkPath)
                     }
@@ -89,6 +93,27 @@ export class SetupService {
             return this.workspace.downloadFile(spoonJarPath, 'https://search.maven.org/remote_content?g=com.squareup.spoon&a=spoon-runner&v=LATEST&c=jar-with-dependencies')
         } else {
             return of(spoonJarPath)
+        }
+    }
+
+    private setStatusOnline(value: boolean) {
+        let deviceRef = this.firebaseRepo.firebase.database().ref("agents/" + this.UUID);
+
+        if (this.updateOnlineStatusCallback) {
+            deviceRef.off("value", this.updateOnlineStatusCallback)
+            this.updateOnlineStatusCallback = null;
+        }
+        if (value) {
+            this.updateOnlineStatusCallback = a => {
+                if (!a.exists() || a.child("online").val() != true) {
+                    deviceRef.set({
+                        online: true
+                    }).then(() => {
+                        return deviceRef.onDisconnect().set({online: false});
+                    });
+                }
+            };
+            deviceRef.on("value", this.updateOnlineStatusCallback);
         }
     }
 

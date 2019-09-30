@@ -3,11 +3,13 @@ import '@firebase/auth';
 import '@firebase/firestore';
 import '@firebase/messaging';
 import '@firebase/storage';
+import '@firebase/database';
 import {firestore} from "firebase";
 import {FirebaseNamespace} from '@firebase/app-types';
+import {FullMetadata} from '@firebase/storage-types';
 import {from, Observable, of, throwError} from "rxjs";
 import {CollectionName, FirebaseModel} from "pandalab-commons";
-import {catchError, flatMap, map, tap} from "rxjs/operators";
+import {catchError, flatMap, map} from "rxjs/operators";
 import CollectionReference = firestore.CollectionReference;
 import DocumentSnapshot = firestore.DocumentSnapshot;
 import DocumentReference = firestore.DocumentReference;
@@ -32,10 +34,13 @@ export class FirebaseRepository {
         this.firebase = firebase
     }
 
-    getFileUrl(filePath: string): Observable<string>{
-        return from(this.firebase.storage().ref("/"+filePath).getDownloadURL());
+    getFileUrl(filePath: string): Observable<string> {
+        return from(this.firebase.storage().ref("/" + filePath).getDownloadURL());
     }
 
+    getFileMetadata(filePath: string): Observable<FullMetadata> {
+        return from(this.firebase.storage().ref("/" + filePath).getMetadata());
+    }
 
     getCollection(name: CollectionName): CollectionReference {
         return firebase.firestore().collection(name)
@@ -89,7 +94,7 @@ export class FirebaseRepository {
     }
 
     saveDocument<T extends FirebaseModel>(doc: T, merge: boolean = true): Observable<T> {
-        let ref : DocumentReference = doc._ref as any as DocumentReference;
+        let ref: DocumentReference = doc._ref as any as DocumentReference;
         if (ref == null)
             return throwError("_ref not defined. can't save model");
 
@@ -104,7 +109,6 @@ export class FirebaseRepository {
                 }),
             ) as Observable<T>;
     }
-
 
 
     private toFirebaseModel<T extends FirebaseModel>(doc: DocumentSnapshot): T {

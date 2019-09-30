@@ -265,7 +265,7 @@ export class SpoonService {
     }
 
     private downloadApk(path: string, artifact: Artifact): Observable<string> {
-        return this.generateDownloadUrl(artifact).pipe(
+        return this.firebaseRepo.getFileUrl(artifact.path).pipe(
             flatMap(url => {
                 this.logger.info(`Download artifact: ${artifact._ref.id}, url = ${url}, path = ${path}`);
                 return this.workspace.downloadFile(path, url);
@@ -273,12 +273,6 @@ export class SpoonService {
         );
     }
 
-    private generateDownloadUrl(artifact: Artifact): Observable<string> {
-        const getFileData = this.firebaseRepo.firebase.functions().httpsCallable("getFileData");
-        return from(getFileData({path: artifact.path})).pipe(
-            map(result => result.data.downloadUrl),
-        );
-    }
 
     private runCommand(perform: Perform): Observable<void> {
         return from(this.runCommandPromise(perform));

@@ -34,7 +34,6 @@ export class FirebaseAuthService {
                 console.info("try to restore session", refreshData);
                 let oldToken = JSON.parse(refreshData);
                 const result = await this.firebaseRepo.firebase.functions().httpsCallable("refreshCustomToken")(oldToken);
-                console.log("refreshCustomToken result", result);
                 const newToken = result.data.token;
                 this.saveToken(newToken, oldToken.uid);
                 const user = await this.auth.signInWithCustomToken(newToken);

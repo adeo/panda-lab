@@ -44,7 +44,7 @@
                 </div>
                 <div class="md-layout-item">
                     <md-card>
-                        <LineChart :data="data" v-on:index="openReportAtIndex($event)"></LineChart>
+                        <TestReportLineChart :reports="reports" v-on:index="openReportAtIndex($event)"></TestReportLineChart>
                     </md-card>
                 </div>
 
@@ -72,13 +72,13 @@
     import "rxjs-compat/add/operator/toArray";
     import {AppModel, AppVersion, TestReport} from "pandalab-commons";
     import {Services} from "../../services/services.provider";
-    import LineChart from "./LineChart.vue";
+    import TestReportLineChart from "./TestReportLineChart.vue";
     import {ChartData, ChartDataSets} from "chart.js"
-    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "../events";
+    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "../../models/events";
     import DialogCreateJob from "../DialogCreateJob.vue";
 
     @Component({
-        components: {LineChart, DialogCreateJob},
+        components: {TestReportLineChart, DialogCreateJob},
 
     })
     export default class AppDetails extends Vue {
@@ -89,8 +89,7 @@
         private flavor: string = "";
 
 
-        private data: Chart.ChartData = {labels: [], datasets: []};
-        private reports: TestReport[];
+        private reports: TestReport[] = [];
 
         mounted() {
 
@@ -116,55 +115,13 @@
             });
 
             this.$subscribeTo(Services.getInstance().jobsService.listenAppReports(appId), reports => {
-
-                //:colors="['#2E4EC0', '#EC870A', '#D12311']"
-                const successData: ChartDataSets = {
-                    data: [],
-                    backgroundColor: '#5dc050',
-                    borderColor: '#5dc050',
-                    label: "Success"
-                };
-                const unstableData: ChartDataSets = {
-                    data: [],
-                    backgroundColor: '#EC870A',
-                    borderColor: '#EC870A',
-                    label: "Unstable"
-                };
-                const failureData: ChartDataSets = {
-                    data: [],
-                    backgroundColor: '#D12311',
-                    borderColor: '#D12311',
-                    label: "Error"
-                };
-
-                const chartData: ChartData = {labels: [], datasets: [successData, unstableData, failureData]};
-
-                reports.forEach(report => {
-                    let date = this.formatDate(report.date.toDate());
-                    chartData.labels.push(date + "\n" + report.versionName);
-                    successData.data.push(report.testSuccess);
-                    unstableData.data.push(report.testUnstable);
-                    failureData.data.push(report.testFailure);
-                });
-
-                this.data = chartData;
                 this.reports = reports;
-
-
             })
         }
 
 
 
-        protected formatDate(date) {
-            const hours = date.getHours();
-            let minutes = date.getMinutes();
-            minutes = minutes < 10 ? '0' + minutes : minutes;
-            const strTime = hours + ':' + minutes;
-            let month = (date.getMonth() + 1)
-            month = month < 10 ? '0' + month : month;
-            return date.getDate() + "/" + month + "/" + date.getFullYear() + " " + strTime;
-        }
+
 
         protected updateVersions() {
             this.versions = this.allVersions.filter(value => value.flavor === this.flavor)
@@ -189,6 +146,16 @@
 
         protected openVersion(version: AppVersion){
             this.$router.push(`/applications/${this.$route.params.applicationId}/versions/` + version._ref.id);
+        }
+
+        protected formatDate(date) {
+            const hours = date.getHours();
+            let minutes = date.getMinutes();
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            const strTime = hours + ':' + minutes;
+            let month = (date.getMonth() + 1)
+            month = month < 10 ? '0' + month : month;
+            return date.getDate() + "/" + month + "/" + date.getFullYear() + " " + strTime;
         }
     }
 

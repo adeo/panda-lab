@@ -1,0 +1,12 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "agents": {
+      "$agent_id": {
+        ".write": "$agent_id === auth.uid",
+        ".read": true
+      }
+    }
+  }
+}
