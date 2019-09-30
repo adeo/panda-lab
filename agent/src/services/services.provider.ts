@@ -12,6 +12,7 @@ import {SpoonService} from "./node/spoon.service";
 import {firebase} from "@firebase/app";
 import * as winston from "winston";
 import {AppsService} from "./apps.service";
+import {AgentsService} from "./agents.service";
 
 const jsonStringify = require('fast-safe-stringify');
 
@@ -25,6 +26,7 @@ export interface ServicesProvider {
     jobsService: JobsService;
     devicesService: DevicesService;
     appsService: AppsService
+    agentsService: AgentsService;
 
     node?: {
         agentService: AgentService
@@ -86,6 +88,7 @@ class LocalServicesProvider implements ServicesProvider {
     devicesService: DevicesService;
     logger: winston.Logger;
     appsService: AppsService;
+    agentsService: AgentsService;
     node: {
         agentService: AgentService;
     };
@@ -128,6 +131,7 @@ class LocalServicesProvider implements ServicesProvider {
         this.jobsService = new JobsService(this.firebaseRepo);
         this.devicesService = new DevicesService(this.firebaseRepo, new DevicesRepository());
 
+        this.agentsService = new AgentsService(this.firebaseRepo);
 
         this.appsService = new AppsService(
             this.logger,
@@ -153,6 +157,7 @@ class LocalServicesProvider implements ServicesProvider {
                     this.authService, this.firebaseRepo,
                     agentRepository,
                     this.devicesService,
+                    this.agentsService,
                     this.store
                 );
                 const spoonRepo = new SpoonService(
@@ -160,7 +165,7 @@ class LocalServicesProvider implements ServicesProvider {
                     agentRepository,
                     agentService,
                     this.firebaseRepo,
-                    this.devicesService,
+                    this.agentsService,
                     this.jobsService,
                     workspaceRepository);
 

@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import {CollectionName, Device, DeviceStatus} from "pandalab-commons";
+import {AgentModel, CollectionName, Device, DeviceStatus} from "pandalab-commons";
 
 class DeviceService {
 
@@ -25,11 +25,17 @@ class DeviceService {
 
     }
 
-    async setAgentDevicesStatusOffline(agentId: string) {
-        const devices = await admin.firestore().collection(CollectionName.DEVICES).where("agent", "==", admin.firestore().collection(CollectionName.AGENTS).doc(agentId)).get();
-        return Promise.all(devices.docs.map(value => {
-            return value.ref.set(<Device>{status: DeviceStatus.offline}, {merge: true})
-        }))
+    async updateAgentDevicesStatus(online: boolean, agentId: string) {
+        const agentRef = admin.firestore().collection(CollectionName.AGENTS).doc(agentId);
+        await agentRef.set(<AgentModel>{online: online}, {merge: true});
+
+        if (!online) {
+            const devices = await admin.firestore().collection(CollectionName.DEVICES).where("agent", "==", agentRef).get();
+            return Promise.all(devices.docs.map(value => {
+                return value.ref.set(<Device>{status: DeviceStatus.offline}, {merge: true})
+            }))
+        }
+        return Promise.resolve()
     }
 }
 

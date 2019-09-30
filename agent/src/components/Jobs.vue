@@ -20,7 +20,9 @@
                 <md-table-cell>{{ job.status }}</md-table-cell>
             </md-table-row>
         </md-table>
+
     </div>
+
 </template>
 
 <script lang="ts">

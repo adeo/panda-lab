@@ -113,7 +113,6 @@ export class FirebaseAuthService {
         return from(firebase.auth().signInWithCustomToken(agentToken))
             .pipe(
                 flatMap((userCredentials: UserCredential) => userCredentials.user.updateProfile({displayName: agentUUID})),
-                flatMap(() => this.firebaseRepo.getCollection(CollectionName.AGENTS).doc(agentUUID).update('finalize', true)),
                 tap(() => {
                     console.log("save token");
                     this.saveToken(agentToken, agentUUID);

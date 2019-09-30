@@ -8,6 +8,7 @@ import {JobsService} from "../jobs.service";
 import {FilesRepository} from "../repositories/files.repository";
 import {AgentService} from "../agent.service";
 import * as winston from "winston";
+import {AgentsService} from "../agents.service";
 
 
 export class SpoonService {
@@ -18,7 +19,7 @@ export class SpoonService {
                 private agentRepo: SetupService,
                 private agentService: AgentService,
                 private firebaseRepo: FirebaseRepository,
-                private devicesService: DevicesService,
+                private agentsService: AgentsService,
                 private jobsService: JobsService,
                 private workspace: FilesRepository) {
 
@@ -52,7 +53,7 @@ export class SpoonService {
                     });
                 }),
             );
-        const availableDevicesAsync = this.devicesService.listenAgentDevices(this.agentRepo.UUID)
+        const availableDevicesAsync = this.agentsService.listenAgentDevices(this.agentRepo.UUID)
             .pipe(
                 map(devices => {
                     return devices.filter(device => device.status === DeviceStatus.available);

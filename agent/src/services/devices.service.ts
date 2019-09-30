@@ -16,13 +16,6 @@ export class DevicesService {
         return this.firebaseRepo.listenQuery(query)
     }
 
-    listenAgentDevices(agentUID: string): Observable<Device[]> {
-        let agentRef = this.firebaseRepo.getCollection(CollectionName.AGENTS).doc(agentUID);
-        let query = this.firebaseRepo.getCollection(CollectionName.DEVICES)
-            .where("agent", '==', agentRef);
-        return this.firebaseRepo.listenQuery(query)
-    }
-
     updateDevice(device: Device) {
         return this.firebaseRepo.saveDocument(device, true)
     }

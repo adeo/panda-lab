@@ -8,6 +8,7 @@ import {jobService} from "./services/job.service";
 import {CallableContext} from "firebase-functions/lib/providers/https";
 import {deviceService} from "./services/device.service";
 import {CollectionName} from "pandalab-commons";
+import {AgentModel} from "../../commons/src/models/agents.models";
 import QuerySnapshot = admin.firestore.QuerySnapshot;
 import DecodedIdToken = admin.auth.DecodedIdToken;
 
@@ -125,11 +126,10 @@ exports.createAgent = functions.https.onCall(async (data: any, context: Callable
     console.log("createMobileAgent() data = ", data);
     const token: DecodedIdToken = context.auth!.token;
     if (token.role === ADMIN) {
-        await admin.firestore().collection(CollectionName.AGENTS).doc(data.uid).set({
-            uid: data.uid,
-            devices: [],
-            finalize: false,
-            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        await admin.firestore().collection(CollectionName.AGENTS).doc(data.uid).set(<AgentModel>{
+            name: data.uid,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            online: false
         });
         return createCustomToken(data.uid, DESKTOP_AGENT, context.auth!.uid);
     } else {
@@ -165,10 +165,7 @@ exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, conte
 });
 
 exports.updateDevicesStatus = functions.database.ref("/agents/{agentId}/online").onUpdate((change, context) => {
-   if(change.after.val() === false){
-       return deviceService.setAgentDevicesStatusOffline(context.params['agentId']);
-   }
-   return Promise.resolve()
+    return deviceService.updateAgentDevicesStatus(change.after.val(), context.params['agentId']);
 });
 
 exports.cron = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {

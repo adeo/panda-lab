@@ -33,14 +33,15 @@ import {
 } from "rxjs/operators";
 import {DeviceAdb} from "../models/adb";
 import {DeviceLog, DeviceLogType} from "../models/device";
-import {Device, DeviceStatus, CollectionName} from 'pandalab-commons';
+import {CollectionName, Device, DeviceStatus} from 'pandalab-commons';
 import {FirebaseRepository} from "./repositories/firebase.repository";
-import {SetupService, AgentStatus} from "./node/setup.service";
+import {AgentStatus, SetupService} from "./node/setup.service";
 import {AdbService} from "./node/adb.service";
 import {FirebaseAuthService} from "./firebaseauth.service";
 import {DevicesService} from "./devices.service";
 import {StoreRepository} from "./repositories/store.repository";
 import * as winston from "winston";
+import {AgentsService} from "./agents.service";
 
 export class AgentService {
     private listenDevicesSub: Subscription;
@@ -53,6 +54,7 @@ export class AgentService {
                 private firebaseRepo: FirebaseRepository,
                 private agentRepo: SetupService,
                 private deviceService: DevicesService,
+                private agentsService: AgentsService,
                 private storeRepo: StoreRepository) {
         this.agentRepo.agentStatus.subscribe(value => {
             switch (value) {
@@ -114,7 +116,7 @@ export class AgentService {
     private listenDevices(): Observable<AgentDeviceData[]> {
         this.cachedDeviceIds = new Map<string, { date: number, id: string }>();
         let listenAdbDeviceWithUid: Observable<DeviceAdb[]> = this.adbRepo.listenAdb();
-        let listenAgentDevices = this.deviceService.listenAgentDevices(this.agentRepo.UUID);
+        let listenAgentDevices = this.agentsService.listenAgentDevices(this.agentRepo.UUID);
         return combineLatest([
             listenAgentDevices,
             listenAdbDeviceWithUid,
