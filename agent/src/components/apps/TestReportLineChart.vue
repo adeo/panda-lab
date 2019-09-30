@@ -1,22 +1,22 @@
 <script lang="ts">
 
-    import {Component, Prop, Vue, Watch} from "vue-property-decorator";
+    import {Component, Mixins, Prop, Watch} from "vue-property-decorator";
     import {Line} from 'vue-chartjs'
     import {ChartData, ChartDataSets, ChartOptions} from "chart.js"
     import {TestReport} from "pandalab-commons";
+    import {DateFormatter} from "../utils/Formatter";
 
-    @Component({
-        extends: Line
-    })
-    export default class TestReportLineChart extends Vue {
+    @Component
+    export default class TestReportLineChart extends Mixins<Line>(Line) {
 
         @Prop({required: true})
         reports: TestReport[];
 
+        protected formatter = new DateFormatter();
+
         @Watch("reports") onReportChange(values: TestReport[]) {
             const data = this.convertToChartData(values);
-            const local = (this as any as Line);
-            local.renderChart(data, this.options);
+            this.renderChart(data, this.options);
         }
 
         options: ChartOptions;
@@ -24,6 +24,7 @@
 
         constructor() {
             super();
+
             this.options = {
                 responsive: true,
                 tooltips: {
@@ -74,8 +75,9 @@
 
             const chartData: ChartData = {labels: [], datasets: [successData, unstableData, failureData]};
 
+
             reports.forEach(report => {
-                let date = this.formatDate(report.date.toDate());
+                let date = this.formatter.formatDate(report.date.toDate());
                 chartData.labels.push(date + "\n" + report.versionName);
                 successData.data.push(report.testSuccess);
                 unstableData.data.push(report.testUnstable);
@@ -88,15 +90,15 @@
             this.$emit("index", index)
         }
 
-        protected formatDate(date) {
-            const hours = date.getHours();
-            let minutes = date.getMinutes();
-            minutes = minutes < 10 ? '0' + minutes : minutes;
-            const strTime = hours + ':' + minutes;
-            let month = (date.getMonth() + 1)
-            month = month < 10 ? '0' + month : month;
-            return date.getDate() + "/" + month + "/" + date.getFullYear() + " " + strTime;
-        }
+        // protected formatDate(date) {
+        //     const hours = date.getHours();
+        //     let minutes = date.getMinutes();
+        //     minutes = minutes < 10 ? '0' + minutes : minutes;
+        //     const strTime = hours + ':' + minutes;
+        //     let month = (date.getMonth() + 1)
+        //     month = month < 10 ? '0' + month : month;
+        //     return date.getDate() + "/" + month + "/" + date.getFullYear() + " " + strTime;
+        // }
 
 
     }

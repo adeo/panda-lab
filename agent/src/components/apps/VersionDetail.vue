@@ -18,7 +18,7 @@
                     <md-table-cell md-label="Success">{{ item.testSuccess }}</md-table-cell>
                     <md-table-cell md-label="Unstable">{{ item.testUnstable }}</md-table-cell>
                     <md-table-cell md-label="Failure">{{ item.testFailure }}</md-table-cell>
-                    <md-table-cell md-label="Date">{{ formatDate(item.date.toDate()) }}</md-table-cell>
+                    <md-table-cell md-label="Date">{{ formatter.formatDate(item.date.toDate()) }}</md-table-cell>
                 </md-table-row>
             </md-table>
         </div>
@@ -36,6 +36,7 @@
     import {Services} from "../../services/services.provider";
     import {TestReport} from "pandalab-commons";
     import TestReportLineChart from "./TestReportLineChart.vue";
+    import {DateFormatter} from "../utils/Formatter";
 
     @Component({
         components: {TestReportLineChart}
@@ -43,6 +44,7 @@
     export default class VersionDetail extends Vue {
 
         private reports: TestReport[] = [];
+        protected formatter = new DateFormatter();
 
         mounted() {
             const applicationId = this.$route.params.applicationId;
@@ -57,17 +59,7 @@
             this.$router.back();
         }
 
-        protected formatDate(date) {
-            const hours = date.getHours();
-            let minutes = date.getMinutes();
-            minutes = minutes < 10 ? '0' + minutes : minutes;
-            const strTime = hours + ':' + minutes;
-            let month = (date.getMonth() + 1);
-            month = month < 10 ? '0' + month : month;
-            return date.getDate() + "/" + month + "/" + date.getFullYear() + " " + strTime;
-        }
-
-        protected openReportAtIndex(index: number){
+        protected openReportAtIndex(index: number) {
             this.openTestReport(this.reports[index])
         }
 

@@ -26,7 +26,7 @@
                             <md-table-cell md-label="Version" md-sort-by="id" md-numeric>{{ item.versionName }}
                             </md-table-cell>
                             <md-table-cell md-label="VersionCode">{{ item.versionCode }}</md-table-cell>
-                            <md-table-cell md-label="Date">{{ formatDate(item.timestamp.toDate()) }}</md-table-cell>
+                            <md-table-cell md-label="Date">{{ formatter.formatDate(item.timestamp.toDate()) }}</md-table-cell>
 
                             <md-table-cell md-label="Actions">
                                 <md-button @click=createJob(item) class="md-icon-button">
@@ -66,7 +66,7 @@
 </template>
 <script lang="ts">
 
-    import {Component, Emit, Vue} from "vue-property-decorator";
+    import {Component, Emit, Mixins, Vue} from "vue-property-decorator";
     import "rxjs-compat/add/operator/map";
     import "rxjs-compat/add/operator/mergeMap";
     import "rxjs-compat/add/operator/toArray";
@@ -76,10 +76,10 @@
     import {ChartData, ChartDataSets} from "chart.js"
     import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "../../models/events";
     import DialogCreateJob from "../DialogCreateJob.vue";
+    import {DateFormatter} from "../utils/Formatter";
 
     @Component({
         components: {TestReportLineChart, DialogCreateJob},
-
     })
     export default class AppDetails extends Vue {
         private app: AppModel = null;
@@ -88,6 +88,7 @@
         private flavors: string[] = [];
         private flavor: string = "";
 
+        protected formatter = new DateFormatter();
 
         private reports: TestReport[] = [];
 
@@ -148,15 +149,6 @@
             this.$router.push(`/applications/${this.$route.params.applicationId}/versions/` + version._ref.id);
         }
 
-        protected formatDate(date) {
-            const hours = date.getHours();
-            let minutes = date.getMinutes();
-            minutes = minutes < 10 ? '0' + minutes : minutes;
-            const strTime = hours + ':' + minutes;
-            let month = (date.getMonth() + 1)
-            month = month < 10 ? '0' + month : month;
-            return date.getDate() + "/" + month + "/" + date.getFullYear() + " " + strTime;
-        }
     }
 
 </script>

@@ -16,7 +16,7 @@
         </div>
         <md-content class="md-scrollbar" v-if="logs">
             <div class="md-layout" v-for="(log, index) in logs" :key="index" :style="{color: getColor(log)}">
-                <div class="md-layout-item md-size-15"> {{formatDate(log.date.toDate())}}</div>
+                <div class="md-layout-item md-size-15"> {{formatter.formatHour(log.date.toDate())}}</div>
                 <div class="md-layout-item md-size-15"> {{log.level}}</div>
                 <div class="md-layout-item md-size-30">[{{log.tag}}]</div>
                 <div class="md-layout-item">{{log.message}}</div>
@@ -26,14 +26,17 @@
 </template>
 <script lang="ts">
 
-    import {Component, Prop, Vue} from "vue-property-decorator";
+    import {Component, Mixins, Prop, Vue} from "vue-property-decorator";
     import {TestLog, TestResult} from "pandalab-commons";
     import {Services} from "../../services/services.provider";
+    import {DateFormatter} from "../utils/Formatter";
 
     @Component
     export default class DeviceTestReport extends Vue {
 
         @Prop({required: true}) report: TestResult;
+
+        protected formatter = new DateFormatter();
 
         protected logs: TestLog[] = [];
         private images: string[] = [];
@@ -49,14 +52,6 @@
             })
         }
 
-        protected formatDate(date) {
-            const hours = date.getHours();
-            let minutes = date.getMinutes();
-            let seconds = date.getSeconds();
-            minutes = minutes < 10 ? '0' + minutes : minutes;
-            seconds = seconds < 10 ? '0' + seconds : seconds;
-            return hours + ':' + minutes + ':' + seconds;
-        }
 
         protected getColor(log: TestLog): string {
             switch (log.level) {
