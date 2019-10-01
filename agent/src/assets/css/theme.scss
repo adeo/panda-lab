@@ -1,0 +1,12 @@
+@import "~vue-material/dist/theme/engine"; // Import the theme engine
+
+$primary-color: md-get-palette-color(blue, 900);
+$accent-color: md-get-palette-color(red, 500);
+
+
+@include md-register-theme("default", (
+        primary: $primary-color, // The primary color of your application
+        accent: $accent-color // The accent or secondary color
+));
+
+@import "~vue-material/dist/theme/all"; // Apply the theme

@@ -19,6 +19,7 @@ Vue.config.productionTip = false;
 Vue.use(VueRx);
 Vue.use(VueMaterial);
 
+import './assets/css/theme.scss'
 
 new Vue({
     render: h => h(App),

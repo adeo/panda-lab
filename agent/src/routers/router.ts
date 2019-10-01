@@ -1,10 +1,9 @@
 import Vue from 'vue';
 import VueRouter, {RouteConfig} from 'vue-router';
 import {AuthentGuard} from "./authent.guards";
-import Home from "@/components/Home.vue";
+import RootPage from "@/components/RootPage.vue";
 import Jobs from "@/components/Jobs.vue";
 import Device from "../components/devices/Device.vue";
-// import Job from "@/components/Job.vue";
 import JobTaskDetail from "@/components/JobTaskDetail.vue";
 import Auth from "@/components/auth/Auth.vue";
 import Splash from "../components/auth/Splash.vue";
@@ -34,7 +33,7 @@ const SPLASH_ROUTE: RouteConfig = {
 
 const HOME_ROUTE: RouteConfig = {
     path: '/',
-    component: Home,
+    component: RootPage,
     beforeEnter: AuthentGuard,
 
     children: [
