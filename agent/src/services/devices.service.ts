@@ -1,7 +1,7 @@
 import {FirebaseRepository} from "./repositories/firebase.repository";
 import {DevicesRepository} from "./repositories/devices.repository";
 import {Device, DevicesGroup, CollectionName} from 'pandalab-commons';
-import {from, Observable} from "rxjs";
+import {combineLatest, from, Observable} from "rxjs";
 import {flatMap} from "rxjs/operators";
 
 export class DevicesService {
@@ -32,6 +32,13 @@ export class DevicesService {
 
     listenGroup(groupId: string): Observable<DevicesGroup> {
         return this.firebaseRepo.listenDocument(CollectionName.DEVICE_GROUPS, groupId)
+    }
+
+    listenerGroupAndDevices(groupId: string) {
+        return combineLatest(
+            this.listenGroup(groupId),
+            this.listenDevices()
+        );
     }
 
     saveGroup(group: DevicesGroup): Observable<DevicesGroup>{
