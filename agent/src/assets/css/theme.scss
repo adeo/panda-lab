@@ -3,11 +3,14 @@
 $primary-color: #4C0DDB; //md-get-palette-color(blue, 900);
 $accent-color: md-get-palette-color(red, 500);
 $grey-color: #EFEFEF;
+$text-grey-color: #777;
 
 
 $success-color: #2F9E0F;
 $warm-color: orange;
 $error-color: $accent-color;
+
+$small-screen-size: 960px;
 
 @include md-register-theme("default", (
         primary: $primary-color, // The primary color of your application
@@ -15,6 +18,8 @@ $error-color: $accent-color;
 ));
 
 @import "~vue-material/dist/theme/all"; // Apply the theme
+
+@import "animations";
 
 @import url('https://fonts.googleapis.com/css?family=Montserrat&display=swap');
 
@@ -33,12 +38,14 @@ body {
   .md-icon, span {
     color: white;
   }
-
+}
+.pl-container {
+  padding: 48px 3%;
 
 }
 
-.pl-container {
-  padding: 48px;
+.theme-white.md-progress-spinner.md-theme-default .md-progress-spinner-circle {
+  stroke: white !important;
 }
 
 .pl-title {
@@ -46,8 +53,33 @@ body {
   font-family: 'Montserrat ExtraBold', sans-serif;
 }
 
-@media (max-width: 960px) {
+.pl-item{
+  border-style: solid;
+  border-width: 1px;
+  border-color: $grey-color;
+  border-radius: 16px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  .pl-title{
+    font-size: 18px;
+  }
+
+}
+
+@media (max-width: $small-screen-size) {
   .pl-hide-small {
     display: none;
   }
+  .pl-title {
+    font-size: 40px;
+  }
 }
+
+@media (min-width: $small-screen-size) {
+  .pl-show-small {
+    display: none;
+  }
+}
+
+

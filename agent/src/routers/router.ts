@@ -7,7 +7,7 @@ import Device from "../components/devices/Device.vue";
 import JobTaskDetail from "@/components/JobTaskDetail.vue";
 import Auth from "@/components/auth/Auth.vue";
 import Splash from "../components/auth/Splash.vue";
-import AgentDevices from "../components/agent/AgentDevices.vue";
+import AgentPage from "../components/agent/AgentPage.vue";
 import Devices from "../components/devices/Devices.vue";
 import Groups from "../components/groups/Groups.vue";
 import GroupDetails from "../components/groups/GroupDetails.vue";
@@ -42,7 +42,7 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'devices', component: Devices,},
         {path: 'groups', component: Groups,},
         {path: 'groups/:groupId', component: GroupDetails,},
-        {path: 'agentDevices', component: AgentDevices,},
+        {path: 'agentDevices', component: AgentPage,},
         {path: 'jobs', component: Jobs,},
         // {path: 'jobs/:jobId', component: Job},
         {path: 'jobs/:jobId/tasks/:taskId', component: JobTaskDetail},

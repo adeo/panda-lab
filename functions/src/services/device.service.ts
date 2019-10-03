@@ -3,6 +3,13 @@ import {AgentModel, CollectionName, Device, DeviceStatus} from "pandalab-commons
 
 class DeviceService {
 
+    async updateDeviceInfos(deviceId: string){
+        return admin.messaging().sendToTopic(deviceId, {
+            data: {
+                action: "refresh"
+            }
+        }, {timeToLive: 60})
+    }
 
     async updateDevicesInfos() {
 
@@ -13,13 +20,8 @@ class DeviceService {
         const devicesId = devices.docs.map(value => value.id);
         console.log("Ask update for " + devicesId.length + " devices");
         const promises = devicesId.map(async id =>
-            await admin.messaging().sendToTopic(id, {
-                data: {
-                    action: "refresh"
-                }
-            }, {timeToLive: 60})
+            await this.updateDeviceInfos(id)
         );
-
         return Promise.all(promises)
 
 

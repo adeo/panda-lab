@@ -122,6 +122,18 @@ exports.createMobileAgent = functions.https.onCall((data: any, context: Callable
     }
 });
 
+exports.updateDeviceInfos = functions.https.onCall(async (data: any, context: CallableContext) => {
+    console.log("updateDeviceInfos data = ", data);
+    const token: DecodedIdToken = context.auth!.token;
+    if (token.role === DESKTOP_AGENT) {
+        return deviceService.updateDeviceInfos(data.uid);
+    } else {
+        let message = `The role [${token.role}] is not authorized to update device infos`;
+        console.error(message);
+        throw new functions.https.HttpsError("role-unauthorized", message);
+    }
+});
+
 exports.createAgent = functions.https.onCall(async (data: any, context: CallableContext) => {
     console.log("createMobileAgent() data = ", data);
     const token: DecodedIdToken = context.auth!.token;

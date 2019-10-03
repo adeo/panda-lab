@@ -79,9 +79,7 @@ import {RuntimeEnv} from "../services/services.provider";
 
         @Watch('$route', {immediate: true, deep: true})
         onUrlChange(newVal: any) {
-            this.route = this.$route.path
-            console.log("route", this.route)
-            // Some action
+            this.route = this.$route.path;
         }
 
         protected isRoute(link: string): boolean {
@@ -131,6 +129,10 @@ import {RuntimeEnv} from "../services/services.provider";
 
         .item-content {
             color: white;
+        }
+
+        .md-icon{
+            margin-right: 20px;
         }
 
         .item-decorator-container:hover, .item-decorator-container.selected {
