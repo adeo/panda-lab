@@ -82,7 +82,7 @@ export class FirebaseRepository {
         return new Observable(emitter => {
             const subs = query
                 .onSnapshot(doc => {
-                    emitter.next(doc.docs.map(doc => this.toFirebaseModel<T>(doc)));
+                   emitter.next(doc.docs.map(doc => this.toFirebaseModel<T>(doc)));
                 }, error => {
                     console.log('query error', error);
                     emitter.error(error)

@@ -57,28 +57,35 @@
 <script lang="ts">
     import Vue from 'vue';
     import Component from "vue-class-component";
-    import {Services} from "../../services/services.provider";
+    import {Services, ServicesProvider} from "../../services/services.provider";
     import {Device, DevicesGroup} from "pandalab-commons";
     import {combineLatest} from "rxjs";
+    import * as winston from "winston";
 
     @Component
     export default class GroupDetails extends Vue {
         protected group: DevicesGroup = null;
         private devices: Device[];
-        private selectedDevices: Device[];
+        private selectedDevices: Device[] = [];
+        private edited: boolean = false;
+        private logger: winston.Logger;
 
+        constructor() {
+            super();
+            this.logger = Services.getInstance().logger;
+        }
 
         mounted() {
-            let observable = combineLatest(
-                Services.getInstance().devicesService.listenGroup(this.$route.params.groupId),
-                Services.getInstance().devicesService.listenDevices()
-            );
+            const observable = Services.getInstance().devicesService.listenerGroupAndDevices(this.$route.params.groupId);
             this.$subscribeTo(observable, result => {
                 this.group = result[0];
                 this.devices = result[1];
-                if (!this.selectedDevices) {
+                console.log(this.devices);
+                if (!this.edited) {
                     this.selectedDevices = this.group.devices.map(id => this.devices.find(d => d._ref.id == id)).filter(value => value != null)
                 }
+            }, err => {
+                this.logger.error(err);
             })
         }
 
@@ -86,7 +93,7 @@
 
             this.group.devices = this.selectedDevices.map(value => value._ref.id);
             Services.getInstance().devicesService.saveGroup(this.group)
-                .subscribe(value => {
+                .subscribe(() => {
                     console.log("group saved")
                 }, error => {
                     console.error("can't save group", error)
@@ -96,7 +103,7 @@
         }
 
         protected onSelect(items) {
-            this.selectedDevices = items
+            this.selectedDevices = items;
         }
 
         protected onBack() {
