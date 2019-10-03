@@ -1,8 +1,13 @@
 @import "~vue-material/dist/theme/engine"; // Import the theme engine
 
-$primary-color: md-get-palette-color(blue, 900);
+$primary-color: #4C0DDB; //md-get-palette-color(blue, 900);
 $accent-color: md-get-palette-color(red, 500);
+$grey-color: #EFEFEF;
 
+
+$success-color: #2F9E0F;
+$warm-color: orange;
+$error-color: $accent-color;
 
 @include md-register-theme("default", (
         primary: $primary-color, // The primary color of your application
@@ -10,3 +15,39 @@ $accent-color: md-get-palette-color(red, 500);
 ));
 
 @import "~vue-material/dist/theme/all"; // Apply the theme
+
+@import url('https://fonts.googleapis.com/css?family=Montserrat&display=swap');
+
+body {
+  font-family: 'Montserrat SemiBold', sans-serif;
+}
+
+
+.pl-theme-grey {
+  background: $grey-color;
+}
+
+.pl-theme-primary-inverse {
+  background: $primary-color;
+
+  .md-icon, span {
+    color: white;
+  }
+
+
+}
+
+.pl-container {
+  padding: 48px;
+}
+
+.pl-title {
+  font-size: 50px;
+  font-family: 'Montserrat ExtraBold', sans-serif;
+}
+
+@media (max-width: 960px) {
+  .pl-hide-small {
+    display: none;
+  }
+}

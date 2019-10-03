@@ -2,17 +2,16 @@ import {RuntimeEnv} from "../services/services.provider";
 <template>
     <div id="root">
         <div class="md-layout">
-            <div id="menu" class="md-layout-item  md-small-size-10  md-medium-size-20 md-size-15">
+            <div id="menu" class="pl-theme-primary-inverse md-layout-item  md-small-size-10  md-medium-size-20 md-size-15">
                 <md-list id="menu-list">
                     <div v-for="(menu, index) in menuItems" v-bind:key="index"
                          :class="[isRoute(menu.link)?'selected':'']" class="item-decorator-container"
                          @click="!isRoute(menu.link) ? openPage(menu.link) : ''">
                         <div class="item-decorator">
-                            <div class="top-border"></div>
-                            <div class="bottom-border"></div>
+                            <div class="top-border pl-theme-primary-inverse"></div>
+                            <div class="bottom-border pl-theme-primary-inverse"></div>
                         </div>
-                        <md-list-item class="menu-item"
-                                      >
+                        <md-list-item class="menu-item">
                             <md-icon class="md-list-item-icon item-content">
                                 {{menu.icon}}
                             </md-icon>
@@ -44,7 +43,7 @@ import {RuntimeEnv} from "../services/services.provider";
             },
             {
                 name: "Devices",
-                icon: "devices",
+                icon: "phone_android",
                 link: "/devices"
             },
             {
@@ -73,7 +72,7 @@ import {RuntimeEnv} from "../services/services.provider";
                 this.menuItems.push({
                     name: 'Agent',
                     link: '/agentDevices',
-                    icon: 'phone_android'
+                    icon: 'devices'
                 })
             }
         }
@@ -104,9 +103,6 @@ import {RuntimeEnv} from "../services/services.provider";
 </script>
 <style scoped lang="scss">
 
-    @import '../assets/css/theme';
-
-
     #root {
         height: 100%;
         width: 100%;
@@ -119,10 +115,6 @@ import {RuntimeEnv} from "../services/services.provider";
 
     .md-layout-item {
         transition: max-width 0.3s ease, min-width 0.3s ease;
-    }
-
-    #menu {
-        background: $primary-color;
     }
 
     .item-decorator-container {
@@ -152,33 +144,39 @@ import {RuntimeEnv} from "../services/services.provider";
             }
         }
 
+        $menu-size : 48px;
+
+        .item-decorator-container .item-decorator div{
+            border-radius: 0;
+        }
+
         .item-decorator-container.selected {
             z-index: 0;
 
             .item-decorator {
                 position: absolute;
                 right: 0;
-                height: 48*2px;
-                top: -24px;
-                width: 24px;
+                height: $menu-size*2;
+                top: -$menu-size/2;
+                width: $menu-size/2;
                 background: white;
                 overflow: hidden;
 
                 div {
                     border-radius: 100%;
-                    background: $primary-color;
+                    transition: border-radius 0.3s ease;
                     width: 200%;
-                    height: 48px;
-                    left: -24px;
+                    height: $menu-size;
+                    left: -$menu-size/2;
                     position: absolute;
                 }
 
                 .top-border {
-                    top: -24px
+                    top: -$menu-size/2;
                 }
 
                 .bottom-border {
-                    bottom: -24px
+                    bottom: -$menu-size/2;
                 }
             }
         }
@@ -187,7 +185,7 @@ import {RuntimeEnv} from "../services/services.provider";
     }
 
     #content {
-        padding: 24px;
+        background: white;
     }
 
     @media (max-width: 960px) {

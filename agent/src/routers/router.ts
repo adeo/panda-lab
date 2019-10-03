@@ -38,6 +38,7 @@ const HOME_ROUTE: RouteConfig = {
 
     children: [
         {path: '/', redirect: 'devices'},
+        {path: '/home', redirect: 'devices'},
         {path: 'devices', component: Devices,},
         {path: 'groups', component: Groups,},
         {path: 'groups/:groupId', component: GroupDetails,},
