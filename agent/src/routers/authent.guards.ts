@@ -4,17 +4,24 @@ import {getRuntimeEnv, RuntimeEnv, Services} from "../services/services.provider
 export const AuthentGuard: NavigationGuard = async (to, from, next) => {
     const isLogged = await isUserLoggedAsync();
 
+    let goto = null;
+
     if (!isLogged) {
-        next("/login")
-    } else {
-        const isConfigured = await isConfiguredAsync();
-        if (!isConfigured) {
-            next("/splash")
-        } else {
-            next()
-        }
+        goto = "/login";
+    } else if (!await isConfiguredAsync()) {
+        goto = "/splash";
     }
+
+    if (goto != null && goto !== to.path) {
+        console.log("AuthentGuard redirect to " + goto);
+        next(goto)
+    } else {
+        console.log("AuthentGuard authorized " + to.path);
+        next()
+    }
+
 };
+
 
 // export const AuthentNotConfiguredGuard: NavigationGuard = async (to, from, next) => {
 //     const isLogged = await isUserLoggedAsync();
