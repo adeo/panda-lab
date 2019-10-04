@@ -65,9 +65,14 @@ service cloud.firestore {
         allow delete: if isAgent();
     }
 
-    match /jobs-tasks/{jobTask} {
+    match /tasks/{taskId} {
         allow read: if isAgent() || isAdmin() || isUser();
         allow write: if false;
+    }
+
+    match /user-security/{id} {
+        allow read: if isAdmin();
+        allow write: if isAdmin();
     }
   }
 }
