@@ -142,6 +142,9 @@ class LocalServicesProvider implements ServicesProvider {
             this.firebaseRepo
         );
 
+        const authLogger = this.logger.child({context: 'Auth'});
+
+
         switch (runtimeEnv) {
             case RuntimeEnv.ELECTRON_MAIN: {
 
@@ -153,7 +156,7 @@ class LocalServicesProvider implements ServicesProvider {
                 this.store = new ElectronStoreRepository();
                 const adbRepository = new AdbService();
                 const workspaceRepository = new FilesRepository(this.logger.child({context: 'Workspace'}));
-                this.authService = new FirebaseAuthService(this.firebaseRepo, this.store);
+                this.authService = new FirebaseAuthService(authLogger, this.firebaseRepo, this.store);
                 const agentRepository = new SetupService(workspaceRepository, this.authService, this.firebaseRepo, this.store);
                 const agentService = new AgentService(
                     this.logger.child({context: "Agent"}),
@@ -175,14 +178,14 @@ class LocalServicesProvider implements ServicesProvider {
 
                 this.node = {
                     agentService: agentService
-                }
+                };
 
                 spoonRepo.setup();
                 break;
             }
             case RuntimeEnv.WEB: {
                 this.store = new WebStoreRepository();
-                this.authService = new FirebaseAuthService(this.firebaseRepo, this.store);
+                this.authService = new FirebaseAuthService(authLogger, this.firebaseRepo, this.store);
                 break;
             }
         }

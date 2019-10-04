@@ -60,18 +60,24 @@ export class AdbService {
             interval(2000),
             adbEventObs,
         ).pipe(
-            doOnSubscribe(() => this.updateAdbStatusFlux(AdbStatusState.LOADING)),
+            doOnSubscribe(() => {
+                this.updateDevicesFlux([]);
+                this.updateAdbStatusFlux(AdbStatusState.LOADING)
+            }),
             switchMap(() => this.adbClient.listDevicesWithPaths())
         ).subscribe(values => {
             this.updateAdbStatusFlux(AdbStatusState.STARTED);
             this.updateDevicesFlux(values as any)
         }, error => {
             this.updateAdbStatusFlux(AdbStatusState.STOPPED);
+            this.updateDevicesFlux([]);
+
             console.log("TrackingAdb error", error);
             setTimeout(() => {
                 this.restartAdbTracking();
             }, 10000);
         }, () => {
+            this.updateDevicesFlux([]);
             this.updateAdbStatusFlux(AdbStatusState.STOPPED);
         })
     }

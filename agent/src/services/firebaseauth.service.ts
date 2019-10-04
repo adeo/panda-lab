@@ -9,6 +9,7 @@ import {FirebaseFunctions} from '@firebase/functions-types';
 import {StoreRepository} from "./repositories/store.repository";
 import UserCredential = firebase.auth.UserCredential;
 import {CollectionName} from "pandalab-commons";
+import winston from "winston";
 
 export class FirebaseAuthService {
 
@@ -18,38 +19,35 @@ export class FirebaseAuthService {
     private functions: FirebaseFunctions;
     private userBehaviour = new BehaviorSubject<UserLab>(null);
 
-    constructor(private firebaseRepo: FirebaseRepository, private storeRepository: StoreRepository) {
+    constructor(private logger: winston.Logger,private firebaseRepo: FirebaseRepository, private storeRepository: StoreRepository) {
         this.auth = this.firebaseRepo.firebase.auth();
         this.functions = this.firebaseRepo.firebase.functions();
-
-
         this.setup()
-
     }
 
     private async setup() {
         const refreshData = this.storeRepository.load(FirebaseAuthService.AGENT_TOKEN_KEY, null);
         if (refreshData) {
             try {
-                console.info("try to restore session", refreshData);
+                this.logger.info("try to restore session");
                 let oldToken = JSON.parse(refreshData);
                 const result = await this.firebaseRepo.firebase.functions().httpsCallable("refreshCustomToken")(oldToken);
                 const newToken = result.data.token;
                 this.saveToken(newToken, oldToken.uid);
                 const user = await this.auth.signInWithCustomToken(newToken);
-                console.log("session restored", user.user.uid);
+                this.logger.info("session restored");
 
             } catch (e) {
-                console.error("can't restore session", e)
+                this.logger.error("can't restore session", e)
             }
 
         }
 
 
-        console.log('start listening');
+        this.logger.verbose('start listening');
         this.auth.onAuthStateChanged(user => {
             if (user) {
-                console.log('firebase user logged');
+                this.logger.verbose('firebase user logged');
                 user.getIdTokenResult().then(value => {
                     this.userBehaviour.next(
                         {
@@ -59,7 +57,7 @@ export class FirebaseAuthService {
                     );
                 })
             } else {
-                console.log("firebase user is not logged");
+                this.logger.verbose("firebase user is not logged");
                 this.userBehaviour.next({role: null, uuid: null});
             }
         });
@@ -97,7 +95,6 @@ export class FirebaseAuthService {
                 uid: uid,
             })
                 .then(result => {
-                    console.log('createAgentToken result = ', result);
                     emitter.next(result.data.token);
                     emitter.complete();
                 })
@@ -108,13 +105,11 @@ export class FirebaseAuthService {
     }
 
     signInWithAgentToken(agentToken: string, agentUUID: string): Observable<UserLab> {
-        console.log("signInWithAgentToken : agent token = " + agentToken + " agent uuid = " + agentUUID);
-
         return from(firebase.auth().signInWithCustomToken(agentToken))
             .pipe(
                 flatMap((userCredentials: UserCredential) => userCredentials.user.updateProfile({displayName: agentUUID})),
                 tap(() => {
-                    console.log("save token");
+                    this.logger.verbose("save agent token");
                     this.saveToken(agentToken, agentUUID);
                 }),
                 flatMap(() => this.listenUser().pipe(filter(value1 => value1 != null && value1.uuid === agentUUID), first()))
