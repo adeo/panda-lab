@@ -4,7 +4,8 @@ import Timestamp = firestore.Timestamp;
 
 export enum Role {
     admin = "admin",
-    guest = "guest"
+    guest = "guest",
+    user = "user",
 }
 
 export interface User extends FirebaseModel {

@@ -14,7 +14,7 @@ import DecodedIdToken = admin.auth.DecodedIdToken;
 
 admin.initializeApp({
     credential: admin.credential.applicationDefault(),
-    databaseURL: "https://panda-lab-lm.firebaseio.com",N
+    databaseURL: "https://panda-lab-lm.firebaseio.com",
     storageBucket: "panda-lab-lm.appspot.com"
 });
 
@@ -56,6 +56,11 @@ admin.firestore().collection('user-security')
                     }).catch(reason => {
                     console.error("can't add claim", reason)
                 });
+            } else if (change.type === 'removed' ) {
+                admin.auth().deleteUser(change.doc.id)
+                    .catch(reason => {
+                        console.error("Can't delete auth user", reason);
+                    });
             }
         });
     });
@@ -67,7 +72,6 @@ interface DeveloperClaims {
 const MOBILE_AGENT = "mobile-agent";
 const DESKTOP_AGENT = "agent";
 const ADMIN = "admin";
-// const USER = "user";
 const GUEST = "guest";
 
 function createCustomToken(uid: string, role: string, parentUid: string): Promise<{ token: string }> {
