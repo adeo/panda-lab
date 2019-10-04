@@ -44,7 +44,7 @@ export class SpoonService {
 
     private listenJobs(): Observable<any> {
         const notifier = new BehaviorSubject<any>(null);
-        const tasksQuery = this.firebaseRepo.getCollection(CollectionName.JOBS_TASKS).where('status', '==', TaskStatus.pending);
+        const tasksQuery = this.firebaseRepo.getCollection(CollectionName.TASKS).where('status', '==', TaskStatus.pending);
         const tasksAsync = this.firebaseRepo.listenQuery<JobTask>(tasksQuery)
             .pipe(
                 map(tasks => {

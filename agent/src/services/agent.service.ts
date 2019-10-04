@@ -133,7 +133,7 @@ export class AgentService {
             this.changeBehaviour
         ])
             .pipe(
-                debounceTime(500),
+                debounceTime(200),
                 map(value => <{ firebaseDevices: Device[], adbDevices: DeviceAdb[] }>{
                     firebaseDevices: value[0],
                     adbDevices: value[1]
@@ -378,10 +378,7 @@ export class AgentService {
                     .pipe(map(() => result))),
                 tap(() => subject.next({log: 'Wait for the device in database...', type: DeviceLogType.INFO})),
                 flatMap(result => this.firebaseRepo.listenDocument(CollectionName.DEVICES, result.uuid)),
-                first(device => {
-                    console.log("result.uuid", device)
-                    return device !== null
-                }),
+                first(device => device !== null),
                 tap(() => {
                     subject.next({log: 'Device enrolled ...', type: DeviceLogType.INFO});
                     subject.complete()

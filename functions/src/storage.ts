@@ -73,7 +73,7 @@ async function extractSpoonReport(path: string) {
 
     const id = Object.keys(json.results)[0];
     const value = json.results[id];
-    const jobTaskRef = admin.firestore().collection(CollectionName.JOBS_TASKS).doc(taskId);
+    const jobTaskRef = admin.firestore().collection(CollectionName.TASKS).doc(taskId);
     const jobTask = (await jobTaskRef.get()).data() as JobTask;
 
     const testLogs = new Map<DocumentReference, LogsModel>();

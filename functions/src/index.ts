@@ -205,7 +205,7 @@ exports.onDeviceUpdated = functions.firestore.document(CollectionName.DEVICES + 
 });
 
 
-exports.onTaskWrite = functions.firestore.document(CollectionName.JOBS_TASKS + '/{taskId}').onWrite(async (change: Change<DocumentSnapshot>, context: EventContext) => {
+exports.onTaskWrite = functions.firestore.document(CollectionName.TASKS + '/{taskId}').onWrite(async (change: Change<DocumentSnapshot>, context: EventContext) => {
     console.log('onTaskWrite');
     if (!change.after.exists) {
         console.log('onTaskWrite value don\'t exist');
@@ -218,7 +218,7 @@ exports.onTaskWrite = functions.firestore.document(CollectionName.JOBS_TASKS + '
 });
 
 exports.onRemoveJob = functions.firestore.document(CollectionName.JOBS + '/{jobId}').onDelete(async (snapshot: DocumentSnapshot, context: EventContext) => {
-    const collection = admin.firestore().collection(CollectionName.JOBS_TASKS);
+    const collection = admin.firestore().collection(CollectionName.TASKS);
     const query: QuerySnapshot = await collection.where('job', '==', snapshot.id).get();
     query.docs.forEach(doc => doc.ref.delete());
 });

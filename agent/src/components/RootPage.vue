@@ -210,8 +210,8 @@ import {RuntimeEnv} from "../services/services.provider";
 
     @media (max-width: 960px) {
         #menu-list {
-            width: 100%;
-            margin-left: 0;
+            width: 98%;
+            margin-left: 2%;
         }
         .md-list-item-text {
             display: none;

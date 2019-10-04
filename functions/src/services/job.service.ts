@@ -103,7 +103,7 @@ class JobService {
                     timeout: admin.firestore.Timestamp.fromMillis(admin.firestore.Timestamp.now().seconds * 1000 + timeoutInMillis)
                 } as JobTask;
                 (taskObj as any).device = null;
-                return await admin.firestore().collection(CollectionName.JOBS_TASKS).add(taskObj);
+                return await admin.firestore().collection(CollectionName.TASKS).add(taskObj);
             }
         ));
 
@@ -132,7 +132,7 @@ class JobService {
 
         const jobRef = task.job;
 
-        const tasksList = await admin.firestore().collection(CollectionName.JOBS_TASKS).where("job", "==", jobRef).get();
+        const tasksList = await admin.firestore().collection(CollectionName.TASKS).where("job", "==", jobRef).get();
 
 
         const jobTasks = tasksList.docs.map(value => <JobTask>{
@@ -235,7 +235,7 @@ class JobService {
     }
 
     async checkTaskTimeout() {
-        const timeoutTasks = await admin.firestore().collection(CollectionName.JOBS_TASKS)
+        const timeoutTasks = await admin.firestore().collection(CollectionName.TASKS)
             .where("completed", "==", false)
             .where("timeout", '<', admin.firestore.Timestamp.now())
             .get();
@@ -255,7 +255,7 @@ class JobService {
         if (currentTask) {
             tasksDocs = [currentTask]
         } else {
-            const tasksQuery = await admin.firestore().collection(CollectionName.JOBS_TASKS)
+            const tasksQuery = await admin.firestore().collection(CollectionName.TASKS)
                 .where("status", "==", JobStatus.pending)
                 .where("device", "==", null)
                 .get();
@@ -281,7 +281,7 @@ class JobService {
             for (const taskDoc of tasksDocs) {
                 const task = taskDoc.data() as JobTask;
 
-                const jobTasksQuery = await admin.firestore().collection(CollectionName.JOBS_TASKS)
+                const jobTasksQuery = await admin.firestore().collection(CollectionName.TASKS)
                     .where("job", "==", task.job);
 
                 const jobTasksSnapshot = await transaction.get(jobTasksQuery);

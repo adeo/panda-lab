@@ -7,7 +7,7 @@ export interface FirebaseModel {
 
 
 export enum CollectionName {
-    JOBS_TASKS = "jobs-tasks",
+    TASKS = "tasks",
     JOBS = "jobs",
     ARTIFACTS = "artifacts",
     VERSIONS = "versions",
