@@ -44,7 +44,13 @@
 
         <div id="logs-container" :class="showLogs?'':'closed'">
             <div>
-                <span v-for="(log, index) in deviceLogs" v-bind:key="index">{{log.log}}</span>
+                <div class="logs-line md-layout"
+                     v-for="(log, index) in deviceLogs"
+                     v-bind:key="index">
+                    <span class="log-infos">{{formatter.formatHour(new Date(log.timestamp))}}</span>
+                    <span class="log-infos" :class="'log-'+log.value.type">{{log.value.type}}:</span>
+                    <span class="md-layout-item">{{log.value.log}}</span>
+                </div>
                 <span v-if="deviceLogs.length === 0">No logs available</span>
             </div>
         </div>
@@ -72,14 +78,17 @@
     import {ActionType, AgentDeviceData, AgentService} from "../../services/agent.service";
     import {DeviceStatus} from "pandalab-commons";
     import {Services} from "../../services/services.provider";
+    import {DateFormatter} from "../utils/Formatter";
 
     @Component
     export default class AgentDevice extends Vue {
 
         @Prop({required: true}) data: AgentDeviceData;
 
+        protected formatter = new DateFormatter();
+
         public device: DeviceVue;
-        public deviceLogs: DeviceLog[] = [];
+        public deviceLogs: Timestamp<DeviceLog>[] = [];
 
         //public deviceLastLog: string = "";
         //public deviceLastLogError: boolean = false;
@@ -148,12 +157,11 @@
 
             let actionLogs = this.data.action;
             if (actionLogs && !actionLogs.isStopped) {
-                this.deviceLogs = this.data.action.getValue().map(value => value.value);
-                //this.refreshLastLog();
-                this.$subscribeTo(actionLogs, (logs: Timestamp<DeviceLog>[]) => {
-                    this.deviceLogs = logs.map(value => value.value);
-
-                    //this.refreshLastLog()
+                this.$subscribeTo(actionLogs, (log: Timestamp<DeviceLog>) => {
+                    this.deviceLogs = [log].concat(this.deviceLogs);
+                    while (this.deviceLogs.length > 10) {
+                        this.deviceLogs.pop()
+                    }
                 })
             }
 
@@ -166,6 +174,7 @@
 
 
         }
+
         // private refreshLastLog() {
         //     if (this.deviceLogs.length > 0) {
         //         const lastLog = this.deviceLogs[this.deviceLogs.length - 1];
@@ -251,6 +260,19 @@
 
     }
 
+    .log-infos {
+        min-width: 55px;
+        text-align: center;
+    }
+
+    .log-error {
+        color: $error-color;
+    }
+
+    .log-info {
+        color: $success-color;
+    }
+
     .status-available {
         background: $success-color;
     }
@@ -293,7 +315,7 @@
         overflow: scroll;
         display: block;
 
-        div {
+        > div {
             display: flex;
             flex-direction: column;
             padding: 8px 8px;

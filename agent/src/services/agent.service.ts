@@ -25,6 +25,7 @@ import {
     flatMap,
     ignoreElements,
     map,
+    retry,
     startWith,
     tap,
     timeout,
@@ -94,7 +95,7 @@ export class AgentService {
         return this.agentRepo.agentStatus
     }
 
-    reloadAdb(){
+    reloadAdb() {
         return this.adb.restartAdbTracking()
     }
 
@@ -105,7 +106,7 @@ export class AgentService {
         return this.agentDevicesData;
     }
 
-    public updateDeviceInfos(deviceUid: string){
+    public updateDeviceInfos(deviceUid: string) {
         return this.firebaseRepo.firebase.functions().httpsCallable("updateDeviceInfos")({uid: deviceUid})
     }
 
@@ -120,7 +121,6 @@ export class AgentService {
 
     private cachedDeviceIds: Map<string, { date: number, id: string }>;
     private currentAdbDevices: DeviceAdb[] = [];
-
 
 
     private listenDevices(): Observable<AgentDeviceData[]> {
@@ -285,20 +285,19 @@ export class AgentService {
         return this.agentRepo.UUID;
     }
 
-    private startAction(type: ActionType, action: Observable<Timestamp<DeviceLog>>): BehaviorSubject<Timestamp<DeviceLog>[]> {
-        const subject = new BehaviorSubject<Timestamp<DeviceLog>[]>([]);
+    private startAction(type: ActionType, action: Observable<Timestamp<DeviceLog>>): ReplaySubject<Timestamp<DeviceLog>> {
+        const subject = new ReplaySubject<Timestamp<DeviceLog>>();
         action.pipe(
             catchError(err => {
                 this.logger.warn("Action error", err);
                 return of(<DeviceLog>{log: err, type: DeviceLogType.ERROR})
             }),
             map((log: Timestamp<DeviceLog>) => {
-                let logs = subject.getValue();
-                logs.push(log);
-                this.logger.info(type + " - action log : " + log.value.log);
-                return logs;
+                log.value.log = "[" + type + "] " + log.value.log;
+                this.logger.info(log.value.log);
+                return log;
             }))
-            .subscribe(value => {
+            .subscribe((value: Timestamp<DeviceLog>) => {
                 subject.next(value)
             }, error => {
                 this.logger.error(type + " - Action finish with error", error);
@@ -335,14 +334,13 @@ export class AgentService {
                         log: "try to connect to ip " + device.firebaseDevice.ip,
                         type: DeviceLogType.INFO
                     }),
-                    endWith(<DeviceLog>{log: "connected to device", type: DeviceLogType.INFO}),
+                    timestamp(),
                     catchError(err => {
                         this.logger.warn("Can't connect to device on " + device.firebaseDevice.ip, err);
                         device.firebaseDevice.ip = "";
                         device.firebaseDevice.lastTcpActivation = 0;
                         return this.updateDeviceAction(device.firebaseDevice, "Remove device ip");
                     }),
-                    timestamp(),
                 )
         )
     }
@@ -380,7 +378,10 @@ export class AgentService {
                     .pipe(map(() => result))),
                 tap(() => subject.next({log: 'Wait for the device in database...', type: DeviceLogType.INFO})),
                 flatMap(result => this.firebaseRepo.listenDocument(CollectionName.DEVICES, result.uuid)),
-                first(device => device !== null),
+                first(device => {
+                    console.log("result.uuid", device)
+                    return device !== null
+                }),
                 tap(() => {
                     subject.next({log: 'Device enrolled ...', type: DeviceLogType.INFO});
                     subject.complete()
@@ -411,7 +412,7 @@ export class AgentService {
                     return parse.device_id
                 }),
                 first(),
-                timeout(6000)
+                timeout(4000)
             );
 
         const sendTransaction = of("").pipe(delay(500), flatMap(() => this.adb.sendBroadcastWithData(deviceId,
@@ -425,6 +426,7 @@ export class AgentService {
                         throw AgentError.notInstalled()
                     }
                     return zip(logcatObs, sendTransaction)
+                        .pipe(retry(1))
                 }),
                 map(values => values[0])
             )
@@ -442,7 +444,7 @@ export interface AgentDeviceData {
     actionType: ActionType,
     adbDevice: DeviceAdb,
     firebaseDevice?: Device,
-    action: BehaviorSubject<Timestamp<DeviceLog>[]>
+    action: ReplaySubject<Timestamp<DeviceLog>>
 }
 
 export enum ActionType {

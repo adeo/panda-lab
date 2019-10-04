@@ -123,12 +123,6 @@
             })
         }
 
-        @Subscription()
-        listenDeviceLogs(device: AgentDeviceData): Observable<Timestamp<DeviceLog>[]> {
-            return device && device.action ? device.action : EMPTY;
-        }
-
-
         reloadAdb() {
             this.agentService.reloadAdb()
         }

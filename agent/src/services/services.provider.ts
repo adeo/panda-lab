@@ -150,7 +150,7 @@ class LocalServicesProvider implements ServicesProvider {
 
 
                 this.store = new ElectronStoreRepository();
-                const adbRepository = new AdbService();
+                const adbRepository = new AdbService(this.logger.child({context: 'Adb'}));
                 const workspaceRepository = new FilesRepository(this.logger.child({context: 'Workspace'}));
                 this.authService = new FirebaseAuthService(authLogger, this.firebaseRepo, this.store);
                 const agentRepository = new SetupService(workspaceRepository, this.authService, this.firebaseRepo, this.store);

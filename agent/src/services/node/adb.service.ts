@@ -1,8 +1,9 @@
 import {BehaviorSubject, from, interval, merge, Observable, Subscription} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
 import {DeviceLog, DeviceLogType} from "../../models/device";
-import {distinctUntilChanged, map, switchMap, timeout} from "rxjs/operators";
+import {distinctUntilChanged, first, map, switchMap, timeout} from "rxjs/operators";
 import {doOnSubscribe} from "../../utils/rxjs";
+import winston from "winston";
 
 export class AdbService {
 
@@ -14,7 +15,7 @@ export class AdbService {
     private adb: any;
     private trackingSub: Subscription;
 
-    constructor() {
+    constructor(private logger: winston.Logger) {
         this.adb = require('adbkit');
         this.adbClient = this.adb.createClient();
         this.request = require('request');
@@ -32,21 +33,21 @@ export class AdbService {
                 this.adbClient.trackDevices()
                     .then(tracker => {
                         tracker.on('add', device => {
-                            console.log('Device %s was plugged in', device.id);
+                            this.logger.info('Device ' + device.id + 's was plugged in');
                             subscriber.next(1)
                         });
                         tracker.on('remove', device => {
-                            console.log('Device %s was unplugged', device.id);
+                            this.logger.info('Device ' + device.id + 's was unplugged');
                             subscriber.next(-1)
 
                         });
                         tracker.on('end', () => {
-                            console.log('Tracking stopped');
+                            this.logger.warn('Tracking stopped');
                             subscriber.error("'Tracking stopped'")
                         });
                     })
                     .catch(err => {
-                        console.error('Something went wrong:', err.stack);
+                        this.logger.error('Something went wrong', err);
                         subscriber.error(err)
                     });
             }
@@ -72,7 +73,7 @@ export class AdbService {
             this.updateAdbStatusFlux(AdbStatusState.STOPPED);
             this.updateDevicesFlux([]);
 
-            console.log("TrackingAdb error", error);
+            this.logger.error("TrackingAdb error", error);
             setTimeout(() => {
                 this.restartAdbTracking();
             }, 10000);
@@ -210,9 +211,13 @@ export class AdbService {
         return from(this.adbClient.install(deviceId, path))
     }
 
-    connectIp(ip: string): Observable<any> {
+    connectIp(ip: string): Observable<DeviceLog> {
         return from(this.adbClient.connect(ip, 5555))
-            .pipe(timeout(10000))
+            .pipe(
+                first(),
+                map(() => <DeviceLog>{log: "connected to device", type: DeviceLogType.INFO}),
+                timeout(10000)
+            )
     }
 }
 
