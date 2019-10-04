@@ -1,24 +1,26 @@
 <template>
-    <div>
-        <h2 class="devices-home-title md-display-1">Applications :</h2>
-        <template v-if="apps">
-            <div class="md-layout md-gutter md-alignment-top-left">
-                <div v-for="app in apps" v-bind:key="app._ref.id" class="md-app-cell">
-                    <AppCell class="md-medium-size-33"
-                             :app="app"></AppCell>
+    <div class="md-layout">
+        <div class="md-layout-item pl-container">
+            <h2 class="pl-title">Applications</h2>
+            <template v-if="apps">
+                <div class="md-layout md-gutter md-alignment-top-left">
+                    <div v-for="app in apps" v-bind:key="app._ref.id" class="md-app-cell">
+                        <AppCell class="md-medium-size-33"
+                                 :app="app"></AppCell>
+                    </div>
                 </div>
-            </div>
-            <div class="apps-card-container">
-            </div>
-        </template>
-        <template v-else>
-            <md-empty-state
-                    md-rounded
-                    md-icon="apps"
-                    md-label="No application found"
-                    md-description="Upload artifacts to create you first app">
-            </md-empty-state>
-        </template>
+                <div class="apps-card-container">
+                </div>
+            </template>
+            <template v-else>
+                <md-empty-state
+                        md-rounded
+                        md-icon="apps"
+                        md-label="No application found"
+                        md-description="Upload artifacts to create you first app">
+                </md-empty-state>
+            </template>
+        </div>
     </div>
 </template>
 <script lang="ts">

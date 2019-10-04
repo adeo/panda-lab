@@ -1,35 +1,38 @@
 <template>
-    <div>
-        <h2 class="devices-home-title md-display-1">Groups:</h2>
-        <template v-if="groups">
-            <div class="devices-list-container">
-                <md-table v-model="groups" md-card md-sort="status" md-sort-order="asc" md-fixed-header>
-                    <md-table-row slot="md-table-row" slot-scope="{ item }" v-on:click="onDisplayDetail(item._ref.id)">
-                        <md-table-cell md-label="ID" md-numeric> {{ item._ref.id }}</md-table-cell>
-                        <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
-                        <md-table-cell md-label="Devices" md-sort-by="phoneBrand">{{ item.devices.length }}
-                        </md-table-cell>
-                    </md-table-row>
-                </md-table>
-            </div>
+    <div class="md-layout">
+        <div class="md-layout-item pl-container">
+            <h2 class="pl-title">Groups</h2>
+            <template v-if="groups">
+                <div class="devices-list-container">
+                    <md-table v-model="groups" md-card md-sort="status" md-sort-order="asc" md-fixed-header>
+                        <md-table-row slot="md-table-row" slot-scope="{ item }"
+                                      v-on:click="onDisplayDetail(item._ref.id)">
+                            <md-table-cell md-label="ID" md-numeric> {{ item._ref.id }}</md-table-cell>
+                            <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
+                            <md-table-cell md-label="Devices" md-sort-by="phoneBrand">{{ item.devices.length }}
+                            </md-table-cell>
+                        </md-table-row>
+                    </md-table>
+                </div>
 
-            <md-button @click="createGroup()" id="addbutton" class="md-fab md-primary">
-                <md-icon>add</md-icon>
-            </md-button>
-        </template>
-        <template v-else>
-            <p>LOADING...</p>
-        </template>
+                <md-button @click="createGroup()" id="addbutton" class="md-fab md-primary">
+                    <md-icon>add</md-icon>
+                </md-button>
+            </template>
+            <template v-else>
+                <p>LOADING...</p>
+            </template>
 
 
-        <md-dialog-prompt
-                :md-active.sync="activeDialog"
-                v-model="groupName"
-                md-title="Group name"
-                md-input-maxlength="70"
-                md-input-placeholder="group name..."
-                v-on:md-confirm="confirmDialog"
-                md-confirm-text="Done"/>
+            <md-dialog-prompt
+                    :md-active.sync="activeDialog"
+                    v-model="groupName"
+                    md-title="Group name"
+                    md-input-maxlength="70"
+                    md-input-placeholder="group name..."
+                    v-on:md-confirm="confirmDialog"
+                    md-confirm-text="Done"/>
+        </div>
     </div>
 
 </template>
@@ -52,8 +55,8 @@
         })
         groups: DevicesGroup[] = [];
 
-        onDisplayDetail(id: string){
-            this.$router.push('/groups/' +id );
+        onDisplayDetail(id: string) {
+            this.$router.push('/groups/' + id);
 
         }
 
@@ -63,7 +66,7 @@
 
         confirmDialog(value) {
             this.groupName = "";
-            if(value){
+            if (value) {
                 Services.getInstance().devicesService.createGroup(value)
                     .subscribe(group => {
                         this.onDisplayDetail(group._ref.id)

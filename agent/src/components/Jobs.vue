@@ -1,26 +1,25 @@
 <template>
-    <div id="jobs">
-        <md-table id="table" md-card>
-            <md-table-toolbar>
-                <h1 class="md-title">Liste des jobs</h1>
-            </md-table-toolbar>
-            <md-table-row>
-                <md-table-head>ID</md-table-head>
-                <md-table-head>Apk</md-table-head>
-                <md-table-head>Test</md-table-head>
-                <md-table-head>Completed</md-table-head>
-                <md-table-head>Tasks</md-table-head>
-            </md-table-row>
-            <md-table-row v-for="job in jobs" v-bind:key="job.id" v-on:click="onSelect(job)" md-selectable="single"
-                          class="md-primary">
-                <md-table-cell>{{ job._ref.id }}</md-table-cell>
-                <md-table-cell>{{ job.apk.id }}</md-table-cell>
-                <md-table-cell>{{ job.apk_test.id }}</md-table-cell>
-                <md-table-cell>{{ job.completed }}</md-table-cell>
-                <md-table-cell>{{ job.status }}</md-table-cell>
-            </md-table-row>
-        </md-table>
-
+    <div class="md-layout">
+        <div class="md-layout-item pl-container">
+            <h2 class="pl-title">Jobs</h2>
+            <md-table id="table" md-card>
+                <md-table-row>
+                    <md-table-head>ID</md-table-head>
+                    <md-table-head>Apk</md-table-head>
+                    <md-table-head>Test</md-table-head>
+                    <md-table-head>Completed</md-table-head>
+                    <md-table-head>Tasks</md-table-head>
+                </md-table-row>
+                <md-table-row v-for="job in jobs" v-bind:key="job.id" v-on:click="onSelect(job)" md-selectable="single"
+                              class="md-primary">
+                    <md-table-cell>{{ job._ref.id }}</md-table-cell>
+                    <md-table-cell>{{ job.apk.id }}</md-table-cell>
+                    <md-table-cell>{{ job.apk_test.id }}</md-table-cell>
+                    <md-table-cell>{{ job.completed }}</md-table-cell>
+                    <md-table-cell>{{ job.status }}</md-table-cell>
+                </md-table-row>
+            </md-table>
+        </div>
     </div>
 
 </template>

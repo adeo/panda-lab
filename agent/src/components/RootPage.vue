@@ -204,6 +204,8 @@ import {RuntimeEnv} from "../services/services.provider";
 
     #content {
         background: white;
+        height: 100%;
+        overflow: scroll;
     }
 
     @media (max-width: 960px) {

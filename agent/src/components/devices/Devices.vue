@@ -1,13 +1,15 @@
 <template>
-    <div>
-        <h2 class="devices-home-title md-display-1">Devices:</h2>
-        <md-button class="md-icon-button" v-on:click="gridMode = false; onListMode();" v-bind:class="{ 'md-primary': !gridMode }">
-            <md-icon>list</md-icon>
-        </md-button>
-        <md-button class="md-icon-button" v-on:click="gridMode = true; onListMode();" v-bind:class="{ 'md-primary': gridMode }">
-            <md-icon>grid_on</md-icon>
-        </md-button>
-        <list-device :gridMode="gridMode" :devices="devices" :onClickDevice="onDisplayDetail"></list-device>
+    <div class="md-layout">
+        <div class="md-layout-item pl-container">
+            <h2 class="pl-title">Devices</h2>
+            <md-button class="md-icon-button" v-on:click="gridMode = false; onListMode();" v-bind:class="{ 'md-primary': !gridMode }">
+                <md-icon>list</md-icon>
+            </md-button>
+            <md-button class="md-icon-button" v-on:click="gridMode = true; onListMode();" v-bind:class="{ 'md-primary': gridMode }">
+                <md-icon>grid_on</md-icon>
+            </md-button>
+            <list-device :gridMode="gridMode" :devices="devices" :onClickDevice="onDisplayDetail"></list-device>
+        </div>
     </div>
 </template>
 
