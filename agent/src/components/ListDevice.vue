@@ -45,7 +45,7 @@
 
 <script lang="ts">
     import {Component, Prop, Vue} from "vue-property-decorator";
-    import {Device} from "pandalab-commons";
+    import {Device, Role} from "pandalab-commons";
 
     @Component
     export default class ListDevice extends Vue {
@@ -73,6 +73,7 @@
             if (this.onClickDevice) {
                 this.onClickDevice(device);
             }
+
             // this.$router.push('/devices/' + device._ref.id);
         }
 

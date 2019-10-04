@@ -7,28 +7,22 @@
             <h3 class="md-title">Test details</h3>
         </md-toolbar>
         <template v-if="report">
-
-
             <div class="md-layout">
                 <div class="md-layout-item">
-
                     <md-card>
                         <PieChart :data="data"></PieChart>
                     </md-card>
                 </div>
 
                 <div class="md-layout-item">
-
                     <md-table v-model="testReports" md-card>
                         <md-table-toolbar>
                             <h1 class="md-title">Tests</h1>
                         </md-table-toolbar>
-
                         <md-table-row slot="md-table-row" slot-scope="{ item }" @click="selectTest(item)">
                             <md-table-cell md-label="Status">
                                 <md-icon
-                                        :style="{'color': (item.status === 'success'?'#5dc050' : (item.status ==='unstable')? '#EC870A': '#D12311')}">
-                                    fiber_manual_record
+                                        :style="{'color': (item.status === 'success'?'#5dc050' : (item.status ==='unstable')? '#EC870A': '#D12311')}">fiber_manual_record
                                 </md-icon>
                                 {{ item.status }}
                             </md-table-cell>
@@ -36,15 +30,11 @@
                             <md-table-cell md-label="Devices">{{ item.tests.length }}</md-table-cell>
                         </md-table-row>
                     </md-table>
-
-
                 </div>
 
                 <div class="md-layout-item">
                     <md-card>
-
                         <div v-if="selectedTestResult">
-
                             <md-field>
                                 <md-select v-model="selectedReportDevice" name="selectedReportDevice"
                                            id="selectedReportDevice" placeholder="Device"

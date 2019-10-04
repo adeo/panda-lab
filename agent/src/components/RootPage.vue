@@ -2,7 +2,8 @@ import {RuntimeEnv} from "../services/services.provider";
 <template>
     <div id="root">
         <div class="md-layout">
-            <div id="menu" class="pl-theme-primary-inverse md-layout-item  md-small-size-10  md-medium-size-20 md-size-15">
+            <div id="menu"
+                 class="pl-theme-primary-inverse md-layout-item  md-small-size-10  md-medium-size-20 md-size-15">
                 <md-list id="menu-list">
                     <div v-for="(menu, index) in menuItems" v-bind:key="index"
                          :class="[isRoute(menu.link)?'selected':'']" class="item-decorator-container"
@@ -29,7 +30,8 @@ import {RuntimeEnv} from "../services/services.provider";
 </template>
 <script lang="ts">
     import {Component, Vue, Watch} from 'vue-property-decorator';
-    import {getRuntimeEnv, RuntimeEnv} from "../services/services.provider";
+    import {getRuntimeEnv, RuntimeEnv, Services} from "../services/services.provider";
+    import {Role} from "pandalab-commons";
 
 
     @Component
@@ -60,7 +62,7 @@ import {RuntimeEnv} from "../services/services.provider";
                 name: "Applications",
                 icon: "apps",
                 link: "/applications"
-            }
+            },
         ];
 
         isElectron: Boolean = getRuntimeEnv() == RuntimeEnv.ELECTRON_RENDERER;
@@ -74,6 +76,20 @@ import {RuntimeEnv} from "../services/services.provider";
                     link: '/agentDevices',
                     icon: 'devices'
                 })
+            } else {
+                this.$subscribeTo(Services.getInstance().authService.listenUser(), user => {
+                    if (user.role === Role.admin) {
+                        if (this.menuItems.find(item => item.link === '/admin') === undefined) {
+                            this.menuItems.push({
+                                name: "Admin",
+                                icon: "security",
+                                link: "/admin"
+                            });
+                        }
+                    } else {
+                        this.menuItems = this.menuItems.filter(item => item.link !== '/admin');
+                    }
+                });
             }
         }
 
@@ -131,7 +147,7 @@ import {RuntimeEnv} from "../services/services.provider";
             color: white;
         }
 
-        .md-icon{
+        .md-icon {
             margin-right: 20px;
         }
 
@@ -146,9 +162,9 @@ import {RuntimeEnv} from "../services/services.provider";
             }
         }
 
-        $menu-size : 48px;
+        $menu-size: 48px;
 
-        .item-decorator-container .item-decorator div{
+        .item-decorator-container .item-decorator div {
             border-radius: 0;
         }
 
