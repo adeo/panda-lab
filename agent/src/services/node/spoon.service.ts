@@ -86,16 +86,11 @@ export class SpoonService {
             flatMap(tupleDevicesTasks => {
                 const availableDevices = tupleDevicesTasks.availableDevices;
                 const tasks = tupleDevicesTasks.tasks;
-
-                console.log('step 1');
-
                 const findDevice = (deviceId: string) => {
-                    console.log('step 3');
                     return availableDevices.find(value => value._ref.id === deviceId);
                 };
 
                 if (tasks.length == 0 || availableDevices.length == 0) {
-                    console.log('step 2');
                     this.logger.info("Task or device missing");
                     return EMPTY;
                 }
@@ -104,14 +99,12 @@ export class SpoonService {
                     first(task => !!findDevice(task.device.id)),
                     tap(() => working = true),
                     map(task => {
-                        console.log('step 4');
                         return {
                             task,
                             device: findDevice(task.device.id),
                         };
                     }),
                     flatMap(tuple => {
-                        console.log('step 5', tuple.device);
                         const saveDeviceOffline = this.saveDeviceStatus(tuple.device, DeviceStatus.offline)
                             .pipe(
                                 map(() => {
@@ -205,7 +198,6 @@ export class SpoonService {
                             }),
                             flatMap(() => this.saveJobTaskStatus(perform.task, TaskStatus.success)),
                             catchError(err => {
-                                console.error('saveJobTaskStatus', err);
                                 return this.saveJobTaskStatus(perform.task, TaskStatus.error, err.message);
                             }),
                         );
@@ -233,7 +225,6 @@ export class SpoonService {
     }
 
     private downloadArtifacts(info: any): Observable<Perform> {
-        console.log('downloadArtifacts');
         const job: Job = info.job;
         const artifact: Artifact = info.artifact;
         const testArtifact: Artifact = info.testArtifact;
@@ -261,7 +252,6 @@ export class SpoonService {
             .pipe(
                 switchMapTo(this.downloadApk(testArtifactPath, testArtifact)),
                 switchMapTo(result),
-                tap(result => console.log(`RESULT = ${result}`)),
             );
     }
 

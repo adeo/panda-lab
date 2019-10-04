@@ -16,6 +16,7 @@ import AppDetails from "../components/apps/AppDetails.vue";
 import Report from "../components/report/Report.vue";
 import VersionDetail from '../components/apps/VersionDetail.vue';
 import AdminPage from '../components/admin/AdminPage.vue';
+import {AdminGuard} from "./admin.guards";
 
 Vue.use(VueRouter);
 
@@ -53,7 +54,11 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'applications/:applicationId', component: AppDetails,},
         {path: 'applications/:applicationId/versions/:versionId', component: VersionDetail,},
         {path: 'reports/:reportId', component: Report,},
-        {path: '/admin', component: AdminPage, }
+        {
+            path: '/admin',
+            component: AdminPage,
+            beforeEnter: AdminGuard
+        }
     ]
 };
 
