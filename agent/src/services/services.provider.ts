@@ -13,6 +13,7 @@ import {firebase} from "@firebase/app";
 import * as winston from "winston";
 import {AppsService} from "./apps.service";
 import {AgentsService} from "./agents.service";
+import {UserService} from "./user.service";
 
 const jsonStringify = require('fast-safe-stringify');
 
@@ -27,6 +28,7 @@ export interface ServicesProvider {
     devicesService: DevicesService;
     appsService: AppsService
     agentsService: AgentsService;
+    userService: UserService;
 
     node?: {
         agentService: AgentService
@@ -89,6 +91,7 @@ class LocalServicesProvider implements ServicesProvider {
     logger: winston.Logger;
     appsService: AppsService;
     agentsService: AgentsService;
+    userService: UserService;
     node: {
         agentService: AgentService;
     };
@@ -128,6 +131,7 @@ class LocalServicesProvider implements ServicesProvider {
         this.logger = logger;
 
         this.firebaseRepo = new FirebaseRepository(config);
+        this.userService = new UserService(this.firebaseRepo);
         this.jobsService = new JobsService(this.firebaseRepo);
         this.devicesService = new DevicesService(this.firebaseRepo, new DevicesRepository());
 

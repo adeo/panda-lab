@@ -14,7 +14,7 @@ import DecodedIdToken = admin.auth.DecodedIdToken;
 
 admin.initializeApp({
     credential: admin.credential.applicationDefault(),
-    databaseURL: "https://panda-lab-lm.firebaseio.com",//TODO remove me
+    databaseURL: "https://panda-lab-lm.firebaseio.com",N
     storageBucket: "panda-lab-lm.appspot.com"
 });
 
@@ -41,12 +41,21 @@ admin.firestore().collection('user-security')
         querySnapshot.docChanges().forEach(change => {
             if (change.type === 'added' || change.type === 'modified') {
                 console.log('User security added or modified: ', change.doc.data());
-                admin.auth().setCustomUserClaims(change.doc.data().uid, {role: change.doc.data().role})
+                const uid = change.doc.data().uid;
+                admin.auth().getUser(uid)
+                    .then(user => {
+                        return change.doc.ref.set({email: user.email}, {merge: true});
+                    })
+                    .catch(reason => {
+                        console.error("can't add email in user-security", reason);
+                    });
+
+                admin.auth().setCustomUserClaims(uid, {role: change.doc.data().role})
                     .then(() => {
                         console.log(`Claims for user ${change.doc.data().uid} updated with success`)
                     }).catch(reason => {
                     console.error("can't add claim", reason)
-                })
+                });
             }
         });
     });

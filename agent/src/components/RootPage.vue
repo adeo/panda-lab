@@ -60,6 +60,11 @@ import {RuntimeEnv} from "../services/services.provider";
                 name: "Applications",
                 icon: "apps",
                 link: "/applications"
+            },
+            {
+                name: "Admin",
+                icon: "security",
+                link: "/admin"
             }
         ];
 
