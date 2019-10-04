@@ -11,7 +11,7 @@
             </md-table-row>
             <md-table-row v-for="user in users" v-bind:key="user._ref.id" v-on:click="onSelect(user)" md-selectable="single" class="md-primary">
                 <md-table-cell>{{ user.email }}</md-table-cell>
-                <md-table-cell>{{ user.role }}</md-table-cell>
+                <AdminUserCell :user="user"></AdminUserCell>
             </md-table-row>
         </md-table>
     </div>
@@ -21,9 +21,19 @@
     import {Component, Vue} from "vue-property-decorator";
     import {Services} from "../../services/services.provider";
     import {Subscription} from "vue-rx-decorators";
+    import {Role} from 'pandalab-commons';
+    import AdminUserCell from "./AdminUserCell.vue";
 
-    @Component
+    @Component({
+        components: {AdminUserCell}
+    })
     export default class AdminPage extends Vue {
+
+        private roles: Role[];
+
+        mounted() {
+            this.roles = Object.values(Role);
+        }
 
         @Subscription()
         protected get users() {
