@@ -130,10 +130,10 @@ export class AdbService {
             logcat.stdout.on('data', (data) => {
                 const lines = data.toString().split("\n");
                 lines.forEach(log => {
-                    const result = /^((.*)[DIEWV](.*))\s([^:]*):\s(.*)$/.exec(log);
-                    if (result !== null && result.length === 6) {
-                        const tag = result[4];
-                        const msg = result[5];
+                    const result = /^\d\d-\d\d\s+\d\d:\d\d:\d\d.\d+\s+\d+\s+\d+\s+[VDIWEAF](\s+)([^:]*):(.*)$/.exec(log);
+                    if (result !== null && result.length === 4) {
+                        const tag = result[2];
+                        const msg = result[3];
                         if (filter && tag === filter) {
                             emitter.next(msg)
                         } else if(!filter){
