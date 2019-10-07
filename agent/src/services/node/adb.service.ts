@@ -124,24 +124,62 @@ export class AdbService {
 
     readAdbLogcat(deviceId: string, filter?: string): Observable<string> {
         return new Observable(emitter => {
-            this.adbClient.openLogcat(deviceId)
-                .then(logcat => {
-                    let logcatFilter = logcat;
-                    if (filter) {
-                        logcatFilter = logcat.excludeAll()
-                            .include(filter)
-                    }
-                    logcatFilter.on('entry', (entry) => {
-                        emitter.next(entry.message)
-                    });
-                    logcatFilter.on('error', (error) => {
-                        emitter.error(error)
-                    })
+            const {spawn} = require('child_process');
+            const logcat = spawn('adb', ['logcat']);
 
-                })
-                .catch(err => {
-                    emitter.error(err);
+            logcat.stdout.on('data', (data) => {
+                const lines = data.toString().split("\n");
+                lines.forEach(log => {
+                    const result = /^((.*)[DIEWV](.*))\s([^:]*):\s(.*)$/.exec(log);
+                    if (result !== null && result.length === 6) {
+                        const tag = result[4];
+                        const msg = result[5];
+                        if (filter && tag === filter) {
+                            emitter.next(msg)
+                        } else if(!filter){
+                            emitter.next(msg);
+                        }
+                    }
                 });
+            });
+
+            logcat.stderr.on('data', (data) => {
+                emitter.error(data);
+            });
+
+            logcat.on('close', (code) => {
+                console.log(`child process exited with code ${code}`);
+            });
+
+            emitter.add(() => {
+                logcat.kill();
+            });
+
+
+            // this.adbClient.openLogcat(deviceId)
+            //     .then(logcat => {
+            //         let logcatFilter = logcat;
+            //         // if (filter) {
+            //         //     logcatFilter = logcat.excludeAll()
+            //         //         .include(filter)
+            //         // }
+            //         logcatFilter.on('entry', (entry) => {
+            //             if (filter) {
+            //                 if (entry.message.indexOf(filter) >= 0) {
+            //                     emitter.next(entry.message)
+            //                 }
+            //             } else {
+            //                 emitter.next(entry.message);
+            //             }
+            //         });
+            //         logcatFilter.on('error', (error) => {
+            //             emitter.error(error)
+            //         })
+            //
+            //     })
+            //     .catch(err => {
+            //         emitter.error(err);
+            //     });
         });
     }
 
