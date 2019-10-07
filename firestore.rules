@@ -67,7 +67,7 @@ service cloud.firestore {
 
     match /tasks/{taskId} {
         allow read: if isAgent() || isAdmin() || isUser();
-        allow write: if false;
+        allow write: if isAgent();
     }
 
     match /user-security/{id} {
