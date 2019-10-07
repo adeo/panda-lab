@@ -133,7 +133,7 @@ class LocalServicesProvider implements ServicesProvider {
         this.firebaseRepo = new FirebaseRepository(config);
         this.userService = new UserService(this.firebaseRepo);
         this.jobsService = new JobsService(this.firebaseRepo);
-        this.devicesService = new DevicesService(this.firebaseRepo, new DevicesRepository());
+        this.devicesService = new DevicesService(this.firebaseRepo);
 
         this.agentsService = new AgentsService(this.firebaseRepo);
 
@@ -164,6 +164,7 @@ class LocalServicesProvider implements ServicesProvider {
                     this.authService, this.firebaseRepo,
                     agentRepository,
                     this.devicesService,
+                    new DevicesRepository(),
                     this.agentsService,
                     this.store
                 );
