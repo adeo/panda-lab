@@ -117,7 +117,7 @@
         color: white;
     }
     .job-unstable {
-        background: $warm-color;
+        background: $warn-color;
     }
 
     .job-failure {
