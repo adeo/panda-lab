@@ -1,25 +1,27 @@
 <template>
-    <div id="admin" class="pl-container">
-        <md-table id="table" md-card>
-            <md-table-toolbar>
-                <h1 class="md-title">Utilisateurs</h1>
-            </md-table-toolbar>
-            <md-table-row>
-                <md-table-head>Email</md-table-head>
-                <md-table-head>Role</md-table-head>
-            </md-table-row>
-            <md-table-row v-for="user in users" v-bind:key="user._ref.id" v-on:click="onSelect(user)"
-                          md-selectable="single" class="md-primary">
-                <md-table-cell>{{ user.email }}</md-table-cell>
-                <AdminUserCell :user="user" :onRoleChange="onUserRoleChange"></AdminUserCell>
-            </md-table-row>
-        </md-table>
+    <div class="md-layout">
+        <div class="md-layout-item pl-container">
+            <h2 class="pl-title">Administration</h2>
+            <md-table id="table" md-card>
+                <md-table-toolbar>
+                    <h1 class="md-title">Utilisateurs</h1>
+                </md-table-toolbar>
+                <md-table-row>
+                    <md-table-head>Email</md-table-head>
+                    <md-table-head>Role</md-table-head>
+                </md-table-row>
+                <md-table-row v-for="user in users" v-bind:key="user._ref.id" v-on:click="onSelect(user)"
+                              md-selectable="single" class="md-primary">
+                    <md-table-cell>{{ user.email }}</md-table-cell>
+                    <AdminUserCell :user="user" :onRoleChange="onUserRoleChange"></AdminUserCell>
+                </md-table-row>
+            </md-table>
 
-        <md-snackbar :md-duration="4000" :md-active.sync="snackbar.display" md-persistent>
-            <span>{{snackbar.msg}}</span>
-            <md-button class="md-primary" @click="snackbar.display = false">Ok</md-button>
-        </md-snackbar>
-
+            <md-snackbar :md-duration="4000" :md-active.sync="snackbar.display" md-persistent>
+                <span>{{snackbar.msg}}</span>
+                <md-button class="md-primary" @click="snackbar.display = false">Ok</md-button>
+            </md-snackbar>
+        </div>
     </div>
 </template>
 

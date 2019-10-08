@@ -81,7 +81,7 @@ import {RuntimeEnv} from "../services/services.provider";
                     if (user.role === Role.admin) {
                         if (this.menuItems.find(item => item.link === '/admin') === undefined) {
                             this.menuItems.push({
-                                name: "Admin",
+                                name: "Administration",
                                 icon: "security",
                                 link: "/admin"
                             });
