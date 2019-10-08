@@ -1,14 +1,14 @@
 <template>
     <div id="app">
-        <md-empty-state
-                id="loading"
-                v-if="loading"
-                class="md-primary"
-                md-icon="loop"
-                md-label="App is loading"
-                md-description="Please wait your app is loading">
-        </md-empty-state>
-
+        <div v-if="loading">
+            <md-empty-state
+                    id="loading"
+                    class="md-primary"
+                    md-icon="loop"
+                    md-label="App is loading"
+                    md-description="Please wait your app is loading">
+            </md-empty-state>
+        </div>
         <router-view v-if="!loading"></router-view>
     </div>
 </template>
@@ -34,7 +34,7 @@
 
     }
 </script>
-<style>
+<style lang="scss">
     #loading {
         position: absolute;
         top: 0;
@@ -43,5 +43,14 @@
         left: 0;
         background: white;
         max-width: none;
+
+        .md-empty-state-icon {
+            -webkit-animation:spin 2s linear infinite;
+            -moz-animation:spin 2s linear infinite;
+            animation:spin 2s linear infinite;
+        }
+
     }
+
+
 </style>
