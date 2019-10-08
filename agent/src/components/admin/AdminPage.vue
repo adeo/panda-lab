@@ -1,17 +1,16 @@
 <template>
     <div class="md-layout">
         <div class="md-layout-item pl-container">
-            <h2 class="pl-title">Administration</h2>
+            <h2 class="pl-title">Admin</h2>
             <md-table id="table" md-card>
                 <md-table-toolbar>
-                    <h1 class="md-title">Utilisateurs</h1>
+                    <h1 class="md-title">Users</h1>
                 </md-table-toolbar>
                 <md-table-row>
                     <md-table-head>Email</md-table-head>
                     <md-table-head>Role</md-table-head>
                 </md-table-row>
-                <md-table-row v-for="user in users" v-bind:key="user._ref.id" v-on:click="onSelect(user)"
-                              md-selectable="single" class="md-primary">
+                <md-table-row v-for="user in users" v-bind:key="user._ref.id">
                     <md-table-cell>{{ user.email }}</md-table-cell>
                     <AdminUserCell :user="user" :onRoleChange="onUserRoleChange"></AdminUserCell>
                 </md-table-row>
@@ -65,7 +64,6 @@
                 this.snackbar.display = true;
             });
         }
-
     }
 
 </script>
