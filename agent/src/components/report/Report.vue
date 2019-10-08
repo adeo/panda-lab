@@ -1,7 +1,16 @@
 <template xmlns:v-init="http://www.w3.org/1999/xhtml">
     <div class="md-layout">
         <div class="md-layout-item pl-container" v-if="report">
-            <h2 class="pl-title">Report</h2>
+            <div class="md-layout md-alignment-center-center">
+                <div class="md-layout-item-5">
+                    <md-button class="md-icon-button" @click="$router.back()">
+                        <md-icon>arrow_back</md-icon>
+                    </md-button>
+                </div>
+                <h2 class="md-layout-item pl-title">
+                    Report
+                </h2>
+            </div>
             <div class="md-layout-item md-layout md-gutter">
                 <div class="md-layout-item">
                     <md-table v-model="testReports" md-card @md-selected="selectTest">

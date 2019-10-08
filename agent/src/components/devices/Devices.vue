@@ -2,10 +2,10 @@
     <div class="md-layout">
         <div class="md-layout-item pl-container">
             <h2 class="pl-title">Devices</h2>
-            <md-button class="md-icon-button" v-on:click="gridMode = false; onListMode();" v-bind:class="{ 'md-primary': !gridMode }">
+            <md-button class="md-icon-button" v-on:click="switchMode(false)" v-bind:class="{ 'md-primary': !gridMode }">
                 <md-icon>list</md-icon>
             </md-button>
-            <md-button class="md-icon-button" v-on:click="gridMode = true; onListMode();" v-bind:class="{ 'md-primary': gridMode }">
+            <md-button class="md-icon-button" v-on:click="switchMode(true)" v-bind:class="{ 'md-primary': gridMode }">
                 <md-icon>grid_on</md-icon>
             </md-button>
             <list-device :gridMode="gridMode" :devices="devices" :onClickDevice="onDisplayDetail"></list-device>
@@ -24,7 +24,7 @@
     })
     export default class Devices extends Vue {
 
-        static LIST_MODE_KEY = 'listKey';
+        private static GRID_MODE_KEY = 'grid-mode';
 
         protected gridMode: boolean;
         private devices: Device[] = [];
@@ -32,6 +32,7 @@
         constructor() {
             super();
             this.gridMode = this.listModeStatus;
+            console.log(this.listModeStatus);
         }
 
         mounted() {
@@ -45,21 +46,19 @@
             this.$router.push('/devices/' + device._ref.id);
         }
 
-        protected onListMode() {
-            Services.getInstance().store.save(Devices.LIST_MODE_KEY, this.gridMode ? "list" : "grid");
+        protected switchMode(isGrid: boolean) {
+            this.gridMode = isGrid;
+            Services.getInstance().store.save(Devices.GRID_MODE_KEY, this.gridMode ? "grid" : "list");
+            console.log(this.listModeStatus);
         }
 
         protected get listModeStatus() {
-            let listMode = Services.getInstance().store.load(Devices.LIST_MODE_KEY, "list");
-            return listMode == "grid"
+            let listMode = Services.getInstance().store.load(Devices.GRID_MODE_KEY, "grid");
+            return listMode === "grid"
         }
     }
 </script>
 
 <style scoped>
 
-    .devices-home-title {
-        margin: 15px;
-        color: white;
-    }
 </style>
