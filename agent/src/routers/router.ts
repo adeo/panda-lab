@@ -17,6 +17,8 @@ import Report from "../components/report/Report.vue";
 import VersionDetail from '../components/apps/VersionDetail.vue';
 import AdminPage from '../components/admin/AdminPage.vue';
 import {AdminGuard} from "./admin.guards";
+import {Job} from "pandalab-commons/dist/models/job.models";
+import JobPage from "../components/JobPage.vue";
 
 Vue.use(VueRouter);
 
@@ -46,7 +48,6 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'groups/:groupId', component: GroupDetails,},
         {path: 'agentDevices', component: AgentPage,},
         {path: 'jobs', component: Jobs,},
-        // {path: 'jobs/:jobId', component: Job},
         {path: 'jobs/:jobId/tasks/:taskId', component: JobTaskDetail},
         {path: 'phone', component: Jobs,},
         {path: 'devices/:deviceId', component: Device,},

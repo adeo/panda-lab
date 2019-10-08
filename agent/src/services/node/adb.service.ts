@@ -125,7 +125,7 @@ export class AdbService {
     readAdbLogcat(deviceId: string, filter?: string): Observable<string> {
         return new Observable(emitter => {
             const {spawn} = require('child_process');
-            const logcat = spawn('adb', ['logcat']);
+            const logcat = spawn('adb', ['-s', deviceId, 'logcat']);
 
             logcat.stdout.on('data', (data) => {
                 const lines = data.toString().split("\n");
@@ -135,6 +135,7 @@ export class AdbService {
                         const tag = result[2];
                         const msg = result[3];
                         if (filter && tag === filter) {
+                            console.log(msg);
                             emitter.next(msg)
                         } else if(!filter){
                             emitter.next(msg);

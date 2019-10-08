@@ -7,9 +7,12 @@ $text-grey-color: #777;
 
 
 $success-color: #2F9E0F;
-$warm-color: orange;
-$error-color: $accent-color;
-
+$warn-color: #FFC107;
+$verbose-color: white;
+$debug-color: #2196F3;
+$info-color: #4CAF50;
+$assert-color: #9C27B0;
+$error-color: #F44336;
 $small-screen-size: 960px;
 
 @include md-register-theme("default", (
