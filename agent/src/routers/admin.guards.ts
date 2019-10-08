@@ -9,7 +9,7 @@ export const AdminGuard: NavigationGuard = async (to, from, next) => {
     if (isWeb) {
         const user = await Services.getInstance().authService.listenUser().pipe(first()).toPromise();
         console.log(`role =  ${user.role}`);
-        if (user.role !== Role.admin) {
+        if (user.role === Role.admin) {
             next();
             return;
         }
