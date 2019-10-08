@@ -20,7 +20,7 @@ import {
     catchError,
     debounceTime,
     delay,
-    endWith, filter,
+    endWith,
     first,
     flatMap,
     ignoreElements,
@@ -34,7 +34,7 @@ import {
 } from "rxjs/operators";
 import {DeviceAdb} from "../models/adb";
 import {DeviceLog, DeviceLogType} from "../models/device";
-import {CollectionName, Device, DeviceStatus} from 'pandalab-commons';
+import {Device, DeviceStatus} from 'pandalab-commons';
 import {FirebaseRepository} from "./repositories/firebase.repository";
 import {AgentStatus, SetupService} from "./node/setup.service";
 import {AdbService} from "./node/adb.service";
@@ -43,6 +43,7 @@ import {DevicesService} from "./devices.service";
 import {StoreRepository} from "./repositories/store.repository";
 import * as winston from "winston";
 import {AgentsService} from "./agents.service";
+import {DevicesRepository} from "./repositories/devices.repository";
 
 export class AgentService {
     private listenDevicesSub: Subscription;
@@ -54,7 +55,8 @@ export class AgentService {
                 private authService: FirebaseAuthService,
                 private firebaseRepo: FirebaseRepository,
                 private agentRepo: SetupService,
-                private deviceService: DevicesService,
+                private devicesService: DevicesService,
+                private devicesRepo: DevicesRepository,
                 private agentsService: AgentsService,
                 private storeRepo: StoreRepository) {
         this.agentRepo.agentStatus.subscribe(value => {
@@ -346,7 +348,7 @@ export class AgentService {
     }
 
     private updateDeviceAction(device: Device, message: string): Observable<Timestamp<DeviceLog>> {
-        return this.deviceService.updateDevice(device)
+        return this.devicesService.updateDevice(device)
             .pipe(
                 ignoreElements(),
                 startWith(<DeviceLog>{log: message, type: DeviceLogType.INFO}),
@@ -377,18 +379,25 @@ export class AgentService {
                     })
                     .pipe(map(() => result))),
                 tap(() => subject.next({log: 'Wait for the device in database...', type: DeviceLogType.INFO})),
-                flatMap(result => this.firebaseRepo.listenDocument(CollectionName.DEVICES, result.uuid)),
+                flatMap(result => this.devicesService.listenDevice(result.uuid)),
                 first(device => device !== null),
                 tap(() => {
                     subject.next({log: 'Device enrolled ...', type: DeviceLogType.INFO});
                     subject.complete()
+                }),
+                flatMap((device: Device) => {
+                    let deviceData = this.devicesRepo.searchDeviceData(device.name);
+                    if (deviceData) {
+                        device.pictureIcon = deviceData.url;
+                    }
+                    return this.updateDeviceAction(device, "Store device image");
                 }),
                 flatMap(() => EMPTY),
             ) as Observable<DeviceLog>;
         return merge(subject, enrollObs)
             .pipe(
                 timeout(50000),
-                catchError(error => of(<DeviceLog>{log: 'Error: ' + error, type: DeviceLogType.ERROR})),
+                catchError(error => of(<DeviceLog>{log: error, type: DeviceLogType.ERROR})),
                 timestamp()
             )
     }

@@ -7,7 +7,7 @@ import {flatMap} from "rxjs/operators";
 export class DevicesService {
 
 
-    constructor(private firebaseRepo: FirebaseRepository, private devicesRepo: DevicesRepository) {
+    constructor(private firebaseRepo: FirebaseRepository) {
 
     }
 
