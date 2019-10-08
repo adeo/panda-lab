@@ -43,11 +43,10 @@
                                 <md-divider></md-divider>
 
                                 <md-subheader>Status</md-subheader>
-
                                 <md-list-item>
-                                    <md-icon class="md-primary">update</md-icon>
+                                    <md-icon :class="'device-' + device.status">update</md-icon>
                                     <div class="md-list-item-text">
-                                        <span>{{device.status}}</span>
+                                        <span :class="'device-' + device.status">{{device.status}}</span>
                                     </div>
                                 </md-list-item>
                             </md-list>
@@ -58,7 +57,7 @@
                         </div>
                     </div>
 
-                    <md-table id="task-table" v-if="tasks" v-model="tasks" md-sort="status" md-sort-order="asc" md-card>
+                    <md-table id="task-table" v-if="tasks && tasks.length > 0" v-model="tasks" md-sort="status" md-sort-order="asc" md-card>
                         <md-table-toolbar>
                             <h1 class="md-title">Tasks</h1>
                         </md-table-toolbar>
@@ -69,7 +68,9 @@
                             <md-table-cell md-label="Job" md-sort-by="job">{{ item.job.id }}</md-table-cell>
                         </md-table-row>
                     </md-table>
-
+                    <div v-else-if="tasks && tasks.length === 0">
+                        <p>This device hasn't task in progress.</p>
+                    </div>
                 </div>
             </template>
             <template v-else>

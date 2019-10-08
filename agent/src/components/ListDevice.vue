@@ -1,5 +1,5 @@
 <template>
-    <div id="list-devices">
+    <div>
         <template v-if="devices">
             <div class="devices-card-container" v-if="gridMode">
                 <div v-for="device in devices" v-bind:key="device.id" class="devices-grid">
@@ -7,18 +7,26 @@
                         <md-ripple>
                             <div @click="onDisplayDetail(device)">
                                 <md-card-header>
-                                    <div id="card-title" class="md-title">{{ device.phoneModel }}</div>
+                                    <div id="card-title" class="md-title md-layout">
+                                        <span class="md-layout-item">
+                                            {{ device.phoneModel }}
+                                        </span>
+                                        <md-icon :class="'device-' + device.status">fiber_manual_record</md-icon>
+                                    </div>
                                 </md-card-header>
 
                                 <md-card-media md-big>
                                     <img :src="device.pictureIcon ? device.pictureIcon : require('../assets/images/device.png')"
                                          onerror="this.src = this.alt" :alt="require('../assets/images/device.png')">
+
                                 </md-card-media>
 
                                 <md-card-content>
                                     <div id="card-footer" class="card-text-content">
-                                        {{ device.name }}
+                                        {{ device.phoneBrand.toUpperCase() }}
                                     </div>
+                                    <span class="identifier">{{ device._ref.id }}</span>
+                                    {{ formatDate() }}
                                 </md-card-content>
                             </div>
                         </md-ripple>
@@ -31,8 +39,7 @@
                         <md-table-cell md-label="ID" md-numeric> {{ item._ref.id }}</md-table-cell>
                         <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
                         <md-table-cell md-label="Brand" md-sort-by="phoneBrand">{{ item.phoneBrand }}</md-table-cell>
-                        <md-table-cell md-label="Model" md-sort-by="phoneModel">{{ item.phoneModel }}</md-table-cell>
-                        <md-table-cell md-label="Status" md-sort-by="status">{{ item.status }}</md-table-cell>
+                        <md-table-cell md-label="Status" md-sort-by="status"><md-icon :class="'device-' + item.status">fiber_manual_record</md-icon></md-table-cell>
                     </md-table-row>
                 </md-table>
             </div>
@@ -45,7 +52,8 @@
 
 <script lang="ts">
     import {Component, Prop, Vue} from "vue-property-decorator";
-    import {Device, Role} from "pandalab-commons";
+    import {Device} from "pandalab-commons";
+    import {DateFormatter} from "./utils/Formatter";
 
     @Component
     export default class ListDevice extends Vue {
@@ -64,36 +72,26 @@
         @Prop()
         onClickDevice: (Device) => void;
 
-        // @Watch('devices')
-        // onPropertyChanged(value: any, oldValue: any) {
-        //     console.log(value);
-        // }
+        private date = Date.now();
+
+        protected formatter = new DateFormatter();
 
         protected onDisplayDetail(device: Device) {
             if (this.onClickDevice) {
                 this.onClickDevice(device);
             }
-
-            // this.$router.push('/devices/' + device._ref.id);
         }
 
+        protected formatDate() {
+            return this.formatter.formatDate(new Date());
+        }
     }
 
 </script>
 
-<style lang="css" scoped>
+<style lang="scss" scoped>
 
-    .devices-card-container {
-        margin: 15px;
-        position: relative;
-        overflow: auto;
-    }
-
-    .devices-list-container {
-        margin: 15px;
-        position: relative;
-        overflow: auto;
-    }
+    @import "../assets/css/theme.scss";
 
     .devices-card {
         width: 300px;
@@ -101,4 +99,9 @@
         margin: 15px;
     }
 
+    .identifier {
+        color: rgba(0, 0, 0, 0.54);
+        color: var(--md-theme-default-text-accent-on-background, rgba(0, 0, 0, 0.54));
+        font-size: 0.8em;
+    }
 </style>
