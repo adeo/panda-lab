@@ -3,7 +3,7 @@
         <div class="md-layout-item pl-container">
             <h2 class="pl-title">Applications</h2>
             <template v-if="apps">
-                <div class="md-layout md-gutter md-alignment-top-left">
+                <div id="app-layout" class="md-layout md-alignment-top-left">
                     <div v-for="app in apps" v-bind:key="app._ref.id" class="md-app-cell">
                         <AppCell class="md-medium-size-33"
                                  :app="app"></AppCell>
@@ -49,6 +49,8 @@
 
         }
 
+
+
     }
 
 </script>
@@ -60,5 +62,9 @@
     .md-app-cell {
         padding-left: 8px;
         padding-right: 8px;
+    }
+
+    #app-layout{
+        margin: 0px;
     }
 </style>

@@ -1,27 +1,23 @@
 <template>
-    <div>
-        <md-ripple>
+    <div @click="openAppDetails">
 
-            <md-card>
-
-                <div @click="openAppDetails">
-                    <md-card-header>
-                        <md-card-header-text>
-                            <div class="md-title">{{ app.name }}</div>
-                            <div class="md-subhead">{{appVersion}}</div>
-                        </md-card-header-text>
+        <md-card class="md-primary" md-theme="error-card" md-with-hover>
 
 
-                        <md-card-media>
-                            <md-icon v-if="icon" class="md-size-3x" v-bind:style="{ color : iconColor }">{{icon}}
-                            </md-icon>
-                        </md-card-media>
+            <div id="title">
+                <span class="md-title">{{  app.name.substr(1) }}</span>
+                <span class="md-subhead" v-if="appVersion">{{appVersion}} <BR/> {{appVersionDate}}</span>
+            </div>
 
-                    </md-card-header>
-                </div>
-            </md-card>
+            <md-icon v-if="jobStatus" class="badge md-elevation-5" :class="'job-'+jobStatus">{{icon}}</md-icon>
 
-        </md-ripple>
+
+            <div class="md-elevation-5" id="icon" :style="{background: stringToColour(app.name)}">
+                {{ app.name.substr(0,1).toUpperCase() }}
+            </div>
+
+
+        </md-card>
 
     </div>
 
@@ -35,6 +31,7 @@
     import "rxjs-compat/add/operator/toArray";
     import {AppModel, JobStatus} from "pandalab-commons";
     import {Services} from "../../services/services.provider";
+    import {DateFormatter} from '../utils/Formatter';
 
     @Component
     export default class AppCell extends Vue {
@@ -42,32 +39,49 @@
         @Prop({required: true}) app: AppModel;
 
 
-        appVersion: string = "";
+        formatter = new DateFormatter();
 
-        icon: string = "";
-        iconColor: string = "";
+        appVersion: string = "";
+        appVersionDate: string = "";
+        jobStatus: string = "";
+        private icon: string = "";
+
 
         mounted() {
 
             this.$subscribeTo(Services.getInstance().appsService.listenLastAppTest(this.app._ref.id), result => {
 
                 this.appVersion = result.version.versionName;
+                this.appVersionDate = this.formatter.formatDate(result.version.timestamp.toDate());
+
+                this.jobStatus = result.job.status;
+
                 switch (result.job.status) {
                     case JobStatus.unstable:
                         this.icon = 'brightness_medium';
-                        this.iconColor = 'orange';
                         break;
                     case JobStatus.failure:
                         this.icon = 'cloud';
-                        this.iconColor = 'grey';
                         break;
                     case JobStatus.success:
                         this.icon = 'brightness_high';
-                        this.iconColor = 'yellow';
                         break;
 
                 }
             })
+        }
+
+        protected stringToColour(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            let colour = '#';
+            for (let i = 0; i < 3; i++) {
+                const value = (hash >> (i * 8)) & 0xFF;
+                colour += ('00' + value.toString(16)).substr(-2);
+            }
+            return colour;
         }
 
         openAppDetails() {
@@ -79,6 +93,59 @@
     }
 
 </script>
-<style lang="css" scoped>
+<style lang="scss" scoped>
+    @import "../../assets/css/theme.scss";
+
+    #icon {
+        width: 100px;
+        line-height: 100px;
+        position: absolute;
+        top: -10px;
+        left: 10px;
+        text-align: center;
+        font-size: 80px;
+        color: white;
+    }
+
+    .badge{
+        border-radius: 100%;
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        width: 40px;
+        height: 40px;
+        color: white;
+    }
+    .job-unstable {
+        background: $warm-color;
+    }
+
+    .job-failure {
+        background: $error-color;
+    }
+
+    .job-success {
+        background: $success-color;
+    }
+
+    .md-card {
+        width: 280px;
+        height: 100px;
+        display: inline-block;
+        vertical-align: top;
+        margin-top: 20px;
+    }
+
+    #title {
+        position: absolute;
+        right: 8px;
+        left: 110px;
+        top: 16px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding-left: 8px;
+    }
 
 </style>
