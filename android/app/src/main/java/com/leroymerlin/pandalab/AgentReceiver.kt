@@ -46,7 +46,22 @@ class AgentReceiver : BroadcastReceiver() {
                 })
 
             }
-
+            "com.leroymerlin.pandalab.INTENT.BOOK" -> {
+                PandaLabApplication.getApp(context).component.pandaLabManager().bookDevice()
+                    .subscribe({
+                        Log.d(TAG, "device booked")
+                    }, {
+                        Log.e(TAG, "can't book device", it)
+                    })
+            }
+            "com.leroymerlin.pandalab.INTENT.CANCEL_BOOK" -> {
+                PandaLabApplication.getApp(context).component.pandaLabManager().cancelDeviceBooking()
+                    .subscribe({
+                        Log.d(TAG, "booking canceled")
+                    }, {
+                        Log.e(TAG, "can't cancel device booking", it)
+                    })
+            }
 
         }
 

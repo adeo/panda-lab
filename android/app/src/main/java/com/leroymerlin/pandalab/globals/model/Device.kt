@@ -17,3 +17,11 @@ data class Device(
     val lastConnexion: Long,
     val agent: DocumentReference
 ) : Serializable
+
+
+enum class DeviceStatus(val lockDevice: Boolean) {
+    offline(false),
+    working(true),
+    available(true),
+    booked(false)
+}

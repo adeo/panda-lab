@@ -4,6 +4,7 @@ import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.leroymerlin.pandalab.PandaLabApplication
+import com.leroymerlin.pandalab.globals.model.DeviceStatus
 import io.reactivex.functions.Action
 
 class FirebaseNotificationService : FirebaseMessagingService() {
@@ -25,6 +26,18 @@ class FirebaseNotificationService : FirebaseMessagingService() {
                                 Log.d(TAG, "Device infos updated")
                             }, {
                                 Log.e(TAG, "Can't update device infos", it)
+                            })
+                    }
+                    "status" -> {
+                        PandaLabApplication.getApp(context = this).component.pandaLabManager()
+                            .updateOverlay(
+                                DeviceStatus.valueOf(remoteMessage.data["status"] ?: DeviceStatus.offline.name)
+                            ).subscribe({
+                                Log.d(TAG, "Overlay service opened")
+                            }, {
+                                Log.e(TAG, "Can't update overlay", it)
+                            }, {
+                                Log.d(TAG, "Overlay updated")
                             })
                     }
                     else -> {

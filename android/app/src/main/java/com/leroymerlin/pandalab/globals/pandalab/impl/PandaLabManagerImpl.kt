@@ -1,5 +1,6 @@
 package com.leroymerlin.pandalab.globals.pandalab.impl
 
+import android.app.PendingIntent
 import android.content.Context
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
@@ -16,10 +17,23 @@ import durdinapps.rxfirebase2.RxFirebaseAuth
 import durdinapps.rxfirebase2.RxFirestore
 import io.reactivex.Completable
 import java.sql.Timestamp
+import androidx.core.content.ContextCompat
+import android.content.Intent
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import com.leroymerlin.pandalab.AgentReceiver
+import com.leroymerlin.pandalab.OverlayService
+import com.leroymerlin.pandalab.R
+import com.leroymerlin.pandalab.globals.model.DeviceStatus
+import io.reactivex.Maybe
+import io.reactivex.Observable
+import java.util.concurrent.TimeUnit
+
 
 class PandaLabManagerImpl(private var context: Context) :
     PandaLabManager {
 
+    private val bookNotificationId = 10
 
     private var deviceId: DeviceIdentifier =
         DeviceIdentifier(context)
@@ -28,10 +42,77 @@ class PandaLabManagerImpl(private var context: Context) :
     private var auth: FirebaseAuth = FirebaseAuth.getInstance()
     private var db: FirebaseFirestore = FirebaseFirestore.getInstance()
 
+    override fun updateOverlay(status: DeviceStatus): Maybe<DeviceStatus> {
+//        offline = "offline",
+//        available = "available",
+//        working = "working",
+//        booked = "booked",
+        if (status.lockDevice) {
+            return this.listenDeviceStatus()
+                .filter { it == status }
+                .firstElement()
+                .timeout(5, TimeUnit.SECONDS)
+                .doOnSuccess {
+                    val serviceIntent = Intent(context, OverlayService::class.java)
+                    ContextCompat.startForegroundService(context, serviceIntent)
+                }
+        }
+        return Maybe.empty()
+    }
+
+    override fun listenDeviceStatus(): Observable<DeviceStatus> {
+        return RxFirestore.observeDocumentRef(this.getDeviceDocument())
+            .map { it.getString("status") ?: DeviceStatus.offline.name }
+            .map { DeviceStatus.valueOf(it) }
+            .toObservable()
+    }
+
+    override fun bookDevice(): Completable {
+        return RxFirestore.updateDocument(
+            this.getDeviceDocument(),
+            "status",
+            DeviceStatus.booked.name
+        ).doOnComplete {
+            val notificationIntent = Intent(context, AgentReceiver::class.java)
+            notificationIntent.action = "com.leroymerlin.pandalab.INTENT.CANCEL_BOOK"
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                0, notificationIntent, 0
+            )
+
+            val notification = NotificationCompat.Builder(context, OverlayService.CHANNEL_ID)
+                .setContentTitle("Pandalab device booked")
+                .setContentText("Click to release the device")
+                .setSmallIcon(R.drawable.ic_close_black)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingIntent)
+                .build()
+
+            with(NotificationManagerCompat.from(context)) {
+                this.notify(bookNotificationId, notification)
+            }
+
+        }
+
+
+    }
+
+    override fun cancelDeviceBooking(): Completable {
+        return RxFirestore.updateDocument(
+            this.getDeviceDocument(),
+            "status",
+            DeviceStatus.offline.name
+        ).doOnComplete {
+            with(NotificationManagerCompat.from(context)) {
+                this.cancel(bookNotificationId)
+            }
+        }
+    }
+
     override fun updateDevice(): Completable {
         val deviceDoc = getDeviceDocument()
 
-        if(this.auth.currentUser==null){
+        if (this.auth.currentUser == null) {
             Log.w(TAG, "device is not enrolled")
             return Completable.complete()
         }

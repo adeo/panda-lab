@@ -18,4 +18,8 @@
     <string name="enroll">Enroll</string>
     <string name="no_enroll">This device isn\'t enrolled</string>
     <string name="enroll_with_identifier">This device is enrolled with identifier: %s</string>
+    <string name="overlay_perms">Enable overlay permission to enable all the features</string>
+    <string name="overlay_label_working">Pandalab - device in use</string>
+    <string name="overlay_label_available">Pandalab - device available</string>
+    <string name="free_device">Cancel booking</string>
 </resources>
