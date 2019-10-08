@@ -1,67 +1,73 @@
 <template>
-    <div>
-        <md-toolbar>
-            <md-button class="md-icon-button" @click="onBack()">
-                <md-icon>arrow_back</md-icon>
-            </md-button>
-            <h3 class="md-title">Application details</h3>
-        </md-toolbar>
-        <template v-if="app">
-            <h1>{{app.name}}</h1>
-
-            <div class="md-layout">
-                <div class="md-layout-item">
+    <div class="md-layout">
+        <div class="md-layout-item pl-container">
+            <div class="md-layout md-alignment-center-center">
+                <div class="md-layout-item-5">
+                    <md-button class="md-icon-button" @click="$router.back()">
+                        <md-icon>arrow_back</md-icon>
+                    </md-button>
+                </div>
+                <h2 class="md-layout-item pl-title">
+                    Application
+                    <span class="pl-subtitle">{{app.name}}</span>
+                </h2>
+                <div>
                     <md-field>
+                        <label>Flavor</label>
                         <md-select v-model="flavor" name="flavor" id="flavor" placeholder="Flavor"
                                    v-on:md-selected="updateVersions">
                             <md-option v-for="f in flavors" v-bind:key="f" v-bind:value="f">{{f}}</md-option>
                         </md-select>
                     </md-field>
-                    <md-table v-model="versions" md-card>
-                        <md-table-toolbar>
-                            <h1 class="md-title">{{flavor}} versions</h1>
-                        </md-table-toolbar>
-
-                        <md-table-row slot="md-table-row" slot-scope="{ item }">
-                            <md-table-cell md-label="Version" md-sort-by="id" md-numeric>{{ item.versionName }}
-                            </md-table-cell>
-                            <md-table-cell md-label="VersionCode">{{ item.versionCode }}</md-table-cell>
-                            <md-table-cell md-label="Date">{{ formatter.formatDate(item.timestamp.toDate()) }}</md-table-cell>
-
-                            <md-table-cell md-label="Actions">
-                                <md-button @click=createJob(item) class="md-icon-button">
-                                    <md-icon>add</md-icon>
-                                </md-button>
-
-                                <md-button @click=openVersion(item) class="md-icon-button">
-                                    <md-icon>chevron_right</md-icon>
-                                </md-button>
-
-                            </md-table-cell>
-                        </md-table-row>
-                    </md-table>
-
                 </div>
-                <div class="md-layout-item">
-                    <md-card>
-                        <TestReportLineChart :reports="reports" v-on:index="openReportAtIndex($event)"></TestReportLineChart>
-                    </md-card>
-                </div>
-
-
             </div>
 
-        </template>
-        <template v-else>
-            <md-empty-state
-                    md-rounded
-                    md-icon="access_time"
-                    md-label="Application is loading">
-            </md-empty-state>
-        </template>
-        <dialog-create-job v-bind:display="false"/>
-    </div>
+            <div class="md-layout-item" v-if="app">
+                <div class="md-layout md-alignment-center-left">
+                    <div>
 
+                    </div>
+                </div>
+
+                <md-tabs md-alignment="centered">
+                    <md-tab id="tab-pages-2" md-label="Versions">
+                        <md-table v-model="versions" md-card>
+                            <md-table-row slot="md-table-row" slot-scope="{ item }">
+                                <md-table-cell md-label="Version" md-sort-by="id" md-numeric>{{ item.versionName }}
+                                </md-table-cell>
+                                <md-table-cell md-label="VersionCode">{{ item.versionCode }}</md-table-cell>
+                                <md-table-cell md-label="Date">{{ formatter.formatDate(item.timestamp.toDate()) }}</md-table-cell>
+
+                                <md-table-cell md-label="Actions">
+                                    <md-button @click=createJob(item) class="md-icon-button">
+                                        <md-icon>add</md-icon>
+                                    </md-button>
+
+                                    <md-button @click=openVersion(item) class="md-icon-button">
+                                        <md-icon>chevron_right</md-icon>
+                                    </md-button>
+
+                                </md-table-cell>
+                            </md-table-row>
+                        </md-table>
+                    </md-tab>
+                    <md-tab id="tab-pages-1" md-label="Metrics">
+                        <div>
+                            <TestReportLineChart :reports="reports" v-on:index="openReportAtIndex($event)"></TestReportLineChart>
+                        </div>
+                    </md-tab>
+                </md-tabs>
+            </div>
+            <template v-else>
+                <md-empty-state
+                        md-rounded
+                        md-icon="access_time"
+                        md-label="Application is loading">
+                </md-empty-state>
+            </template>
+            <dialog-create-job v-bind:display="false"/>
+        </div>
+    </div>
 
 </template>
 <script lang="ts">
@@ -153,5 +159,7 @@
 
 </script>
 <style lang="css" scoped>
-
+    .md-tabs {
+        margin-top: 50px;
+    }
 </style>

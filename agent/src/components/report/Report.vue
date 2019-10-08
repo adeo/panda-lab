@@ -41,20 +41,23 @@
 
                     </div>
                     <template v-if="selectedTestResult">
-                        <h2>Choice the phone</h2>
-                        <div class="md-layout">
+                        <div class="md-layout md-alignment-center-center">
                             <div class="md-layout-item-40">
-                                <md-select v-model="selectedReportDevice" name="selectedReportDevice"
-                                           id="selectedReportDevice" placeholder="Device"
-                                           v-on:md-selected="selectDevice">
-                                    <md-option v-for="item in selectedReportDevices" :value="item._ref.id"
-                                               :key="item._ref.id">
+                               <md-field>
+                                   <label>Choice the phone</label>
+                                   <md-select v-model="selectedReportDevice" name="selectedReportDevice"
+                                              id="selectedReportDevice" placeholder="Device"
+                                              v-on:md-selected="selectDevice">
+                                       <md-option v-for="item in selectedReportDevices" :value="item._ref.id"
+                                                  :key="item._ref.id">
                                     <span v-init:report="reportByDevice.get(item._ref.id)">
                                         {{item.name}}
                                     </span>
-                                    </md-option>
-                                </md-select>
+                                       </md-option>
+                                   </md-select>
+                               </md-field>
                             </div>
+                            &nbsp;
                             <div class="md-layout-item">
                                 <md-icon v-if="selectedTestResult"
                                          :style="{'color': (selectedTestResult.status === 'PASS' ? '#5dc050' : '#D12311')}">
@@ -62,8 +65,6 @@
                                 </md-icon>
                             </div>
                         </div>
-                        <md-field>
-                        </md-field>
                         <div class="md-layout-item" v-if="selectedTestResult">
                             <DeviceTestReport :report="selectedTestResult"
                                               :key="selectedTestResult.id"></DeviceTestReport>
