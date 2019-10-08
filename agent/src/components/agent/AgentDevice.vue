@@ -282,7 +282,7 @@
     }
 
     .status-working, .status-booked {
-        background: $warm-color;
+        background: $warn-color;
     }
 
 

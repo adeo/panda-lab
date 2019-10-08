@@ -185,7 +185,7 @@
     }
 
     .adb-status-loading {
-        color: $warm-color;
+        color: $warn-color;
     }
 
 

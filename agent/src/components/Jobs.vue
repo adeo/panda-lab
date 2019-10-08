@@ -42,7 +42,8 @@
         private jobService = Services.getInstance().jobsService;
 
         protected onSelect(job: Job) {
-            this.$router.push('/jobs/' + job._ref.id);
+            this.$router.push(`/reports/${job._ref.id}`);
+            // this.$router.push('/jobs/' + job._ref.id);
         }
 
         @Emit(CREATE_JOB_EVENT_DISPLAY)
