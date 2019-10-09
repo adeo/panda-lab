@@ -1,6 +1,5 @@
 import {FirebaseRepository} from "./repositories/firebase.repository";
-import {DevicesRepository} from "./repositories/devices.repository";
-import {Device, DevicesGroup, CollectionName} from 'pandalab-commons';
+import {CollectionName, Device, DevicesGroup, DeviceStatus} from 'pandalab-commons';
 import {combineLatest, from, Observable} from "rxjs";
 import {flatMap} from "rxjs/operators";
 
@@ -13,6 +12,7 @@ export class DevicesService {
 
     deleteAgent(device: Device): Observable<Device> {
         device.agent = null;
+        device.status = DeviceStatus.offline;
         return this.firebaseRepo.saveDocument(device);
     }
 
