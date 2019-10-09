@@ -97,8 +97,6 @@ class LocalServicesProvider implements ServicesProvider {
     };
 
     private constructor(public config: ServicesConfiguration) {
-        console.log("Service provider initialized");
-
         let runtimeEnv = getRuntimeEnv();
         if (runtimeEnv == RuntimeEnv.ELECTRON_RENDERER) {
             throw new Error("Can't instanciate local services provider in electron renderer process");
@@ -157,7 +155,12 @@ class LocalServicesProvider implements ServicesProvider {
                 const adbRepository = new AdbService(this.logger.child({context: 'Adb'}));
                 const workspaceRepository = new FilesRepository(this.logger.child({context: 'Workspace'}));
                 this.authService = new FirebaseAuthService(authLogger, this.firebaseRepo, this.store);
-                const agentRepository = new SetupService(workspaceRepository, this.authService, this.firebaseRepo, this.store);
+                const agentRepository = new SetupService(
+                    this.logger.child({context: 'Setup'}),
+                    workspaceRepository,
+                    this.authService,
+                    this.firebaseRepo,
+                    this.store);
                 const agentService = new AgentService(
                     this.logger.child({context: "Agent"}),
                     adbRepository,

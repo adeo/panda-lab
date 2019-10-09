@@ -14,6 +14,12 @@ class PandaLabApplication : Application() {
 
     val component: PandaLabComponent by lazy { createBaseComponent() }
 
+
+    override fun onCreate() {
+        super.onCreate()
+        OverlayService.createNotificationChannel(this)
+    }
+
     private fun createBaseComponent(): PandaLabComponent {
         return DaggerPandaLabComponent.builder()
             .pandaLabModule(PandaLabModule(this))

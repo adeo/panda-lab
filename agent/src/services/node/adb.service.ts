@@ -246,8 +246,12 @@ export class AdbService {
         return from(this.adbClient.isInstalled(deviceId, packageName) as Promise<boolean>);
     }
 
-    installApk(deviceId: string, path: string): Observable<any> {
+    installApk(deviceId: string, path: string): Observable<DeviceLog> {
         return from(this.adbClient.install(deviceId, path))
+            .pipe(
+                first(),
+                map(() => <DeviceLog>{log: "Apk installed", type: DeviceLogType.INFO}),
+            )
     }
 
     connectIp(ip: string): Observable<DeviceLog> {

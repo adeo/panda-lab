@@ -18,11 +18,20 @@ import com.leroymerlin.pandalab.globals.utils.UtilsPhone
 import io.reactivex.disposables.Disposable
 import kotlinx.android.synthetic.main.activity_home.*
 import javax.inject.Inject
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings.canDrawOverlays
+import android.provider.Settings
+import com.google.android.material.snackbar.Snackbar
+import com.leroymerlin.pandalab.globals.model.DeviceStatus
 
 
 class HomeActivity : AppCompatActivity() {
 
+    private var statusSub: Disposable? = null
     private val tag = "HomeActivity"
+    private val REQUEST_OVERLAY_PERMISSION = 1000
 
     private var disposable: Disposable? = null
 
@@ -34,8 +43,10 @@ class HomeActivity : AppCompatActivity() {
         setContentView(R.layout.activity_home)
         PandaLabApplication.getApp(this).component.inject(this)
         initView()
+    }
 
-
+    override fun onResume() {
+        super.onResume()
         if (PackageManager.PERMISSION_GRANTED != ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.READ_PHONE_STATE
@@ -47,6 +58,45 @@ class HomeActivity : AppCompatActivity() {
                 101
             )
         }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !canDrawOverlays(this)) {
+            val mySnackbar = Snackbar.make(
+                findViewById(R.id.home_coordinator),
+                R.string.overlay_perms,
+                Snackbar.LENGTH_INDEFINITE
+            )
+            mySnackbar.setAction(android.R.string.ok) {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                startActivityForResult(intent, REQUEST_OVERLAY_PERMISSION)
+            }
+            mySnackbar.show()
+        }
+        statusSub = pandaLabManager.listenDeviceStatus()
+            .subscribe({ status ->
+                val isBooked = status == DeviceStatus.booked
+                free_device_button.visibility =
+                    if (isBooked) {
+                        View.VISIBLE
+                    } else {
+                        View.GONE
+                    }
+                book_device_button.visibility =
+                    if (isBooked) {
+                        View.GONE
+                    } else {
+                        View.VISIBLE
+                    }
+            }, { error ->
+                Log.e(tag, "Can't listen status", error)
+            })
+    }
+
+    override fun onPause() {
+        super.onPause()
+        statusSub?.dispose()
     }
 
     @SuppressLint("MissingPermission")
@@ -108,6 +158,26 @@ class HomeActivity : AppCompatActivity() {
         } else {
             getString(R.string.enroll_with_identifier, this.pandaLabManager.getDeviceId())
         }
+
+        book_device_button.setOnClickListener {
+            pandaLabManager.bookDevice()
+                .subscribe({
+                    Log.i(tag, "device booked")
+                }, {
+                    Log.e(tag, "Can't book device", it)
+
+                })
+        }
+        free_device_button.setOnClickListener {
+            pandaLabManager.cancelDeviceBooking()
+                .subscribe({
+                    Log.i(tag, "device booking canceled")
+                }, {
+                    Log.e(tag, "Can't cancel device booking", it)
+
+                })
+        }
+
 
         update_button.setOnClickListener {
             pandaLabManager.updateDevice().doOnSubscribe {

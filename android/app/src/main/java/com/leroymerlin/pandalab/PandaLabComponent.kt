@@ -12,4 +12,6 @@ interface PandaLabComponent {
     fun pandaLabManager(): PandaLabManager
 
     fun inject(homeActivity: HomeActivity)
+
+    fun inject(overlayService: OverlayService)
 }

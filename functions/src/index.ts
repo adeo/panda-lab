@@ -56,7 +56,7 @@ admin.firestore().collection('user-security')
                     }).catch(reason => {
                     console.error("can't add claim", reason)
                 });
-            } else if (change.type === 'removed' ) {
+            } else if (change.type === 'removed') {
                 admin.auth().deleteUser(change.doc.id)
                     .catch(reason => {
                         console.error("Can't delete auth user", reason);
@@ -201,6 +201,10 @@ exports.cron = functions.pubsub.schedule('every 1 minutes').onRun(async (context
 });
 
 exports.onDeviceUpdated = functions.firestore.document(CollectionName.DEVICES + '/{deviceId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
+
+    if (change.after.exists && (!change.before.exists || change.before.get("status") !== change.after.get("status"))) {
+        await deviceService.notifyDeviceStatusChange(change.after.id, change.after.get("status"))
+    }
     return jobService.assignTasksToDevices();
 });
 

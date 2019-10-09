@@ -3,7 +3,8 @@ import {AgentModel, CollectionName, Device, DeviceStatus} from "pandalab-commons
 
 class DeviceService {
 
-    async updateDeviceInfos(deviceId: string){
+    async updateDeviceInfos(deviceId: string) {
+        console.log("send refresh notification to " + deviceId);
         return admin.messaging().sendToTopic(deviceId, {
             data: {
                 action: "refresh"
@@ -11,8 +12,17 @@ class DeviceService {
         }, {timeToLive: 60})
     }
 
-    async updateDevicesInfos() {
+    async notifyDeviceStatusChange(deviceId: string, status: string) {
+        console.log("send status notification to " + deviceId);
+        return admin.messaging().sendToTopic(deviceId, {
+            data: {
+                action: "status",
+                status: status,
+            }
+        }, {timeToLive: 120})
+    }
 
+    async updateDevicesInfos() {
         const devices = await admin.firestore().collection(CollectionName.DEVICES)
             .where("lastConnexion", '<', Date.now() - 1000 * 60 * 60)
             .get();
@@ -23,8 +33,6 @@ class DeviceService {
             await this.updateDeviceInfos(id)
         );
         return Promise.all(promises)
-
-
     }
 
     async updateAgentDevicesStatus(online: boolean, agentId: string) {

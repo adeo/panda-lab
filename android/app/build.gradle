@@ -1,12 +1,9 @@
-import com.google.auth.oauth2.GoogleCredentials
-import com.google.firebase.FirebaseApp
-import com.google.firebase.FirebaseOptions
-import com.google.firebase.cloud.StorageClient
-
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
+
+def buildTime = System.currentTimeMillis()
 
 android {
     compileSdkVersion 28
@@ -19,6 +16,9 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
+        all{
+            buildConfigField("long", "BUILD_TIME", "${buildTime}L")
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -30,10 +30,11 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    implementation 'com.android.support:design:28.0.0'
     implementation 'com.google.firebase:firebase-core:17.2.0'
     implementation 'com.google.firebase:firebase-messaging:20.0.0'
-    implementation 'com.google.firebase:firebase-auth:19.0.0'
-    implementation 'com.google.firebase:firebase-firestore:21.0.0'
+    implementation 'com.google.firebase:firebase-auth:19.1.0'
+    implementation 'com.google.firebase:firebase-firestore:21.1.1'
     implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
     implementation 'io.reactivex.rxjava2:rxjava:2.2.6'
     implementation 'com.github.FrangSierra:RxFirebase:1.5.6'
@@ -55,6 +56,7 @@ apply plugin: 'com.google.gms.google-services'
 
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.cloud.StorageClient
+import com.google.cloud.storage.BlobInfo
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import groovy.json.JsonSlurper
@@ -90,7 +92,16 @@ project.afterEvaluate {
         }
 
         project.logger.warn("uploaded file : ${debugVariant.outputs.first().outputFile}")
-        StorageClient.getInstance().bucket()
-                .create("config/android-agent.apk", debugVariant.outputs.first().outputFile.newInputStream())
+
+
+        def bucket = StorageClient.getInstance().bucket()
+        BlobInfo blobInfo = BlobInfo.newBuilder(bucket, "config/android-agent.apk")
+                .setContentType("application/vnd.android.package-archive")
+                .setMetadata(["appName": "PandaLab", "buildTime": buildTime, "buildType": "debug", "flavor": "debug", "type": "debug"])
+                .build()
+
+
+        bucket.getStorage()
+                .create(blobInfo, debugVariant.outputs.first().outputFile.readBytes())
     }
 }

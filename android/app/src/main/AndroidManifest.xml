@@ -5,6 +5,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:name=".PandaLabApplication"
@@ -29,12 +31,18 @@
         </activity>
 
         <service
+            android:name=".OverlayService"
+            android:enabled="true"
+            android:exported="false" />
+
+        <service
             android:name=".globals.notification.FirebaseNotificationService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
         <receiver
             android:name=".AgentReceiver"
             android:exported="true">
@@ -43,6 +51,12 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="com.leroymerlin.pandalab.INTENT.ENROLL" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.leroymerlin.pandalab.INTENT.BOOK" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.leroymerlin.pandalab.INTENT.CANCEL_BOOK" />
             </intent-filter>
         </receiver>
     </application>
