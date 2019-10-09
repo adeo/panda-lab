@@ -15,15 +15,6 @@
 
             </div>
 
-            <md-button v-if="showEnroll" @click="enroll()" class="md-icon-button">
-                <md-icon>link</md-icon>
-                <md-tooltip class="md-tooltip">Enroll</md-tooltip>
-            </md-button>
-
-            <md-button v-if="!showEnroll" @click="updateInfos()" class="md-icon-button">
-                <md-icon>update</md-icon>
-                <md-tooltip class="md-tooltip">Update phone infos</md-tooltip>
-            </md-button>
 
             <md-button v-if="showTCPConnect" @click="remoteConnect()" class="md-icon-button">
                 <md-icon>wifi</md-icon>
@@ -34,6 +25,22 @@
                 <md-icon>wifi_lock</md-icon>
                 <md-tooltip class="md-tooltip">Enable TCP</md-tooltip>
             </md-button>
+
+            <md-button v-if="showCancelBooking" @click="cancelBooking()" class="md-icon-button">
+                <md-icon>work_off</md-icon>
+                <md-tooltip class="md-tooltip">Cancel booking</md-tooltip>
+            </md-button>
+
+            <md-button v-if="showEnroll" @click="enroll()" class="md-icon-button">
+                <md-icon>link</md-icon>
+                <md-tooltip class="md-tooltip">Enroll</md-tooltip>
+            </md-button>
+
+            <md-button v-if="!showEnroll" @click="updateInfos()" class="md-icon-button">
+                <md-icon>update</md-icon>
+                <md-tooltip class="md-tooltip">Update phone infos</md-tooltip>
+            </md-button>
+
 
             <md-button @click="toggleLogs()" class="md-icon-button">
                 <md-icon>event_note</md-icon>
@@ -54,20 +61,6 @@
                 <span v-if="deviceLogs.length === 0">No logs available</span>
             </div>
         </div>
-
-        <!--        <div class="devices-button-container">-->
-        <!--            <md-progress-spinner :md-diameter="20" :md-stroke="3" md-mode="indeterminate"-->
-        <!--                                 class="devices-loader"-->
-        <!--                                 v-if="device.action && !device.action.isStopped"></md-progress-spinner>-->
-        <!--            <md-button class="devices-button md-raised md-primary"-->
-        <!--                       v-if="!device.enrolled"-->
-        <!--                       :disabled="device.action && !device.action.isStopped"-->
-        <!--                       v-on:click="enroll()">-->
-        <!--                Enroll-->
-        <!--            </md-button>-->
-        <!--            <div class="devices-status"-->
-        <!--                 v-bind:style="{'background-color': !ready ? '#D2413A': used ?'#d28e3c'  : '#4caf50'}"></div>-->
-        <!--        </div>-->
     </div>
 </template>
 
@@ -90,8 +83,6 @@
         public device: DeviceVue;
         public deviceLogs: Timestamp<DeviceLog>[] = [];
 
-        //public deviceLastLog: string = "";
-        //public deviceLastLogError: boolean = false;
         private deviceStatus: string;
         private actionTypeLabel: string = "";
         private agentService: AgentService;
@@ -100,6 +91,7 @@
         private showTCPConnect = false;
         private showTCPEnable = false;
         private showEnroll = false;
+        private showCancelBooking = false;
         private actionSub: Subscription;
 
 
@@ -132,14 +124,16 @@
 
                 }
             }
-            //console.log("device", this.data.adbDevice)
-            //console.log("firebase", this.data.firebaseDevice)
 
             this.showTCPConnect = this.data.firebaseDevice && this.data.firebaseDevice.status == DeviceStatus.offline && this.data.firebaseDevice.ip !== "" && this.data.firebaseDevice.lastTcpActivation > 0;
             this.showEnroll = this.data.firebaseDevice === undefined;
-            this.showTCPEnable = this.data.firebaseDevice && this.data.firebaseDevice.status == DeviceStatus.available && this.data.firebaseDevice.lastTcpActivation <= 0 && this.data.adbDevice.path.startsWith("usb")
+            this.showTCPEnable = this.data.firebaseDevice && this.data.firebaseDevice.status == DeviceStatus.available && this.data.firebaseDevice.lastTcpActivation <= 0 && this.data.adbDevice.path.startsWith("usb");
+            this.showCancelBooking = this.data.firebaseDevice && this.data.firebaseDevice.status == DeviceStatus.booked;
             this.actionTypeLabel = "";
             switch (this.data.actionType) {
+                case ActionType.update_app:
+                    this.actionTypeLabel = "Update agent app";
+                    break;
                 case ActionType.enroll:
                     this.actionTypeLabel = "Enroll";
                     break;
@@ -157,15 +151,16 @@
             }
 
             let actionLogs = this.data.action;
-            if (actionLogs && !actionLogs.isStopped) {
-                if(this.actionSub){
-                    this.actionSub.unsubscribe();
-                }
+            if (actionLogs && !actionLogs.isStopped && !this.actionSub) {
                 this.actionSub = actionLogs.subscribe(log => {
                     this.deviceLogs = [log].concat(this.deviceLogs);
                     while (this.deviceLogs.length > 10) {
                         this.deviceLogs.pop()
                     }
+                }, error => {
+                    console.error("can't listen logs", error);
+                }, () => {
+                    this.actionSub = null;
                 });
             }
 
@@ -178,17 +173,6 @@
 
 
         }
-
-        // private refreshLastLog() {
-        //     if (this.deviceLogs.length > 0) {
-        //         const lastLog = this.deviceLogs[this.deviceLogs.length - 1];
-        //         this.deviceLastLog = lastLog.log;
-        //         this.deviceLastLogError = lastLog.type == DeviceLogType.ERROR
-        //     } else {
-        //         this.deviceLastLogError = false;
-        //         this.deviceLastLog = "";
-        //     }
-        // }
 
         updateInfos() {
             this.agentService.updateDeviceInfos(this.data.firebaseDevice._ref.id)
@@ -221,6 +205,15 @@
             });
         }
 
+        cancelBooking() {
+            this.data.firebaseDevice.status = DeviceStatus.offline;
+            this.agentService.addManualAction({
+                actionType: ActionType.update_status,
+                adbDevice: this.data.adbDevice,
+                firebaseDevice: this.data.firebaseDevice,
+                action: null
+            });
+        }
 
         toggleLogs() {
             this.showLogs = !this.showLogs;
@@ -330,49 +323,4 @@
         max-height: 0;
     }
 
-    /*!*::ng-deep .mat-tooltip {*!*/
-    /*!*    white-space: pre-line*!*/
-    /*!*}*!*/
-
-
-    /*.md-tooltip {*/
-    /*    height: auto;*/
-    /*}*/
-
-    /*.devices-loader {*/
-    /*    margin-right: 15px;*/
-    /*}*/
-
-    /*.devices-button-container {*/
-    /*    display: flex;*/
-    /*    align-items: center;*/
-    /*}*/
-
-    /*.devices-header-container {*/
-    /*    flex: 1;*/
-    /*    overflow: hidden;*/
-    /*}*/
-
-    /*.devices-list-block {*/
-    /*    display: block;*/
-    /*    margin: 0;*/
-    /*    padding: 0;*/
-    /*}*/
-
-    /*.devices-logging {*/
-    /*    display: block;*/
-    /*    margin: 0;*/
-    /*    padding: 0;*/
-    /*    width: 250px;*/
-    /*    overflow: hidden;*/
-    /*    white-space: nowrap;*/
-    /*    text-overflow: ellipsis;*/
-    /*}*/
-
-    /*.devices-status {*/
-    /*    width: 20px;*/
-    /*    height: 20px;*/
-    /*    border-radius: 50%;*/
-    /*    margin-left: 10px;*/
-    /*}*/
 </style>

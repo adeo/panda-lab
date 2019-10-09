@@ -28,7 +28,8 @@ class AgentReceiver : BroadcastReceiver() {
                 val transactionId = intent.getStringExtra("transaction_id")
                 val result = hashMapOf(
                     "transaction_id" to transactionId,
-                    "device_id" to uniqueId
+                    "device_id" to uniqueId,
+                    "build_time" to BuildConfig.BUILD_TIME
                 )
                 Log.i(transactionId, Gson().toJson(result))
             }

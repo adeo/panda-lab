@@ -7,6 +7,7 @@ import {FirebaseAuthService} from "../firebaseauth.service";
 import {flatMap, map, tap} from "rxjs/operators";
 import {FirebaseRepository} from "../repositories/firebase.repository";
 import {StoreRepository} from "../repositories/store.repository";
+import winston from "winston";
 
 
 export class SetupService {
@@ -17,7 +18,8 @@ export class SetupService {
     private updateOnlineStatusCallback: (a) => void = null;
 
 
-    constructor(private workspace: FilesRepository,
+    constructor(private logger: winston.Logger,
+                private workspace: FilesRepository,
                 private authService: FirebaseAuthService,
                 private firebaseRepo: FirebaseRepository,
                 private storeRepo: StoreRepository) {
@@ -34,17 +36,17 @@ export class SetupService {
             }
 
             if (user && user.role === DESKTOP_AGENT) {
-                console.log("start configuration");
+                this.logger.info("start configuration");
                 this.agentStatus.next(AgentStatus.CONFIGURING);
                 this.configure().subscribe(log => {
-                    console.log(log);
+                    this.logger.verbose(log);
                     this.setStatusOnline(false);
                 }, error => {
-                    console.error("can't configure agent", error);
+                    this.logger.error("can't configure agent", error);
                     this.agentStatus.next(AgentStatus.NOT_LOGGED);
                     this.setStatusOnline(false);
                 }, () => {
-                    console.log("agent configured");
+                    this.logger.info("agent configured");
                     this.agentStatus.next(AgentStatus.READY);
                     this.setStatusOnline(true);
                 })
@@ -62,19 +64,24 @@ export class SetupService {
             );
     }
 
+    public getAgentPublishTime(){
+        return parseInt(this.storeRepo.load("agent_build_time", "0"))
+    }
+
     private configureMobileApk(): Observable<string> {
         let filePath = 'config/android-agent.apk';
         return this.firebaseRepo.getFileMetadata(filePath)
             .pipe(
                 flatMap((meta) => {
-                    const currentDate = parseInt(this.storeRepo.load("agent_last_date", "0"));
-                    const update = currentDate < new Date(meta.updated).getTime();
+                    const publishDate = parseInt(meta.customMetadata.buildTime);
+                    const currentDate = this.getAgentPublishTime();
+                    const update = currentDate < publishDate;
                     if (update || !this.workspace.fileExist(this.workspace.agentApkPath)) {
-                        console.log("update local agent apk");
+                        this.logger.info("update local agent apk");
                         this.workspace.delete(this.workspace.agentApkPath);
                         return this.firebaseRepo.getFileUrl(filePath)
                             .pipe(flatMap(url => this.workspace.downloadFile(this.workspace.agentApkPath, url)))
-                            .pipe(tap(this.storeRepo.save("agent_last_date", String(new Date(meta.updated).getTime()))))
+                            .pipe(tap(this.storeRepo.save("agent_build_time", String(publishDate))))
                     } else {
                         return of(this.workspace.agentApkPath)
                     }
@@ -100,7 +107,7 @@ export class SetupService {
         let deviceRef = this.firebaseRepo.firebase.database().ref("agents/" + this.UUID);
 
         if (this.updateOnlineStatusCallback) {
-            deviceRef.off("value", this.updateOnlineStatusCallback)
+            deviceRef.off("value", this.updateOnlineStatusCallback);
             this.updateOnlineStatusCallback = null;
         }
         if (value) {

@@ -57,14 +57,11 @@
 
 <script lang="ts">
     import {Component, Vue} from 'vue-property-decorator';
-    import {Subscription} from 'vue-rx-decorators';
     import {AdbStatusState} from "../../models/adb";
-    import {DeviceLog} from "../../models/device";
     import {Services} from "../../services/services.provider";
     import {DevicesService} from "../../services/devices.service";
     import {AgentDeviceData, AgentService} from "../../services/agent.service";
     import {AdbService} from "../../services/node/adb.service";
-    import {EMPTY, Observable, Timestamp} from "rxjs";
     import {DeviceStatus} from "pandalab-commons";
     import AgentDevicesList from "./AgentDevicesList.vue";
 
@@ -128,8 +125,7 @@
         }
 
         autoEnrollActivation() {
-            this.agentService.autoEnroll = this.autoEnrollSwitch
-            console.log('autoEnroll', this.autoEnrollSwitch)
+            this.agentService.autoEnroll = this.autoEnrollSwitch;
         }
 
         enableTcpIpActivaton() {
@@ -168,13 +164,11 @@
         flex: 0;
     }
 
-
     @media (max-width: $small-screen-size) {
         #options {
             height: auto;
         }
     }
-
 
     .adb-status-listening {
         color: $success-color;
@@ -188,54 +182,5 @@
         color: $warn-color;
     }
 
-
-    /*.devices-container {*/
-    /*    padding: 10px;*/
-    /*}*/
-
-    /*.devices-list-container {*/
-    /*    width: 500px;*/
-    /*    background-color: #fff;*/
-    /*    padding: 10px 15px 10px 15px;*/
-    /*    border-radius: 5px;*/
-    /*    margin: 10px;*/
-    /*    float: left;*/
-    /*}*/
-
-    /*.devices-infos-container {*/
-    /*    width: 400px;*/
-    /*    background-color: #fff;*/
-    /*    padding: 10px 10px 10px 20px;*/
-    /*    border-radius: 5px;*/
-    /*    margin: 10px;*/
-    /*    float: left;*/
-    /*}*/
-
-    /*.devices-settings-container {*/
-    /*    width: 400px;*/
-    /*    background-color: #fff;*/
-    /*    padding: 10px 10px 10px 20px;*/
-    /*    border-radius: 5px;*/
-    /*    margin: 10px;*/
-    /*    float: left;*/
-    /*}*/
-
-    /*.devices-adb-status-listen {*/
-    /*    color: #4caf50;*/
-    /*}*/
-
-    /*.devices-adb-status-stop {*/
-    /*    color: #D2413A;*/
-    /*    margin-right: 15px;*/
-    /*}*/
-
-    /*.devices-restart-adb {*/
-    /*    margin-right: 15px;*/
-    /*}*/
-
-    /*.devices-adb-status-stop-container {*/
-    /*    display: flex;*/
-    /*    align-items: center;*/
-    /*}*/
 
 </style>

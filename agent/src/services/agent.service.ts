@@ -48,18 +48,23 @@ import {DevicesRepository} from "./repositories/devices.repository";
 export class AgentService {
     private listenDevicesSub: Subscription;
     private manualActions: AgentDeviceData[] = [];
+    private changeBehaviour = new BehaviorSubject("");
+    private agentDevicesData: BehaviorSubject<AgentDeviceData[]> = new BehaviorSubject<AgentDeviceData[]>([]);
+
+    private cachedDeviceAppInfos: Map<string, { date: number, appInfos: AppInfos }>;
+    private currentAdbDevices: DeviceAdb[] = [];
 
 
     constructor(private logger: winston.Logger,
                 public adb: AdbService,
                 private authService: FirebaseAuthService,
                 private firebaseRepo: FirebaseRepository,
-                private agentRepo: SetupService,
+                private setupService: SetupService,
                 private devicesService: DevicesService,
                 private devicesRepo: DevicesRepository,
                 private agentsService: AgentsService,
                 private storeRepo: StoreRepository) {
-        this.agentRepo.agentStatus.subscribe(value => {
+        this.setupService.agentStatus.subscribe(value => {
             switch (value) {
                 case AgentStatus.CONFIGURING:
                 case AgentStatus.NOT_LOGGED:
@@ -94,15 +99,13 @@ export class AgentService {
     }
 
     listenAgentStatus(): Observable<AgentStatus> {
-        return this.agentRepo.agentStatus
+        return this.setupService.agentStatus
     }
 
     reloadAdb() {
         return this.adb.restartAdbTracking()
     }
 
-    private changeBehaviour = new BehaviorSubject("");
-    private agentDevicesData: BehaviorSubject<AgentDeviceData[]> = new BehaviorSubject<AgentDeviceData[]>([]);
 
     public listenAgentDevices(): Observable<AgentDeviceData[]> {
         return this.agentDevicesData;
@@ -121,14 +124,11 @@ export class AgentService {
         this.notifyChange()
     }
 
-    private cachedDeviceIds: Map<string, { date: number, id: string }>;
-    private currentAdbDevices: DeviceAdb[] = [];
-
 
     private listenDevices(): Observable<AgentDeviceData[]> {
-        this.cachedDeviceIds = new Map<string, { date: number, id: string }>();
+        this.cachedDeviceAppInfos = new Map();
         let listenAdbDeviceWithUid: Observable<DeviceAdb[]> = this.adb.listenAdb();
-        let listenAgentDevices = this.agentsService.listenAgentDevices(this.agentRepo.UUID);
+        let listenAgentDevices = this.agentsService.listenAgentDevices(this.setupService.UUID);
         return combineLatest([
             listenAgentDevices,
             listenAdbDeviceWithUid,
@@ -169,7 +169,9 @@ export class AgentService {
                             )
                         } else {
                             deviceData.firebaseDevice = device;
-                            if (device.status == DeviceStatus.offline || !device.status) {
+                            if (deviceData.adbDevice.appBuildTime < this.setupService.getAgentPublishTime()) {
+                                deviceData.actionType = ActionType.update_app;
+                            } else if (device.status == DeviceStatus.offline || !device.status) {
                                 device.status = DeviceStatus.available;
                                 deviceData.actionType = ActionType.update_status;
                             } else if (device.status == DeviceStatus.available && deviceData.adbDevice.path.startsWith("usb") && this.enableTCP &&
@@ -201,6 +203,10 @@ export class AgentService {
                                         this.logger.info("enroll device", deviceData.adbDevice.id);
                                         deviceData.action = this.startAction(deviceData.actionType, this.enrollAction(deviceData.adbDevice.id));
                                         break;
+                                    case ActionType.update_app:
+                                        this.logger.info("update client app", deviceData.adbDevice.id);
+                                        deviceData.action = this.startAction(deviceData.actionType, this.installClientAppAction(deviceData.adbDevice.id));
+                                        break;
                                     case ActionType.update_status:
                                         deviceData.action = this.startAction(deviceData.actionType, this.updateDeviceAction(deviceData.firebaseDevice, "save device status"));
                                         break;
@@ -228,25 +234,26 @@ export class AgentService {
         return from(adbDevices)
             .pipe(
                 flatMap((device: DeviceAdb) => {
-                    let obs = this.getDeviceUID(device.id);
-                    if (this.cachedDeviceIds.has(device.id)) {
-                        let cachedId = this.cachedDeviceIds.get(device.id);
+                    let obs = this.getAppInfos(device.id);
+                    if (this.cachedDeviceAppInfos.has(device.id)) {
+                        let cachedId = this.cachedDeviceAppInfos.get(device.id);
                         if (cachedId.date > Date.now() - 1000 * 60 * 30) {
-                            obs = of(cachedId.id)
+                            obs = of(cachedId.appInfos)
                         }
                     }
                     return obs
                         .pipe(
                             catchError(error => {
                                 this.logger.warn("can't get device uid - ", error);
-                                return of("")
+                                return of(<AppInfos>{deviceUid: "", buildTime: -1})
                             }),
                             map(value => {
-                                if (value && !this.cachedDeviceIds.has(device.id)) {
-                                    this.cachedDeviceIds.set(device.id, {date: Date.now(), id: value})
+                                if (value && !this.cachedDeviceAppInfos.has(device.id)) {
+                                    this.cachedDeviceAppInfos.set(device.id, {date: Date.now(), appInfos: value})
                                 }
 
-                                device.uid = value;
+                                device.uid = value.deviceUid;
+                                device.appBuildTime = value.buildTime;
                                 return device
                             })
                         )
@@ -270,9 +277,9 @@ export class AgentService {
                         filteredDevices.push(value);
                     });
                     //remove cached uid
-                    this.cachedDeviceIds.forEach((value, key) => {
-                        if (!map.has(value.id)) {
-                            this.cachedDeviceIds.delete(key);
+                    this.cachedDeviceAppInfos.forEach((value, key) => {
+                        if (!map.has(value.appInfos.deviceUid)) {
+                            this.cachedDeviceAppInfos.delete(key);
                         }
                     });
                     return filteredDevices;
@@ -291,7 +298,7 @@ export class AgentService {
     }
 
     public getAgentUUID(): string {
-        return this.agentRepo.UUID;
+        return this.setupService.UUID;
     }
 
     private startAction(type: ActionType, action: Observable<Timestamp<DeviceLog>>): ReplaySubject<Timestamp<DeviceLog>> {
@@ -299,14 +306,14 @@ export class AgentService {
         action.pipe(
             catchError(err => {
                 this.logger.warn("Action error", err);
-                return of(<DeviceLog>{log: err, type: DeviceLogType.ERROR})
+                return of(<DeviceLog>{log: err, type: DeviceLogType.ERROR}).pipe(timestamp())
             }),
             map((log: Timestamp<DeviceLog>) => {
                 log.value.log = "[" + type + "] " + log.value.log;
-                this.logger.info(log.value.log);
                 return log;
             }))
             .subscribe((value: Timestamp<DeviceLog>) => {
+                this.logger.info(value.value.log);
                 subject.next(value)
             }, error => {
                 this.logger.error(type + " - Action finish with error", error);
@@ -372,19 +379,26 @@ export class AgentService {
             )
     }
 
+    private installClientAppAction(adbDeviceId: string): Observable<Timestamp<DeviceLog>> {
+        return concat(
+            of(<DeviceLog>{log: 'Install service APK...', type: DeviceLogType.INFO}),
+            this.adb.installApk(adbDeviceId, this.setupService.getAgentApk()),
+            of(<DeviceLog>{log: `Open main activity...`, type: DeviceLogType.INFO}),
+            this.adb.launchActivity(adbDeviceId, "com.leroymerlin.pandalab/.home.HomeActivity")
+        ).pipe(
+            timestamp()
+        );
+    }
+
     private enrollAction(adbDeviceId: string): Observable<Timestamp<DeviceLog>> {
         const subject = new ReplaySubject<DeviceLog>();
-        subject.next({log: 'Install service APK...', type: DeviceLogType.INFO});
-        const enrollObs: Observable<DeviceLog> = this.adb.installApk(adbDeviceId, this.agentRepo.getAgentApk())
+        subject.next({log: `Retrieve device uid...`, type: DeviceLogType.INFO});
+        const enrollObs: Observable<DeviceLog> = this.getAppInfos(adbDeviceId)
             .pipe(
-                tap(() => subject.next({log: `Open main activity...`, type: DeviceLogType.INFO})),
-                flatMap(() => this.adb.launchActivity(adbDeviceId, "com.leroymerlin.pandalab/.home.HomeActivity")),
-                tap(() => subject.next({log: `Retrieve device uid...`, type: DeviceLogType.INFO})),
-                flatMap(() => this.getDeviceUID(adbDeviceId)),
                 tap(() => subject.next({log: `Generate firebase token...`, type: DeviceLogType.INFO})),
-                flatMap(uuid => this.authService.createDeviceToken(uuid)
+                flatMap(infos => this.authService.createDeviceToken(infos.deviceUid)
                     .pipe(map(token => {
-                        return {uuid: uuid, token: token}
+                        return {uuid: infos.deviceUid, token: token}
                     }))),
                 tap(() => subject.next({log: 'Launch of the service...', type: DeviceLogType.INFO})),
                 flatMap(result => this.adb.sendBroadcastWithData(adbDeviceId, "com.leroymerlin.pandalab/.AgentReceiver",
@@ -409,12 +423,13 @@ export class AgentService {
                 }),
                 flatMap(() => EMPTY),
             ) as Observable<DeviceLog>;
-        return merge(subject, enrollObs)
-            .pipe(
-                timeout(50000),
-                catchError(error => of(<DeviceLog>{log: error, type: DeviceLogType.ERROR})),
-                timestamp()
-            )
+        return concat(
+            this.installClientAppAction(adbDeviceId),
+            merge(subject, enrollObs).pipe(timestamp())
+        ).pipe(
+            timeout(50000),
+            catchError(error => of(<DeviceLog>{log: error, type: DeviceLogType.ERROR}).pipe(timestamp()))
+        );
     }
 
 
@@ -424,13 +439,13 @@ export class AgentService {
         );
     }
 
-    private getDeviceUID(deviceId: string): Observable<string> {
+    private getAppInfos(deviceId: string): Observable<AppInfos> {
         const transactionId = Guid.create().toString();
         const logcatObs = this.adb.readAdbLogcat(deviceId, transactionId)
             .pipe(
                 map(message => {
                     let parse = JSON.parse(message);
-                    return parse.device_id
+                    return <AppInfos>{deviceUid: parse.device_id, buildTime: parse.build_time}
                 }),
                 first(),
                 timeout(4000)
@@ -443,7 +458,7 @@ export class AgentService {
             .pipe(
                 flatMap(installed => {
                     if (!installed) {
-                        this.logger.warn("Can't get uid, app not installed");
+                        this.logger.warn("Can't get app infos, app not installed");
                         throw AgentError.notInstalled()
                     }
                     return zip(logcatObs, sendTransaction)
@@ -461,6 +476,11 @@ export class AgentService {
     }
 }
 
+export interface AppInfos {
+    deviceUid: string,
+    buildTime: number
+}
+
 export interface AgentDeviceData {
     actionType: ActionType,
     adbDevice: DeviceAdb,
@@ -471,6 +491,7 @@ export interface AgentDeviceData {
 export enum ActionType {
     enroll = 'enroll',
     try_connect = 'try_connect',
+    update_app = 'update_app',
     update_status = 'update_status',
     enable_tcp = 'enable_tcp',
     none = 'none'
