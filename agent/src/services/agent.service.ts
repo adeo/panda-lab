@@ -155,11 +155,15 @@ export class AgentService {
                     result.firebaseDevices.forEach(device => {
                         const deviceData = devicesData.find(a => a.adbDevice && a.adbDevice.uid == device._ref.id);
                         if (!deviceData) {
-                            device.status = DeviceStatus.offline;
+                            const isBooked = device.status == DeviceStatus.booked;
+                            const isOffline = device.status == DeviceStatus.offline;
+                            if (!isBooked && !isOffline) {
+                                device.status = DeviceStatus.offline;
+                            }
                             const canConnect = device.lastTcpActivation && device.lastTcpActivation < Date.now() - 1000 * 10;
                             devicesData.push(
                                 <AgentDeviceData>{
-                                    actionType: this.enableTCP && device.ip && canConnect ? ActionType.try_connect : ActionType.none,
+                                    actionType: this.enableTCP && device.ip && canConnect && isOffline ? ActionType.try_connect : !isBooked && !isOffline ? ActionType.update_status : ActionType.none,
                                     firebaseDevice: device
                                 }
                             )
@@ -183,7 +187,10 @@ export class AgentService {
                         return devicesData.map((deviceData: AgentDeviceData) => {
                             let currentDeviceData = this.findDataInList(currentDevicesData, deviceData);
                             if (currentDeviceData && currentDeviceData.action && !currentDeviceData.action.isStopped) {
-                                return currentDeviceData;
+                                //we update current data values but let the current action finish
+                                deviceData.action = currentDeviceData.action;
+                                deviceData.actionType = currentDeviceData.actionType;
+                                return deviceData;
                             } else {
                                 let index = this.findIndexDataInList(this.manualActions, deviceData);
                                 if (index >= 0) {
@@ -324,6 +331,8 @@ export class AgentService {
                     timestamp()
                 ),
             of("").pipe(delay(500), flatMap(() => this.updateDeviceAction(device.firebaseDevice, "save device status")))
+        ).pipe(
+            tap(() => this.updateDeviceInfos(device.firebaseDevice._ref.id))
         )
     }
 
@@ -338,10 +347,16 @@ export class AgentService {
                     }),
                     timestamp(),
                     catchError(err => {
-                        this.logger.warn("Can't connect to device on " + device.firebaseDevice.ip, err);
+                        let errorMsg = "Can't connect to device on " + device.firebaseDevice.ip;
+                        this.logger.warn(errorMsg, err);
                         device.firebaseDevice.ip = "";
                         device.firebaseDevice.lastTcpActivation = 0;
-                        return this.updateDeviceAction(device.firebaseDevice, "Remove device ip");
+                        return this.updateDeviceAction(device.firebaseDevice, "Remove device ip")
+                            .pipe(
+                                startWith<Timestamp<DeviceLog>>({
+                                    value: {log: errorMsg, type: DeviceLogType.ERROR},
+                                    timestamp: Date.now()
+                                }));
                     }),
                 )
         )

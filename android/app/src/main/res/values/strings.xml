@@ -22,4 +22,5 @@
     <string name="overlay_label_working">Pandalab - device in use</string>
     <string name="overlay_label_available">Pandalab - device available</string>
     <string name="free_device">Cancel booking</string>
+    <string name="book_device">Book device</string>
 </resources>

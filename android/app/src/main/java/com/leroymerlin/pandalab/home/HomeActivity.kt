@@ -74,23 +74,20 @@ class HomeActivity : AppCompatActivity() {
             }
             mySnackbar.show()
         }
-        findViewById<View>(R.id.free_device_button).setOnClickListener {
-            pandaLabManager.cancelDeviceBooking()
-                .subscribe({
-                    Log.e(tag, "device booking canceled")
-                }, {
-                    Log.e(tag, "Can't cancel device booking", it)
-
-                })
-        }
-
         statusSub = pandaLabManager.listenDeviceStatus()
             .subscribe({ status ->
-                findViewById<View>(R.id.free_device_button).visibility =
-                    if (status == DeviceStatus.booked) {
-                        View.VISIBLE;
+                val isBooked = status == DeviceStatus.booked
+                free_device_button.visibility =
+                    if (isBooked) {
+                        View.VISIBLE
                     } else {
-                        View.GONE;
+                        View.GONE
+                    }
+                book_device_button.visibility =
+                    if (isBooked) {
+                        View.GONE
+                    } else {
+                        View.VISIBLE
                     }
             }, { error ->
                 Log.e(tag, "Can't listen status", error)
@@ -161,6 +158,26 @@ class HomeActivity : AppCompatActivity() {
         } else {
             getString(R.string.enroll_with_identifier, this.pandaLabManager.getDeviceId())
         }
+
+        book_device_button.setOnClickListener {
+            pandaLabManager.bookDevice()
+                .subscribe({
+                    Log.i(tag, "device booked")
+                }, {
+                    Log.e(tag, "Can't book device", it)
+
+                })
+        }
+        free_device_button.setOnClickListener {
+            pandaLabManager.cancelDeviceBooking()
+                .subscribe({
+                    Log.i(tag, "device booking canceled")
+                }, {
+                    Log.e(tag, "Can't cancel device booking", it)
+
+                })
+        }
+
 
         update_button.setOnClickListener {
             pandaLabManager.updateDevice().doOnSubscribe {

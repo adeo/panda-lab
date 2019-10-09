@@ -73,7 +73,7 @@
 
 <script lang="ts">
     import {Component, Prop, Vue, Watch} from 'vue-property-decorator';
-    import {Timestamp} from "rxjs";
+    import {Subscription, Timestamp} from "rxjs";
     import {DeviceLog} from "../../models/device";
     import {ActionType, AgentDeviceData, AgentService} from "../../services/agent.service";
     import {DeviceStatus} from "pandalab-commons";
@@ -100,6 +100,7 @@
         private showTCPConnect = false;
         private showTCPEnable = false;
         private showEnroll = false;
+        private actionSub: Subscription;
 
 
         @Watch('data', {immediate: true})
@@ -157,12 +158,15 @@
 
             let actionLogs = this.data.action;
             if (actionLogs && !actionLogs.isStopped) {
-                this.$subscribeTo(actionLogs, (log: Timestamp<DeviceLog>) => {
+                if(this.actionSub){
+                    this.actionSub.unsubscribe();
+                }
+                this.actionSub = actionLogs.subscribe(log => {
                     this.deviceLogs = [log].concat(this.deviceLogs);
                     while (this.deviceLogs.length > 10) {
                         this.deviceLogs.pop()
                     }
-                })
+                });
             }
 
         }

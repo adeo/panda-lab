@@ -4,6 +4,7 @@ import {AgentModel, CollectionName, Device, DeviceStatus} from "pandalab-commons
 class DeviceService {
 
     async updateDeviceInfos(deviceId: string) {
+        console.log("send refresh notification to " + deviceId);
         return admin.messaging().sendToTopic(deviceId, {
             data: {
                 action: "refresh"
@@ -12,6 +13,7 @@ class DeviceService {
     }
 
     async notifyDeviceStatusChange(deviceId: string, status: string) {
+        console.log("send status notification to " + deviceId);
         return admin.messaging().sendToTopic(deviceId, {
             data: {
                 action: "status",
