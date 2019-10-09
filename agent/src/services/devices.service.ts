@@ -11,6 +11,11 @@ export class DevicesService {
 
     }
 
+    deleteAgent(device: Device): Observable<Device> {
+        device.agent = null;
+        return this.firebaseRepo.saveDocument(device);
+    }
+
     listenDevices(): Observable<Device[]> {
         let query = this.firebaseRepo.getCollection(CollectionName.DEVICES);
         return this.firebaseRepo.listenQuery(query)

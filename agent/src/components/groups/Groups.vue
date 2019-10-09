@@ -2,22 +2,16 @@
     <div class="md-layout">
         <div class="md-layout-item pl-container">
             <h2 class="pl-title">Groups</h2>
+            <md-button @click="createGroup()" id="addbutton" class="md-fab md-primary">
+                <md-icon>add</md-icon>
+            </md-button>
             <template v-if="groups">
-                <div class="devices-list-container">
-                    <md-table v-model="groups" md-card md-sort="status" md-sort-order="asc" md-fixed-header>
-                        <md-table-row slot="md-table-row" slot-scope="{ item }"
-                                      v-on:click="onDisplayDetail(item._ref.id)">
-                            <md-table-cell md-label="ID" md-numeric> {{ item._ref.id }}</md-table-cell>
-                            <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
-                            <md-table-cell md-label="Devices" md-sort-by="phoneBrand">{{ item.devices.length }}
-                            </md-table-cell>
-                        </md-table-row>
-                    </md-table>
-                </div>
-
-                <md-button @click="createGroup()" id="addbutton" class="md-fab md-primary">
-                    <md-icon>add</md-icon>
-                </md-button>
+                <md-table v-model="groups" md-card md-sort="status" md-sort-order="asc" md-fixed-header>
+                    <md-table-row slot="md-table-row" slot-scope="{ item }" v-on:click="onDisplayDetail(item._ref.id)">
+                        <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
+                        <md-table-cell md-label="Devices" md-sort-by="phoneBrand">{{ item.devices.length }}</md-table-cell>
+                    </md-table-row>
+                </md-table>
             </template>
             <template v-else>
                 <p>LOADING...</p>
@@ -43,12 +37,15 @@
     import {Subscription} from "vue-rx-decorators";
     import {Services} from "../../services/services.provider";
     import {DevicesGroup} from "pandalab-commons";
+    import * as winston from "winston";
 
     @Component
     export default class Groups extends Vue {
 
         groupName: string = "";
         activeDialog: boolean = false;
+        logger: winston.Logger = Services.getInstance().logger;
+
 
         @Subscription(function () {
             return Services.getInstance().devicesService.listenGroups();

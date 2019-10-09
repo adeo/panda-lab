@@ -17,8 +17,8 @@ import Report from "../components/report/Report.vue";
 import VersionDetail from '../components/apps/VersionDetail.vue';
 import AdminPage from '../components/admin/AdminPage.vue';
 import {AdminGuard} from "./admin.guards";
-import {Job} from "pandalab-commons/dist/models/job.models";
-import JobPage from "../components/JobPage.vue";
+import AgentsList from "../components/agents/AgentsList.vue";
+import AgentDetail from "../components/agents/AgentDetail.vue";
 
 Vue.use(VueRouter);
 
@@ -34,6 +34,10 @@ const SPLASH_ROUTE: RouteConfig = {
     beforeEnter: AuthentGuard
 };
 
+
+function AgentdDetail() {
+
+}
 
 const HOME_ROUTE: RouteConfig = {
     path: '/',
@@ -55,6 +59,8 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'applications/:applicationId', component: AppDetails,},
         {path: 'applications/:applicationId/versions/:versionId', component: VersionDetail,},
         {path: 'reports/:reportId', component: Report,},
+        {path: 'agents', component: AgentsList,},
+        {path: 'agents/:agentId', component: AgentDetail,},
         {
             path: '/admin',
             component: AdminPage,

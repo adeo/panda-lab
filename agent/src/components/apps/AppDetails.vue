@@ -1,6 +1,6 @@
 <template>
     <div class="md-layout">
-        <div class="md-layout-item pl-container">
+        <div class="md-layout-item pl-container" v-if="app">
             <div class="md-layout md-alignment-center-center">
                 <div class="md-layout-item-5">
                     <md-button class="md-icon-button" @click="$router.back()">

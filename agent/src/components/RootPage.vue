@@ -63,6 +63,11 @@ import {RuntimeEnv} from "../services/services.provider";
                 icon: "apps",
                 link: "/applications"
             },
+            {
+                name: "Agents",
+                icon: "apps",
+                link: "/agents"
+            },
         ];
 
         isElectron: Boolean = getRuntimeEnv() == RuntimeEnv.ELECTRON_RENDERER;

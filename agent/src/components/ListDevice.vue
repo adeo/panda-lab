@@ -12,6 +12,9 @@
                                             {{ device.phoneModel }}
                                         </span>
                                         <md-icon :class="'device-' + device.status">fiber_manual_record</md-icon>
+                                        <md-button v-if="deleteMode" class="md-icon-button" @click="onDeleteDevice(device)">
+                                            <md-icon>delete</md-icon>
+                                        </md-button>
                                     </div>
                                 </md-card-header>
 
@@ -40,6 +43,11 @@
                         <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
                         <md-table-cell md-label="Brand" md-sort-by="phoneBrand">{{ item.phoneBrand }}</md-table-cell>
                         <md-table-cell md-label="Status" md-sort-by="status"><md-icon :class="'device-' + item.status">fiber_manual_record</md-icon></md-table-cell>
+                        <md-table-cell v-if="deleteMode" md-label="actions">
+                            <md-button class="md-icon-button" @click="onDeleteDevice(item)">
+                                <md-icon>delete</md-icon>
+                            </md-button>
+                        </md-table-cell>
                     </md-table-row>
                 </md-table>
             </div>
@@ -69,10 +77,15 @@
         })
         gridMode: boolean;
 
+        @Prop({
+            default: false,
+        })
+        deleteMode: boolean;
+
         @Prop()
         onClickDevice: (Device) => void;
-
-        private date = Date.now();
+        @Prop()
+        onDeleteDevice: (Device) => void;
 
         protected formatter = new DateFormatter();
 

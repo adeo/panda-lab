@@ -1,4 +1,4 @@
-<template>
+<template xmlns:v-init="http://www.w3.org/1999/xhtml">
     <div class="md-layout">
         <div class="md-layout-item pl-container">
             <div class="md-layout md-alignment-center-center">
@@ -51,9 +51,8 @@
                                 </md-list-item>
                             </md-list>
                         </div>
-                        <div class="md-layout-item">
-                            <img :src="device.pictureIcon ? device.pictureIcon : require('../../assets/images/device.png')"
-                                 alt="toto">
+                        <div class="md-layout-item md-layout">
+                            <img v-bind:click="video = true" :src="device.pictureIcon ? device.pictureIcon : require('../../assets/images/device.png')" alt="toto"/>
                         </div>
                     </div>
 
@@ -87,6 +86,8 @@
 
     @Component
     export default class Device extends Vue {
+
+        video = false;
 
         @Subscription(function () {
             return Services.getInstance().devicesService.listenDevice(this.$route.params.deviceId)
