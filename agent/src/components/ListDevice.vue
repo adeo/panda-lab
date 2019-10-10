@@ -29,7 +29,7 @@
                                         {{ device.phoneBrand.toUpperCase() }}
                                     </div>
                                     <span class="identifier">{{ device._ref.id }}</span>
-                                    {{ formatDate() }}
+                                    {{ formatDate(device.lastConnexion) }}
                                 </md-card-content>
                             </div>
                         </md-ripple>
@@ -95,8 +95,8 @@
             }
         }
 
-        protected formatDate() {
-            return this.formatter.formatDate(new Date());
+        protected formatDate(timestamp : number) {
+            return this.formatter.formatDate(new Date(timestamp));
         }
     }
 
