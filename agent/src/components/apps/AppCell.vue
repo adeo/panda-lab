@@ -54,9 +54,9 @@
                 this.appVersion = result.version.versionName;
                 this.appVersionDate = this.formatter.formatDate(result.version.timestamp.toDate());
 
-                this.jobStatus = result.job.status;
+                this.jobStatus = result.jobReport.testFailure > 0 ? JobStatus.failure : result.jobReport.testUnstable > 0 ? JobStatus.unstable : JobStatus.success;
 
-                switch (result.job.status) {
+                switch (this.jobStatus) {
                     case JobStatus.unstable:
                         this.icon = 'brightness_medium';
                         break;
@@ -107,7 +107,7 @@
         color: white;
     }
 
-    .badge{
+    .badge {
         border-radius: 100%;
         position: absolute;
         top: -10px;
@@ -116,6 +116,7 @@
         height: 40px;
         color: white;
     }
+
     .job-unstable {
         background: $warn-color;
     }

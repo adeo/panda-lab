@@ -1,7 +1,7 @@
 import {FirebaseRepository} from "./repositories/firebase.repository";
 import * as winston from "winston";
 import {filter, flatMap, map} from "rxjs/operators";
-import {AppModel, AppVersion, CollectionName, Job} from "pandalab-commons";
+import {AppModel, AppVersion, CollectionName, Job, TestReport} from "pandalab-commons";
 import {Observable} from "rxjs";
 
 
@@ -28,23 +28,22 @@ export class AppsService {
     // }
 
 
-    public listenLastAppTest(applicationId: string): Observable<{ job: Job, version: AppVersion }> {
-        const query = this.firebaseRepo.getCollection(CollectionName.JOBS)
-            .orderBy('createdAt', "desc")
+    public listenLastAppTest(applicationId: string): Observable<{ jobReport: TestReport, version: AppVersion }> {
+        const query = this.firebaseRepo.getCollection(CollectionName.JOB_REPORTS)
+            .orderBy('date', "desc")
             .where("app", "==", this.firebaseRepo.getCollection(CollectionName.APPLICATIONS).doc(applicationId))
-            .where("completed", '==', true)
             .limit(1);
 
-        return this.firebaseRepo.listenQuery<Job>(query)
+        return this.firebaseRepo.listenQuery<TestReport>(query)
             .pipe(
-                filter(jobs => jobs.length > 0),
-                map(jobs => jobs[0]),
-                flatMap(job => {
-                    return this.firebaseRepo.getDocument<AppVersion>(job.version as any)
+                filter(jobReports => jobReports.length > 0),
+                map(jobReports => jobReports[0]),
+                flatMap(jobReport => {
+                    return this.firebaseRepo.getDocument<AppVersion>(jobReport.version as any)
                         .pipe(
                             map(version => {
                                 return {
-                                    job: job,
+                                    jobReport: jobReport,
                                     version: version
                                 };
                             })

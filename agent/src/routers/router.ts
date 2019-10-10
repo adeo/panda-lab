@@ -1,11 +1,11 @@
 import Vue from 'vue';
 import VueRouter, {RouteConfig} from 'vue-router';
 import {AuthentGuard} from "./authent.guards";
-import RootPage from "@/components/RootPage.vue";
-import Jobs from "@/components/Jobs.vue";
+import RootPage from "../components/RootPage.vue";
+import Jobs from "../components/jobs/Jobs.vue";
 import Device from "../components/devices/Device.vue";
-import JobTaskDetail from "@/components/JobTaskDetail.vue";
-import Auth from "@/components/auth/Auth.vue";
+import JobTaskDetail from "../components/jobs/JobTaskDetail.vue";
+import Auth from "../components/auth/Auth.vue";
 import Splash from "../components/auth/Splash.vue";
 import AgentPage from "../components/agent/AgentPage.vue";
 import Devices from "../components/devices/Devices.vue";

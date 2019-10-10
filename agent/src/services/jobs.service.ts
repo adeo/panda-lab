@@ -86,7 +86,9 @@ export class JobsService {
     }
 
     public getAllJobs(): Observable<Job[]> {
-        return this.firebaseRepo.listenCollection(CollectionName.JOBS)
+        return this.firebaseRepo.getQuery<Job>(
+            this.firebaseRepo.getCollection(CollectionName.JOBS).orderBy('createdAt', 'desc')
+        );
     }
 
     public createNewJob(artifact: Artifact, devices: string[], groups: string[], timeout: number, devicesCount: number = 0): Observable<string> {

@@ -68,7 +68,7 @@
     import "rxjs-compat/add/operator/mergeMap";
     import "rxjs-compat/add/operator/toArray";
     import {Subscription} from "vue-rx-decorators";
-    import {Services} from "../services/services.provider";
+    import {Services} from "../../services/services.provider";
 
     @Component
     export default class JobTaskDetail extends Vue {

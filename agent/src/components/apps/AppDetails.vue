@@ -81,7 +81,7 @@
     import TestReportLineChart from "./TestReportLineChart.vue";
     import {ChartData, ChartDataSets} from "chart.js"
     import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "../../models/events";
-    import DialogCreateJob from "../DialogCreateJob.vue";
+    import DialogCreateJob from "../jobs/DialogCreateJob.vue";
     import {DateFormatter} from "../utils/Formatter";
 
     @Component({
