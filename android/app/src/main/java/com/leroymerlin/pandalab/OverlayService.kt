@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
@@ -72,8 +73,12 @@ class OverlayService : Service() {
                     }else{
                         floatyText?.text =
                             if(status == DeviceStatus.available){
+                                floatyView?.findViewById<View>(R.id.overlay_top)?.visibility = View.VISIBLE
+                                //floatyView?.findViewById<View>(R.id.overlay_top)?.setBackgroundResource(R.color.colorPrimary)
                                 getString(R.string.overlay_label_available)
                             }else{
+                                floatyView?.findViewById<View>(R.id.overlay_top)?.visibility = View.GONE
+                                //floatyView?.findViewById<View>(R.id.overlay_top)?.setBackgroundColor(Color.RED)
                                 getString(R.string.overlay_label_working)
                             }
 
@@ -110,21 +115,18 @@ class OverlayService : Service() {
 
         val params = LayoutParams(
             LayoutParams.MATCH_PARENT,
-            LayoutParams.MATCH_PARENT,
+            LayoutParams.WRAP_CONTENT,
             layoutParamsType,
-            0,
+            LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.CENTER or Gravity.START
-            x = 0
-            y = 0
+            gravity = Gravity.TOP or Gravity.CENTER
         }
 
         val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater?
 
         inflater?.let {
             floatyView = inflater.inflate(R.layout.overlay, null)
-            floatyView?.setOnClickListener {}
             this.floatyText = floatyView?.findViewById<TextView>(R.id.overlay_label)
             floatyView?.findViewById<View>(R.id.overlay_btn_close)
                 ?.setOnClickListener {

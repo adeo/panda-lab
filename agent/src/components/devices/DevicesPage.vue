@@ -16,7 +16,7 @@
 <script lang="ts">
     import {Component, Vue} from "vue-property-decorator";
     import {Services} from "../../services/services.provider";
-    import ListDevice from "../ListDevice.vue";
+    import ListDevice from "../widget/ListDevice.vue";
     import {Device} from "pandalab-commons";
 
     @Component({
@@ -27,7 +27,7 @@
         private static GRID_MODE_KEY = 'grid-mode';
 
         protected gridMode: boolean;
-        private devices: Device[] = [];
+        protected devices: Device[] = [];
 
         constructor() {
             super();

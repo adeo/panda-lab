@@ -52,22 +52,12 @@
                             </md-list>
                         </div>
                         <div class="md-layout-item md-layout">
-                            <img v-bind:click="video = true" :src="device.pictureIcon ? device.pictureIcon : require('../../assets/images/device.png')" alt="toto"/>
+                            <img v-bind:click="video = true"
+                                 :src="device.pictureIcon ? device.pictureIcon : require('../../assets/images/device.png')"
+                                 alt="toto"/>
                         </div>
                     </div>
-
-                    <md-table id="task-table" v-if="tasks && tasks.length > 0" v-model="tasks" md-sort="status" md-sort-order="asc" md-card>
-                        <md-table-toolbar>
-                            <h1 class="md-title">Tasks</h1>
-                        </md-table-toolbar>
-
-                        <md-table-row slot="md-table-row" slot-scope="{ item }">
-                            <md-table-cell md-label="ID" md-numeric>{{ item._ref.id }}</md-table-cell>
-                            <md-table-cell md-label="Date" md-sort-by="createdAt.seconds" >{{ formatter.formatDate(item.createdAt.toDate()) }}</md-table-cell>
-                            <md-table-cell md-label="Status" md-sort-by="status">{{ item.status }}</md-table-cell>
-                            <md-table-cell md-label="Job" md-sort-by="job">{{ item.job.id }}</md-table-cell>
-                        </md-table-row>
-                    </md-table>
+                    <ListTasks :tasks="tasks"></ListTasks>
                 </div>
             </template>
             <template v-else>
@@ -82,8 +72,11 @@
     import {Services} from "../../services/services.provider";
     import {Device, JobTask} from "pandalab-commons";
     import {DateFormatter} from "../utils/Formatter";
+    import ListTasks from "../widget/ListTasks.vue";
 
-    @Component
+    @Component({
+        components: {ListTasks}
+    })
     export default class DevicePage extends Vue {
 
         formatter = new DateFormatter();

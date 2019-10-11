@@ -3,13 +3,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content"
+    android:background="@color/colorPrimary"
+    android:focusable="false"
+    android:focusableInTouchMode="false"
+    android:clickable="false">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/colorAccent"
         android:orientation="horizontal"
+        android:id="@+id/overlay_top"
         android:alpha="0.5"
         android:padding="2dp">
 

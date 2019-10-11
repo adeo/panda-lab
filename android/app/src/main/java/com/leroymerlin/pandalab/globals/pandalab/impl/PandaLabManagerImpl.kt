@@ -62,8 +62,7 @@ class PandaLabManagerImpl(private var context: Context) :
 
     override fun listenDeviceStatus(): Observable<DeviceStatus> {
         return RxFirestore.observeDocumentRef(this.getDeviceDocument())
-            .map { it.getString("status") ?: DeviceStatus.offline.name }
-            .map { DeviceStatus.valueOf(it) }
+            .map { DeviceStatus.secureValueOf(it.getString("status")) }
             .toObservable()
     }
 

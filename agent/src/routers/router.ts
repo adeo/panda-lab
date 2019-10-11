@@ -2,9 +2,9 @@ import Vue from 'vue';
 import VueRouter, {RouteConfig} from 'vue-router';
 import {AuthentGuard} from "./authent.guards";
 import RootPage from "../components/RootPage.vue";
-import Jobs from "../components/jobs/Jobs.vue";
+import Jobs from "../components/jobs/JobsPage.vue";
+import JobsPage from "../components/jobs/JobsPage.vue";
 import Device from "../components/devices/DevicePage.vue";
-import JobTaskDetail from "../components/jobs/JobTaskDetail.vue";
 import Auth from "../components/auth/Auth.vue";
 import Splash from "../components/auth/Splash.vue";
 import AgentPage from "../components/agent/AgentPage.vue";
@@ -19,6 +19,7 @@ import AdminPage from '../components/admin/AdminPage.vue';
 import {AdminGuard} from "./admin.guards";
 import AgentsList from "../components/agents/AgentsList.vue";
 import AgentDetail from "../components/agents/AgentDetail.vue";
+import JobPage from "../components/jobs/JobPage.vue";
 
 Vue.use(VueRouter);
 
@@ -51,8 +52,8 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'groups', component: Groups,},
         {path: 'groups/:groupId', component: GroupDetails,},
         {path: 'agentDevices', component: AgentPage,},
-        {path: 'jobs', component: Jobs,},
-        {path: 'jobs/:jobId/tasks/:taskId', component: JobTaskDetail},
+        {path: 'jobs', component: JobsPage,},
+        {path: 'jobs/:jobId', component: JobPage},
         {path: 'phone', component: Jobs,},
         {path: 'devices/:deviceId', component: Device,},
         {path: 'applications', component: Apps,},

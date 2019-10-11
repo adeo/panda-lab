@@ -40,7 +40,7 @@
     import {Component, Vue} from "vue-property-decorator";
     import {Services} from "../../services/services.provider";
     import {DateFormatter} from "../utils/Formatter";
-    import ListDevice from "../ListDevice.vue";
+    import ListDevice from "../widget/ListDevice.vue";
 
     @Component({
         components: {ListDevice}

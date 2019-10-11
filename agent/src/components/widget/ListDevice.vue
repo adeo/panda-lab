@@ -19,8 +19,8 @@
                                 </md-card-header>
 
                                 <md-card-media md-big>
-                                    <img :src="device.pictureIcon ? device.pictureIcon : require('../assets/images/device.png')"
-                                         onerror="this.src = this.alt" :alt="require('../assets/images/device.png')">
+                                    <img :src="device.pictureIcon ? device.pictureIcon : require('../../assets/images/device.png')"
+                                         onerror="this.src = this.alt" :alt="require('../../assets/images/device.png')">
 
                                 </md-card-media>
 
@@ -61,7 +61,7 @@
 <script lang="ts">
     import {Component, Prop, Vue} from "vue-property-decorator";
     import {Device} from "pandalab-commons";
-    import {DateFormatter} from "./utils/Formatter";
+    import {DateFormatter} from "../utils/Formatter";
 
     @Component
     export default class ListDevice extends Vue {
@@ -104,7 +104,7 @@
 
 <style lang="scss" scoped>
 
-    @import "../assets/css/theme.scss";
+    @import "../../assets/css/theme";
 
     .devices-card {
         width: 300px;

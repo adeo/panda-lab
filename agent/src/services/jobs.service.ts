@@ -49,6 +49,11 @@ export class JobsService {
         );
     }
 
+    public listenJob(id: string) :  Observable<Job>{
+        return this.firebaseRepo.listenDocumentRef<Job>(this.firebaseRepo.getCollection(CollectionName.JOBS).doc(id))
+
+    }
+
     public getJob(id: string): Observable<Job> {
         return this.firebaseRepo.getDocument<Job>(this.firebaseRepo.getCollection(CollectionName.JOBS).doc(id))
     }
@@ -69,10 +74,19 @@ export class JobsService {
             );
     }
 
-    public getJobsTasks(jobId: string): Observable<JobTask[]> {
+    public listenJobTasks(jobId: string): Observable<JobTask[]> {
+        return this.firebaseRepo.listenQuery<JobTask>(this.getJobTasksQuery(jobId))
+    }
+
+
+    public getJobTasks(jobId: string): Observable<JobTask[]> {
+        return this.firebaseRepo.getQuery<JobTask>(this.getJobTasksQuery(jobId))
+    }
+
+    private getJobTasksQuery(jobId: string) {
         const jobReference = this.firebaseRepo.getCollection(CollectionName.JOBS).doc(jobId);
-        return this.firebaseRepo.getQuery<JobTask>(this.firebaseRepo.getCollection(CollectionName.TASKS)
-            .where('job', '==', jobReference))
+        return this.firebaseRepo.getCollection(CollectionName.TASKS)
+            .where('job', '==', jobReference);
     }
 
     public getJobTask(taskId: string): Observable<JobTask> {

@@ -27,7 +27,7 @@
     @Component({
         components: {CreateJob}
     })
-    export default class Jobs extends Vue {
+    export default class JobsPage extends Vue {
 
         protected formatter = new DateFormatter();
         jobs: Job[] = [];
@@ -40,7 +40,7 @@
         }
 
         protected onSelect(job: Job) {
-            this.$router.push(`/reports/${job._ref.id}`);
+            this.$router.push(`/jobs/${job._ref.id}`);
         }
 
     }

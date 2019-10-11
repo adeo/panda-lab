@@ -2,6 +2,7 @@ package com.leroymerlin.pandalab.globals.model
 
 import com.google.firebase.firestore.DocumentReference
 import java.io.Serializable
+import java.lang.Exception
 
 data class Device(
     val serialId: String,
@@ -23,5 +24,16 @@ enum class DeviceStatus(val lockDevice: Boolean) {
     offline(false),
     working(true),
     available(true),
-    booked(false)
+    booked(false);
+
+    companion object {
+        fun secureValueOf(value: String?): DeviceStatus {
+            return try {
+                valueOf(value!!)
+            } catch (ignored: Exception) {
+                offline
+            }
+        }
+    }
+
 }

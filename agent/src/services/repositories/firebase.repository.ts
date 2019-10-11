@@ -54,8 +54,13 @@ export class FirebaseRepository {
     }
 
     listenDocument<T>(name: CollectionName, documentId: string): Observable<T> {
+        let documentReference = this.getCollection(name).doc(documentId);
+        return this.listenDocumentRef(documentReference);
+    }
+
+    listenDocumentRef<T>(documentReference: DocumentReference): Observable<T> {
         return new Observable(emitter => {
-            const subs = this.getCollection(name).doc(documentId)
+            const subs = documentReference
                 .onSnapshot(doc => {
                     if (doc.exists) {
                         emitter.next(this.toFirebaseModel<T>(doc));
@@ -82,7 +87,7 @@ export class FirebaseRepository {
         return new Observable(emitter => {
             const subs = query
                 .onSnapshot(doc => {
-                   emitter.next(doc.docs.map(doc => this.toFirebaseModel<T>(doc)));
+                    emitter.next(doc.docs.map(doc => this.toFirebaseModel<T>(doc)));
                 }, error => {
                     console.log('query error', error);
                     emitter.error(error)
