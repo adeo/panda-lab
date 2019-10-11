@@ -125,7 +125,7 @@ export class AdbService {
     readAdbLogcat(deviceId: string, filter?: string): Observable<string> {
         return new Observable(emitter => {
             const {spawn} = require('child_process');
-            const logcat = spawn('adb', ['-s', deviceId, 'logcat']);
+            const logcat = spawn(process.env.ANDROID_HOME + "/platform-tools/adb", ['-s', deviceId, 'logcat']);
 
             logcat.stdout.on('data', (data) => {
                 const lines = data.toString().split("\n");
