@@ -100,7 +100,8 @@ class JobService {
                     devices: finalDevices,
                     status: TaskStatus.pending,
                     completed: false,
-                    timeout: admin.firestore.Timestamp.fromMillis(admin.firestore.Timestamp.now().seconds * 1000 + timeoutInMillis)
+                    timeout: admin.firestore.Timestamp.fromMillis(admin.firestore.Timestamp.now().seconds * 1000 + timeoutInMillis),
+                    createdAt: admin.firestore.Timestamp.now(),
                 } as JobTask;
                 (taskObj as any).device = null;
                 return await admin.firestore().collection(CollectionName.TASKS).add(taskObj);

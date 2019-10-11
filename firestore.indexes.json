@@ -33,7 +33,7 @@
       ]
     },
     {
-      "collectionGroup": "jobs-tasks",
+      "collectionGroup": "tasks",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -43,6 +43,20 @@
         {
           "fieldPath": "timeout",
           "mode": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "device",
+          "mode": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "mode": "DESCENDING"
         }
       ]
     },

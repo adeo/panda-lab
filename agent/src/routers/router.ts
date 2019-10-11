@@ -3,12 +3,12 @@ import VueRouter, {RouteConfig} from 'vue-router';
 import {AuthentGuard} from "./authent.guards";
 import RootPage from "../components/RootPage.vue";
 import Jobs from "../components/jobs/Jobs.vue";
-import Device from "../components/devices/Device.vue";
+import Device from "../components/devices/DevicePage.vue";
 import JobTaskDetail from "../components/jobs/JobTaskDetail.vue";
 import Auth from "../components/auth/Auth.vue";
 import Splash from "../components/auth/Splash.vue";
 import AgentPage from "../components/agent/AgentPage.vue";
-import Devices from "../components/devices/Devices.vue";
+import DevicesPage from "../components/devices/DevicesPage.vue";
 import Groups from "../components/groups/Groups.vue";
 import GroupDetails from "../components/groups/GroupDetails.vue";
 import Apps from "../components/apps/Apps.vue";
@@ -47,7 +47,7 @@ const HOME_ROUTE: RouteConfig = {
     children: [
         {path: '/', redirect: 'devices'},
         {path: '/home', redirect: 'devices'},
-        {path: 'devices', component: Devices,},
+        {path: 'devices', component: DevicesPage,},
         {path: 'groups', component: Groups,},
         {path: 'groups/:groupId', component: GroupDetails,},
         {path: 'agentDevices', component: AgentPage,},
