@@ -26,7 +26,7 @@
                                 {{ item.status }}
                             </md-table-cell>
                             <md-table-cell md-label="Id">{{ item.id }}</md-table-cell>
-                            <md-table-cell md-label="Devices">{{ item.tests.length }}</md-table-cell>
+                            <md-table-cell md-label="DevicesPage">{{ item.tests.length }}</md-table-cell>
                         </md-table-row>
                     </md-table>
                 </div>

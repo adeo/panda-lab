@@ -82,11 +82,14 @@ export class JobsService {
 
     public getDeviceJob(deviceUid: string): Observable<JobTask[]> {
         return this.firebaseRepo.getQuery<JobTask>(this.firebaseRepo.getCollection(CollectionName.TASKS)
-            .where('device', '==', this.firebaseRepo.getCollection(CollectionName.DEVICES).doc(deviceUid)))
+            .where('device', '==', this.firebaseRepo.getCollection(CollectionName.DEVICES).doc(deviceUid))
+            .orderBy('createdAt', "desc"))
     }
 
     public getAllJobs(): Observable<Job[]> {
-        return this.firebaseRepo.listenCollection(CollectionName.JOBS)
+        return this.firebaseRepo.getQuery<Job>(
+            this.firebaseRepo.getCollection(CollectionName.JOBS).orderBy('createdAt', 'desc')
+        );
     }
 
     public createNewJob(artifact: Artifact, devices: string[], groups: string[], timeout: number, devicesCount: number = 0): Observable<string> {

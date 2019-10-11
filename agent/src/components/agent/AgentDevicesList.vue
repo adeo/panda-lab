@@ -1,6 +1,6 @@
 <template>
     <div>
-        <h2 class="pl-title">Devices</h2>
+        <h2 class="pl-title">DevicesPage</h2>
         <md-list>
             <AgentDevice v-for="device in devices"
                          v-bind:key="device.key"

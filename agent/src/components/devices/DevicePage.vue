@@ -63,13 +63,11 @@
 
                         <md-table-row slot="md-table-row" slot-scope="{ item }">
                             <md-table-cell md-label="ID" md-numeric>{{ item._ref.id }}</md-table-cell>
+                            <md-table-cell md-label="Date" md-sort-by="createdAt.seconds" >{{ formatter.formatDate(item.createdAt.toDate()) }}</md-table-cell>
                             <md-table-cell md-label="Status" md-sort-by="status">{{ item.status }}</md-table-cell>
                             <md-table-cell md-label="Job" md-sort-by="job">{{ item.job.id }}</md-table-cell>
                         </md-table-row>
                     </md-table>
-                    <div v-else-if="tasks && tasks.length === 0">
-                        <p>This device hasn't task in progress.</p>
-                    </div>
                 </div>
             </template>
             <template v-else>
@@ -82,10 +80,13 @@
     import {Component, Vue} from "vue-property-decorator";
     import {Subscription} from "vue-rx-decorators";
     import {Services} from "../../services/services.provider";
-    import {JobTask} from "pandalab-commons";
+    import {Device, JobTask} from "pandalab-commons";
+    import {DateFormatter} from "../utils/Formatter";
 
     @Component
-    export default class Device extends Vue {
+    export default class DevicePage extends Vue {
+
+        formatter = new DateFormatter();
 
         video = false;
 

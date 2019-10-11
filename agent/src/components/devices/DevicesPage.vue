@@ -1,7 +1,7 @@
 <template>
     <div class="md-layout">
         <div class="md-layout-item pl-container">
-            <h2 class="pl-title">Devices</h2>
+            <h2 class="pl-title">DevicesPage</h2>
             <md-button class="md-icon-button" v-on:click="switchMode(false)" v-bind:class="{ 'md-primary': !gridMode }">
                 <md-icon>list</md-icon>
             </md-button>
@@ -22,7 +22,7 @@
     @Component({
         components: {ListDevice}
     })
-    export default class Devices extends Vue {
+    export default class DevicesPage extends Vue {
 
         private static GRID_MODE_KEY = 'grid-mode';
 
@@ -48,12 +48,12 @@
 
         protected switchMode(isGrid: boolean) {
             this.gridMode = isGrid;
-            Services.getInstance().store.save(Devices.GRID_MODE_KEY, this.gridMode ? "grid" : "list");
+            Services.getInstance().store.save(DevicesPage.GRID_MODE_KEY, this.gridMode ? "grid" : "list");
             console.log(this.listModeStatus);
         }
 
         protected get listModeStatus() {
-            let listMode = Services.getInstance().store.load(Devices.GRID_MODE_KEY, "grid");
+            let listMode = Services.getInstance().store.load(DevicesPage.GRID_MODE_KEY, "grid");
             return listMode === "grid"
         }
     }

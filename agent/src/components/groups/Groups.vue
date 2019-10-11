@@ -9,7 +9,7 @@
                 <md-table v-model="groups" md-card md-sort="status" md-sort-order="asc" md-fixed-header>
                     <md-table-row slot="md-table-row" slot-scope="{ item }" v-on:click="onDisplayDetail(item._ref.id)">
                         <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
-                        <md-table-cell md-label="Devices" md-sort-by="phoneBrand">{{ item.devices.length }}</md-table-cell>
+                        <md-table-cell md-label="DevicesPage" md-sort-by="phoneBrand">{{ item.devices.length }}</md-table-cell>
                     </md-table-row>
                 </md-table>
             </template>

@@ -60,6 +60,7 @@ export interface JobTask extends FirebaseModel {
     completed: boolean,
     status: TaskStatus,
     error: string,
+    createdAt: Timestamp,
 }
 
 
