@@ -39,7 +39,6 @@
             <div class="devices-list-container" v-else>
                 <md-table v-model="devices" md-card md-sort="status" md-sort-order="asc" md-fixed-header>
                     <md-table-row slot="md-table-row" slot-scope="{ item }" v-on:click="onDisplayDetail(item)">
-                        <md-table-cell md-label="ID" md-numeric> {{ item._ref.id }}</md-table-cell>
                         <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
                         <md-table-cell md-label="Brand" md-sort-by="phoneBrand">{{ item.phoneBrand }}</md-table-cell>
                         <md-table-cell md-label="Status" md-sort-by="status"><md-icon :class="'device-' + item.status">fiber_manual_record</md-icon></md-table-cell>

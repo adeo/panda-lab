@@ -40,7 +40,6 @@
                                   :md-selected-value.sync="selectedDevices">
                             <md-table-row slot="md-table-row" slot-scope="{ item }" md-selectable="multiple"
                                           md-auto-select>
-                                <md-table-cell md-label="ID" md-numeric> {{ item._ref.id }}</md-table-cell>
                                 <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
                                 <md-table-cell md-label="Brand" md-sort-by="phoneBrand">{{ item.phoneBrand }}
                                 </md-table-cell>
