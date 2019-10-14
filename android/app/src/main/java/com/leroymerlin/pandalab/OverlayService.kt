@@ -1,15 +1,13 @@
 package com.leroymerlin.pandalab
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.app.Service
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -27,6 +25,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import javax.net.ssl.KeyManager
 
 
 class OverlayService : Service() {
@@ -70,14 +69,28 @@ class OverlayService : Service() {
                 { status ->
                     if (!status.lockDevice) {
                         closeService()
-                    }else{
+                    } else {
                         floatyText?.text =
-                            if(status == DeviceStatus.available){
-                                floatyView?.findViewById<View>(R.id.overlay_top)?.visibility = View.VISIBLE
+                            if (status == DeviceStatus.available) {
+                                floatyView?.findViewById<View>(R.id.overlay_top)?.visibility =
+                                    View.VISIBLE
                                 //floatyView?.findViewById<View>(R.id.overlay_top)?.setBackgroundResource(R.color.colorPrimary)
                                 getString(R.string.overlay_label_available)
-                            }else{
-                                floatyView?.findViewById<View>(R.id.overlay_top)?.visibility = View.GONE
+                            } else {
+                                floatyView?.findViewById<View>(R.id.overlay_top)?.visibility =
+                                    View.GONE
+
+                                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                                val wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP  or PowerManager.ON_AFTER_RELEASE, packageName);
+                                wl.acquire()
+
+                                val km =
+                                    getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+                                val kl = km.newKeyguardLock(packageName)
+                                kl.disableKeyguard()
+
+                                //val km = getSystemService(KEYGUARD_SERVICE) as KeyguardManager
+                                //km.newKeyguardLock("IN").disableKeyguard()
                                 //floatyView?.findViewById<View>(R.id.overlay_top)?.setBackgroundColor(Color.RED)
                                 getString(R.string.overlay_label_working)
                             }
@@ -101,7 +114,6 @@ class OverlayService : Service() {
         stopForeground(true)
         stopSelf()
     }
-
 
 
     private fun addOverlayView() {
@@ -138,6 +150,7 @@ class OverlayService : Service() {
                         })
                 }
             windowManager.addView(floatyView, params)
+
         }
     }
 
