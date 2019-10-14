@@ -1,10 +1,10 @@
 package com.leroymerlin.pandalab
 
-import android.app.Application
 import android.content.Context
+import androidx.multidex.MultiDexApplication
 import com.leroymerlin.pandalab.globals.model.DeviceStatus
 
-class PandaLabApplication : Application() {
+class PandaLabApplication : MultiDexApplication() {
 
     companion object {
 

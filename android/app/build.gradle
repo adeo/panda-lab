@@ -9,8 +9,9 @@ android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "com.leroymerlin.pandalab"
-        minSdkVersion 21
+        minSdkVersion 16
         targetSdkVersion 28
+        multiDexEnabled true
         versionCode 1
         versionName "1.0.0-SNAPSHOT"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -41,6 +42,8 @@ dependencies {
     implementation "androidx.cardview:cardview:1.0.0"
     implementation 'com.google.dagger:dagger-android:2.20'
     implementation 'com.google.dagger:dagger-android-support:2.20'
+    implementation 'androidx.multidex:multidex:2.0.1'
+
     // if you use the support libraries
     kapt 'com.google.dagger:dagger-android-processor:2.20'
     kapt 'com.google.dagger:dagger-compiler:2.20'

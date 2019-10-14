@@ -24,8 +24,7 @@ import {
     first,
     flatMap,
     ignoreElements,
-    map,
-    retry,
+    map, retry,
     startWith,
     tap,
     timeout,
@@ -384,7 +383,7 @@ export class AgentService {
             of(<DeviceLog>{log: 'Install service APK...', type: DeviceLogType.INFO}),
             this.adb.installApk(adbDeviceId, this.setupService.getAgentApk()),
             of(<DeviceLog>{log: `Open main activity...`, type: DeviceLogType.INFO}),
-            this.adb.launchActivity(adbDeviceId, "com.leroymerlin.pandalab/.home.HomeActivity")
+            this.adb.launchActivity(adbDeviceId, "com.leroymerlin.pandalab/.home.HomeActivity"),
         ).pipe(
             timestamp()
         );
@@ -444,11 +443,12 @@ export class AgentService {
         const logcatObs = this.adb.readAdbLogcat(deviceId, transactionId)
             .pipe(
                 map(message => {
-                    let parse = JSON.parse(message);
+                    let parse = JSON.parse(message.trim());
+                    console.log("Jaime quand ca marche", parse);
                     return <AppInfos>{deviceUid: parse.device_id, buildTime: parse.build_time}
                 }),
                 first(),
-                timeout(4000)
+                timeout(10000)
             );
 
         const sendTransaction = of("").pipe(delay(500), flatMap(() => this.adb.sendBroadcastWithData(deviceId,
@@ -462,7 +462,7 @@ export class AgentService {
                         throw AgentError.notInstalled()
                     }
                     return zip(logcatObs, sendTransaction)
-                        .pipe(retry(1))
+                    //.pipe(retry(1))
                 }),
                 map(values => values[0])
             )
