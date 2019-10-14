@@ -44,16 +44,13 @@ export class SpoonService {
 
     private listenJobs(): Observable<any> {
         return combineLatest(this.tasksAsync, this.devices, (tasks, devices) => {
-            console.log("COMBINE LATEST");
             return tasks
                 .filter(task => task.device !== null)
                 .filter(task => devices.find(device => device._ref === task.device) !== null);
         }).pipe(
             flatMap(tasks => {
-                console.log('TASKS', tasks.length);
                 return from<JobTask[]>(tasks).pipe(
                     concatMap(task => {
-                        console.log("GET FIREBASE DEVICE");
                         return this.firebaseRepo.getDocument<Device>(task.device).pipe(
                             filter(device => device.status === DeviceStatus.available),
                             flatMap(device => this.saveDeviceStatus(device, DeviceStatus.working)),
@@ -67,18 +64,16 @@ export class SpoonService {
                     })
                 );
             }), // iterate,
-            flatMap(perform => this.runTest(perform)),
+            flatMap(taskData => this.runTest(taskData)),
             flatMap(device => this.saveDeviceStatus(device, DeviceStatus.offline)),
             // catchError(() => EMPTY)
         );
     }
 
 
-    private runTest(perform: TaskData): Observable<Device> {
-        console.log('RUN PERFORM');
-        const device = perform.device;
-        const task = perform.task;
-        console.log(`RUN TASK ${task._ref.id} TO DEVICE ${device._ref.id}`);
+    private runTest(taskData: TaskData): Observable<Device> {
+        const device = taskData.device;
+        const task = taskData.task;
         return this.agentService.getDeviceAdb(device._ref.id).pipe(
             flatMap(deviceAdb => {
                 if (deviceAdb === null) {
@@ -90,7 +85,6 @@ export class SpoonService {
                             flatMap(() => this.prepareArtifacts(task, device, deviceAdb)),
                             flatMap(taskData => this.runSpoon(taskData)),
                             flatMap(() => {
-                                console.log('LISTEN TASK REPORTS');
                                 return this.firebaseRepo.listenDocument(CollectionName.TASK_REPORTS, task._ref.id)
                                     .pipe(
                                         first(value => value !== null),
@@ -121,10 +115,10 @@ export class SpoonService {
                     testArtifact
                 };
             })),
-            flatMap(perform => this.downloadArtifacts(perform)),
-            map(perform => {
+            flatMap(taskData => this.downloadArtifacts(taskData)),
+            map(taskData => {
                 return <TaskData>{
-                    ...perform,
+                    ...taskData,
                     task,
                     device,
                     serial : deviceAdb.id,
@@ -169,21 +163,20 @@ export class SpoonService {
         return of(device);
     }
 
-    private runSpoon(perform: TaskData): Observable<void> {
-        console.log('RUN COMMAND');
-        return from(this.runCommandPromise(perform));
+    private runSpoon(taskData: TaskData): Observable<void> {
+        return from(this.runCommandPromise(taskData));
     }
 
-    private async runCommandPromise(perform: TaskData): Promise<void> {
-        this.logger.verbose(`run command serial = ${perform.serial}`);
-        const reportDirectory = this.workspace.getReportJobDirectory(perform.job._ref.id, perform.device._ref.id);
+    private async runCommandPromise(taskData: TaskData): Promise<void> {
+        this.logger.verbose(`run command serial = ${taskData.serial}`);
+        const reportDirectory = this.workspace.getReportJobDirectory(taskData.job._ref.id, taskData.device._ref.id);
         const spoonCommands = [
             `java -jar ${this.workspace.spoonJarPath}`,
-            `--apk ${perform.artifactPath}`,
-            `--test-apk ${perform.testArtifactPath}`,
+            `--apk ${taskData.artifactPath}`,
+            `--test-apk ${taskData.testArtifactPath}`,
             `--sdk ${process.env.ANDROID_HOME}`,
             `--output ${reportDirectory}`,
-            `-serial ${perform.serial}`,
+            `-serial ${taskData.serial}`,
         ];
 
         const cmd = spoonCommands.join(' ');
@@ -202,12 +195,12 @@ export class SpoonService {
             throw new Error(stderr);
         }
 
-        this.logger.info(`End download apk for job : ${perform.job._ref.id}`);
+        this.logger.info(`End download apk for job : ${taskData.job._ref.id}`);
 
         const buffer = fs.readFileSync(`${reportDirectory}/result.json`);
-        await this.firebaseRepo.firebase.storage().ref(`/reports/${perform.task._ref.id}/spoon.json`).put(buffer);
+        await this.firebaseRepo.firebase.storage().ref(`/reports/${taskData.task._ref.id}/spoon.json`).put(buffer);
 
-        this.uploadFiles(perform.task._ref.id, reportDirectory).then(() => {
+        this.uploadFiles(taskData.task._ref.id, reportDirectory).then(() => {
             this.logger.info('upload file success');
         }).catch(err => {
             this.logger.error('error when upload images', err);
@@ -229,13 +222,11 @@ export class SpoonService {
         this.walk(`${reportDirectory}`).forEach(image => {
             const imageBuffer = fs.readFileSync(image);
             const firebaseFilename = image.split(/(\\|\/)/g).pop();
-            console.log(image);
-            console.log(firebaseFilename);
             this.firebaseRepo.firebase.storage().ref(`/reports/${taskId}/images/${firebaseFilename}`).put(imageBuffer)
                 .then(() => {
-                    console.log('upload file ' + image + ' ok ');
+                    // File uploaded
                 })
-                .catch(err => console.error('uploadFiles', err));
+                .catch(err => this.logger.error('uploadFiles', err));
         });
     }
 
@@ -271,9 +262,6 @@ export class SpoonService {
 
         const artifactPath = `${apkDirectory}${this.workspace.path.sep}${getFilenameArtifact(artifact)}`;
         const testArtifactPath = `${apkDirectory}${this.workspace.path.sep}${getFilenameArtifact(testArtifact)}`;
-
-        console.log(artifactPath);
-        console.log(testArtifactPath);
 
         const result = of(<TaskData>{
             job,

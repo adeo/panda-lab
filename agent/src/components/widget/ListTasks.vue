@@ -5,7 +5,6 @@
         </md-table-toolbar>
 
         <md-table-row slot="md-table-row" slot-scope="{ item }">
-            <md-table-cell md-label="ID" md-numeric>{{ item._ref.id }}</md-table-cell>
             <md-table-cell md-label="Date" md-sort-by="createdAt.seconds" >{{ formatter.formatDate(item.createdAt.toDate()) }}</md-table-cell>
             <md-table-cell md-label="Status" md-sort-by="status">{{ item.status }}</md-table-cell>
             <md-table-cell md-label="Job" md-sort-by="job">{{ item.job.id }}</md-table-cell>
@@ -37,5 +36,5 @@
 
     @import "../../assets/css/theme";
 
-  
+
 </style>
