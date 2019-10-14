@@ -1,13 +1,15 @@
 <template>
     <div id="app">
-        <div v-if="loading">
-            <md-empty-state
-                    id="loading"
-                    class="md-primary"
-                    md-icon="loop"
-                    md-label="App is loading"
-                    md-description="Please wait your app is loading">
-            </md-empty-state>
+        <div id="loading" v-if="loading">
+            <div id="loader-container" class="md-layout md-alignment-center">
+
+                <div class="md-layout-item md-size-60">
+                    <img src="./assets/images/logo_neg.svg"/>
+                    <md-icon class="md-size-5x" id="loader">loop</md-icon>
+                </div>
+
+            </div>
+
         </div>
         <router-view v-if="!loading"></router-view>
     </div>
@@ -35,19 +37,28 @@
     }
 </script>
 <style lang="scss">
+    @import "./assets/css/theme";
+
     #loading {
         position: absolute;
         top: 0;
         bottom: 0;
         right: 0;
         left: 0;
-        background: white;
+        background: $primary-color;
         max-width: none;
 
-        .md-empty-state-icon {
-            -webkit-animation:spin 2s linear infinite;
-            -moz-animation:spin 2s linear infinite;
-            animation:spin 2s linear infinite;
+        #loader {
+            margin: auto;
+            display: block;
+            color: white;
+            -webkit-animation: spin 2s linear infinite;
+            -moz-animation: spin 2s linear infinite;
+            animation: spin 2s linear infinite;
+        }
+
+        #loader-container{
+            height: 100%;
         }
 
     }
