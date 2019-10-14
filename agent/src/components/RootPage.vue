@@ -4,7 +4,10 @@ import {RuntimeEnv} from "../services/services.provider";
         <div class="md-layout">
             <div id="menu"
                  class="pl-theme-primary-inverse md-layout-item  md-small-size-10  md-medium-size-20 md-size-15">
+                <img id="logo" src="../assets/images/logo_neg.svg"/>
+
                 <md-list id="menu-list">
+
                     <div v-for="(menu, index) in menuItems" v-bind:key="index"
                          :class="[isRoute(menu.link)?'selected':'']" class="item-decorator-container"
                          @click="!isRoute(menu.link) ? openPage(menu.link) : ''">
@@ -141,12 +144,18 @@ import {RuntimeEnv} from "../services/services.provider";
         cursor: pointer;
         margin-top: 24px;
     }
+    #logo{
+        width: 80%;
+        display: block;
+        margin: auto;
+        padding-top: 10px;
+    }
 
     #menu-list {
+
         background: transparent;
         width: 95%;
         margin-left: 5%;
-        margin-top: 100px;
 
         .item-content {
             color: white;

@@ -1,7 +1,7 @@
 <template>
     <div class="md-layout">
         <div class="md-layout-item pl-container">
-            <h2 class="pl-title">DevicesPage</h2>
+            <h2 class="pl-title">Devices</h2>
             <md-button class="md-icon-button" v-on:click="switchMode(false)" v-bind:class="{ 'md-primary': !gridMode }">
                 <md-icon>list</md-icon>
             </md-button>
