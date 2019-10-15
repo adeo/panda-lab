@@ -1,7 +1,17 @@
-import {BehaviorSubject, from, interval, merge, Observable, Subscription} from 'rxjs';
+import {BehaviorSubject, from, interval, merge, Observable, of, Subscription} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
 import {DeviceLog, DeviceLogType} from "../../models/device";
-import {delay, distinctUntilChanged, first, map, switchMap, timeout} from "rxjs/operators";
+import {
+    catchError,
+    delay,
+    distinctUntilChanged,
+    first,
+    flatMap,
+    map,
+    switchMap,
+    timeout,
+    toArray
+} from "rxjs/operators";
 import {doOnSubscribe} from "../../utils/rxjs";
 import winston from "winston";
 
@@ -58,15 +68,15 @@ export class AdbService {
         }
 
         this.trackingSub = merge(
-            interval(2000),
+            interval(5000),
             adbEventObs,
         ).pipe(
             doOnSubscribe(() => {
                 this.updateDevicesFlux([]);
                 this.updateAdbStatusFlux(AdbStatusState.LOADING)
             }),
-            switchMap(() => this.adbClient.listDevicesWithPaths())
-        ).subscribe(values => {
+            switchMap(() => this.adbClient.listDevicesWithPaths() as Promise<DeviceAdb[]>),
+        ).subscribe((values: DeviceAdb[]) => {
             this.updateAdbStatusFlux(AdbStatusState.STARTED);
             this.updateDevicesFlux(values as any)
         }, error => {
@@ -102,7 +112,24 @@ export class AdbService {
                 map(value => {
                     //deep copy to fix distinctUntilChanged error with uid in objects
                     return JSON.parse(JSON.stringify(value))
-                })
+                }),
+                flatMap((devices: DeviceAdb[]) => {
+                    return from(devices)
+                        .pipe(
+                            flatMap((device: DeviceAdb) =>
+                                from(this.adbClient.getProperties(device.id))
+                                    .pipe(map(prop => {
+                                            device.model = prop['ro.product.model'];
+                                            return device;
+                                        }),
+                                        catchError(error => {
+                                            this.logger.warn("can't read device properties : "+device.id, error);
+                                            return of(device)
+                                        })),
+                            ),
+                            toArray()
+                        )
+                }),
             )
     }
 
@@ -147,11 +174,12 @@ export class AdbService {
             });
 
             logcat.stderr.on('data', (data) => {
-                emitter.error(data);
+                this.logger.warn("logcat process error")
+                //emitter.error(data);
             });
 
             logcat.on('close', (code) => {
-                console.log(`child process exited with code ${code}`);
+                this.logger.verbose(`process exited with code ${code}`);
             });
 
             emitter.add(() => {

@@ -24,7 +24,7 @@ import {
     first,
     flatMap,
     ignoreElements,
-    map, retry,
+    map,
     startWith,
     tap,
     timeout,
@@ -243,7 +243,7 @@ export class AgentService {
                     return obs
                         .pipe(
                             catchError(error => {
-                                this.logger.warn("can't get device uid - ", error);
+                                this.logger.warn("can't get device uid - " + device.id, error);
                                 return of(<AppInfos>{deviceUid: "", buildTime: -1})
                             }),
                             map(value => {
@@ -444,7 +444,6 @@ export class AgentService {
             .pipe(
                 map(message => {
                     let parse = JSON.parse(message.trim());
-                    console.log("Jaime quand ca marche", parse);
                     return <AppInfos>{deviceUid: parse.device_id, buildTime: parse.build_time}
                 }),
                 first(),

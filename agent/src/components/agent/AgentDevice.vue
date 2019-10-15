@@ -99,7 +99,7 @@
         updateView() {
             let deviceId: string = (this.data.adbDevice && this.data.adbDevice.uid) ? this.data.adbDevice.uid : this.data.firebaseDevice ? this.data.firebaseDevice._ref.id : this.data.adbDevice.id;
             this.device = {
-                name: this.data.firebaseDevice ? this.data.firebaseDevice.name : this.data.adbDevice.id,
+                name: this.data.firebaseDevice ? this.data.firebaseDevice.name : this.data.adbDevice.model,
                 deviceId: deviceId,
                 type: this.data.adbDevice ? this.data.adbDevice.id : this.data.firebaseDevice.ip,
                 enrolled: (this.data.firebaseDevice != null),

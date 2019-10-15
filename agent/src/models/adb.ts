@@ -5,6 +5,7 @@ import {DeviceStatus} from 'pandalab-commons';
 export interface DeviceAdb {
     uid: string;
     appBuildTime: number;
+    model: string;
     id: string;
     type: string;
     path: string;
