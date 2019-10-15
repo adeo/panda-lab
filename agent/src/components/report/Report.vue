@@ -7,7 +7,7 @@
                         <md-icon>arrow_back</md-icon>
                     </md-button>
                 </div>
-                <h2 class="md-layout-item pl-title">
+                <h2 cla:ss="md-layout-item pl-title">
                     Report
                 </h2>
             </div>

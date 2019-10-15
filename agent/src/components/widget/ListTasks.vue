@@ -4,7 +4,7 @@
             <h1 class="md-title">Tasks</h1>
         </md-table-toolbar>
 
-        <md-table-row slot="md-table-row" slot-scope="{ item }">
+        <md-table-row slot="md-table-row" slot-scope="{ item }" v-on:click="onTaskSelected(item)">
             <md-table-cell md-label="Date" md-sort-by="createdAt.seconds" >{{ formatter.formatDate(item.createdAt.toDate()) }}</md-table-cell>
             <md-table-cell md-label="Status" md-sort-by="status">{{ item.status }}</md-table-cell>
             <md-table-cell md-label="Job" md-sort-by="job">{{ item.job.id }}</md-table-cell>
@@ -26,8 +26,18 @@
         })
         tasks: JobTask[];
 
+        @Prop({
+            required: false,
+        })
+        onTaskClick: (JobTask) => void;
+
         protected formatter = new DateFormatter();
 
+        onTaskSelected(task: JobTask) {
+            if (this.onTaskClick) {
+                this.onTaskClick(task);
+            }
+        }
     }
 
 </script>
