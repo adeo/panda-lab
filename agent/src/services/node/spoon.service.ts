@@ -1,7 +1,7 @@
 import {AgentStatus, SetupService} from "./setup.service";
-import {combineLatest, from, Observable, of, Subscription, zip} from "rxjs";
+import {combineLatest, from, Observable, of, Subscription, throwError, zip} from "rxjs";
 import {FirebaseRepository} from "../repositories/firebase.repository";
-import {catchError, concatMap, filter, first, flatMap, map, switchMapTo, timeout} from "rxjs/operators";
+import {catchError, concatMap, delay, filter, first, flatMap, map, switchMapTo, timeout} from "rxjs/operators";
 import {Artifact, CollectionName, Device, DeviceStatus, Job, JobTask, TaskStatus} from 'pandalab-commons';
 import {JobsService} from "../jobs.service";
 import {FilesRepository} from "../repositories/files.repository";
@@ -78,10 +78,11 @@ export class SpoonService {
             flatMap(deviceAdb => {
                 if (deviceAdb === null) {
                     // device is offline
-                    throw new Error(`Device ${device._ref.id} not found in ADB`);
+                    throw throwError(`Device ${device._ref.id} not found in ADB`);
                 } else {
-                    return zip(this.saveDeviceStatus(device, DeviceStatus.working), this.saveJobTaskStatus(task, TaskStatus.running))
+                    return this.saveDeviceStatus(device, DeviceStatus.working)
                         .pipe(
+                            flatMap(() => this.saveJobTaskStatus(task, TaskStatus.running)),
                             flatMap(() => this.prepareArtifacts(task, device, deviceAdb)),
                             flatMap(taskData => this.runSpoon(taskData)),
                             flatMap(() => {
@@ -90,8 +91,8 @@ export class SpoonService {
                                         first(value => value !== null),
                                         timeout(1000 * 30),
                                         catchError(err => {
-                                            this.logger.error(`Listen task reports ${task._ref.id}`,err);
-                                            throw new Error('Timeout - Listen task reports ' + task._ref.id);
+                                            this.logger.error(`Listen task reports ${task._ref.id}`, err);
+                                            throw throwError('Timeout - Listen task reports ' + task._ref.id);
                                         }),
                                     );
                             }),
@@ -100,6 +101,7 @@ export class SpoonService {
             }),
             flatMap(() => this.saveJobTaskStatus(task, TaskStatus.success)),
             catchError(reason => {
+                this.logger.error(reason);
                 return this.saveJobTaskStatus(task, TaskStatus.error, reason.message);
             }),
             map(() => device),
@@ -121,7 +123,7 @@ export class SpoonService {
                     ...taskData,
                     task,
                     device,
-                    serial : deviceAdb.id,
+                    serial: deviceAdb.id,
                 }
             }),
         );
@@ -160,14 +162,14 @@ export class SpoonService {
     private saveDeviceStatus(device: Device, deviceStatus: DeviceStatus): Observable<Device> {
         this.logger.info('save device state');
         device.status = deviceStatus;
-        return of(device);
+        return this.firebaseRepo.saveDocument(device);
     }
 
-    private runSpoon(taskData: TaskData): Observable<void> {
+    private runSpoon(taskData: TaskData): Observable<any> {
         return from(this.runCommandPromise(taskData));
     }
 
-    private async runCommandPromise(taskData: TaskData): Promise<void> {
+    private async runCommandPromise(taskData: TaskData): Promise<any> {
         this.logger.verbose(`run command serial = ${taskData.serial}`);
         const reportDirectory = this.workspace.getReportJobDirectory(taskData.job._ref.id, taskData.device._ref.id);
         const spoonCommands = [
@@ -192,7 +194,7 @@ export class SpoonService {
         const fs = require('fs');
         const reportFile = `${reportDirectory}/result.json`;
         if (!fs.existsSync(reportFile)) {
-            throw new Error(stderr);
+            throw throwError(stderr);
         }
 
         this.logger.info(`End download apk for job : ${taskData.job._ref.id}`);
@@ -205,6 +207,8 @@ export class SpoonService {
         }).catch(err => {
             this.logger.error('error when upload images', err);
         });
+
+        return "";
     }
 
     async uploadFiles(taskId: string, reportDirectory: string) {
