@@ -12,7 +12,7 @@
                 </h2>
             </div>
             <div class="content">
-                <ListTasks :tasks="tasks"></ListTasks>
+                <ListTasks :tasks="tasks" :onTaskClick="onSelect"></ListTasks>
             </div>
         </div>
 
@@ -51,6 +51,10 @@
             this.$subscribeTo(this.jobService.listenJob(this.jobId), job => {
                 this.job = job;
             })
+        }
+
+        onSelect(task: JobTask) {
+            this.$router.push(`/reports/${task.job.id}`);
         }
 
     }
