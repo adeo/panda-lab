@@ -71,7 +71,7 @@ export class SpoonService {
     }
 
 
-    private runTest(task:qData: TaskData): Observable<Device> {
+    private runTest(taskData: TaskData): Observable<Device> {
         const device = taskData.device;
         const task = taskData.task;
         return this.agentService.getDeviceAdb(device._ref.id).pipe(
