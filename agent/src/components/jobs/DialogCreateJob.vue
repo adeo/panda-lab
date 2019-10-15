@@ -127,7 +127,7 @@
             //TODO add form to select devices, groups, timeout, ...
             const devices = this.selectedDevices.map(device => device._ref.id);
             console.log("select devices : ", devices);
-            this.$subscribeTo(this.jobService.createNewJob(this.artifactSelected as Artifact, devices, [], 60 * 5, 1), jobId => {
+            this.$subscribeTo(this.jobService.createNewJob(this.artifactSelected as Artifact, devices, [], 60 * 5, devices.length > 0 ? devices.length : 1), jobId => {
                 console.log(`Create job id = ${jobId}`);
                 // this.onClose();
                 this.snackbar.message = `Le job ${jobId} a bien été créé`;
