@@ -383,7 +383,11 @@ export class AgentService {
             of(<DeviceLog>{log: 'Install service APK...', type: DeviceLogType.INFO}),
             this.adb.installApk(adbDeviceId, this.setupService.getAgentApk()),
             of(<DeviceLog>{log: `Open main activity...`, type: DeviceLogType.INFO}),
-            this.adb.launchActivity(adbDeviceId, "com.leroymerlin.pandalab/.home.HomeActivity"),
+            this.adb.launchActivity(adbDeviceId, "com.leroymerlin.pandalab/.home.HomeActivity")
+                .pipe(tap(() => {
+                    this.logger.verbose("remove " + adbDeviceId + " from cache, we installed a new client app");
+                    this.cachedDeviceAppInfos.delete(adbDeviceId);
+                })),
         ).pipe(
             timestamp()
         );
