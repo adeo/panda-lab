@@ -2,8 +2,8 @@
 
     <div class="md-layout">
 
-        <div class="md-layout-item md-small-hide md-size-60 pl-container">
-            <AgentDevicesList :devices="devicesVue"></AgentDevicesList>
+        <div class="md-layout-item md-small-hide md-size-60 pl-container" id="devices">
+            <AgentDevicesList  :devices="devicesVue"></AgentDevicesList>
         </div>
 
         <div id="options" class="md-layout-item md-small-size-100 md-size-40 pl-theme-grey pl-container">
@@ -182,5 +182,9 @@
         color: $warn-color;
     }
 
+    #devices {
+        height: 100%;
+        overflow: scroll;
+    }
 
 </style>

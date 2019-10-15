@@ -39,6 +39,8 @@
                             </md-table-cell>
                             <md-table-cell md-label="Model" md-sort-by="phoneModel">{{ item.phoneModel }}
                             </md-table-cell>
+                            <md-table-cell md-label="Status" md-sort-by="status">{{ item.status }}
+                            </md-table-cell>
                         </md-table-row>
                     </md-table>
                 </div>
