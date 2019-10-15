@@ -30,7 +30,7 @@
 </template>
 <script lang="ts">
 
-    import {Component, Prop, Vue} from "vue-property-decorator";
+    import {Component, Prop, Vue, Watch} from "vue-property-decorator";
     import {TestLog, TestResult} from "pandalab-commons";
     import {Services} from "../../services/services.provider";
     import {DateFormatter} from "../utils/Formatter";
@@ -46,15 +46,24 @@
         private images: string[] = [];
 
         mounted() {
+            this.loadLogs();
+        }
 
+        @Watch('report', {immediate: true})
+        updateView() {
+            this.loadLogs();
+        }
+
+        loadLogs() {
             this.$subscribeTo(Services.getInstance().jobsService.getReportLogs(this.report), logs => {
                 this.logs = logs.logs;
             });
 
             this.$subscribeTo(Services.getInstance().jobsService.getImagesUrl(this.report.screenshots), urls => {
                 this.images = urls;
-            })
+            });
         }
+
     }
 
 </script>
@@ -71,6 +80,7 @@
         text-align: center;
     }
 
+
     .log-error {
         color: $error-color;
     }
@@ -79,7 +89,7 @@
         color: $warn-color;
     }
 
-    .log-debug {
+    .log-verbose {
         color: $verbose-color;
     }
 
