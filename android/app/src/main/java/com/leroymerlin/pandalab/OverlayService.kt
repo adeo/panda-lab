@@ -72,13 +72,11 @@ class OverlayService : Service() {
                     } else {
                         floatyText?.text =
                             if (status == DeviceStatus.available) {
-                                floatyView?.findViewById<View>(R.id.overlay_top)?.visibility =
-                                    View.VISIBLE
+                                floatyView?.visibility = View.VISIBLE
                                 //floatyView?.findViewById<View>(R.id.overlay_top)?.setBackgroundResource(R.color.colorPrimary)
                                 getString(R.string.overlay_label_available)
                             } else {
-                                floatyView?.findViewById<View>(R.id.overlay_top)?.visibility =
-                                    View.GONE
+                                floatyView?.visibility = View.GONE
 
                                 val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
                                 val wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP  or PowerManager.ON_AFTER_RELEASE, packageName);
