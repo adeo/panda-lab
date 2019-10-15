@@ -20,6 +20,8 @@ import {AdminGuard} from "./admin.guards";
 import AgentsList from "../components/agents/AgentsList.vue";
 import AgentDetail from "../components/agents/AgentDetail.vue";
 import JobPage from "../components/jobs/JobPage.vue";
+import CreateJob from "../components/jobs/CreateJob.vue";
+import DialogCreateJob from "../components/jobs/DialogCreateJob.vue";
 
 Vue.use(VueRouter);
 
@@ -59,6 +61,7 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'applications', component: Apps,},
         {path: 'applications/:applicationId', component: AppDetails,},
         {path: 'applications/:applicationId/versions/:versionId', component: VersionDetail,},
+        {path: 'applications/:applicationId/versions/:versionId/createJob', component: DialogCreateJob,},
         {path: 'reports/:reportId', component: Report,},
         {path: 'agents', component: AgentsList,},
         {path: 'agents/:agentId', component: AgentDetail,},
