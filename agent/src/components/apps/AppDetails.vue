@@ -65,7 +65,6 @@
                         md-label="Application is loading">
                 </md-empty-state>
             </template>
-            <dialog-create-job v-bind:display="false"/>
         </div>
     </div>
 
@@ -85,7 +84,7 @@
     import {DateFormatter} from "../utils/Formatter";
 
     @Component({
-        components: {TestReportLineChart, DialogCreateJob},
+        components: {TestReportLineChart},
     })
     export default class AppDetails extends Vue {
         private app: AppModel = null;
@@ -126,24 +125,16 @@
             })
         }
 
-
-
-
-
         protected updateVersions() {
             this.versions = this.allVersions.filter(value => value.flavor === this.flavor)
         }
-
 
         protected onBack() {
             this.$router.back();
         }
 
         protected createJob(version: AppVersion){
-            this.$emit(DIALOG_CREATE_JOB_DISPLAY_EVENT, {
-                applicationId: this.$route.params.applicationId,
-                versionId: version._ref.id,
-            })
+            this.$router.push(`/applications/${this.$route.params.applicationId}/versions/${version._ref.id}/createJob`);
         }
 
         protected openReportAtIndex(index: number) {

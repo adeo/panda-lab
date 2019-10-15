@@ -100,7 +100,7 @@ export class SpoonService {
             }),
             flatMap(() => this.saveJobTaskStatus(task, TaskStatus.success)),
             catchError(reason => {
-                return this.saveJobTaskStatus(task, TaskStatus.error, reason);
+                return this.saveJobTaskStatus(task, TaskStatus.error, reason.message);
             }),
             map(() => device),
         );
