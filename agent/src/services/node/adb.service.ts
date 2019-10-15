@@ -1,7 +1,7 @@
 import {BehaviorSubject, from, interval, merge, Observable, Subscription} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
 import {DeviceLog, DeviceLogType} from "../../models/device";
-import {distinctUntilChanged, first, map, switchMap, timeout} from "rxjs/operators";
+import {delay, distinctUntilChanged, first, map, switchMap, timeout} from "rxjs/operators";
 import {doOnSubscribe} from "../../utils/rxjs";
 import winston from "winston";
 
@@ -125,19 +125,21 @@ export class AdbService {
     readAdbLogcat(deviceId: string, filter?: string): Observable<string> {
         return new Observable(emitter => {
             const {spawn} = require('child_process');
-            const logcat = spawn(process.env.ANDROID_HOME + "/platform-tools/adb", ['-s', deviceId, 'logcat']);
+            const logcat = spawn(process.env.ANDROID_HOME + "/platform-tools/adb", ['-s', deviceId, 'logcat', '-v', 'threadtime']);
 
             logcat.stdout.on('data', (data) => {
                 const lines = data.toString().split("\n");
-                lines.forEach(log => {
-                    const result = /^\d\d-\d\d\s+\d\d:\d\d:\d\d.\d+\s+\d+\s+\d+\s+[VDIWEAF](\s+)([^:]*):(.*)$/.exec(log);
+                lines.filter(log => log.length > 0).forEach(log => {
+                    const result = /^\d\d-\d\d\s+\d\d:\d\d:\d\d.\d+\s+\d+\s+\d+\s+[VDIWEAF](\s+)([^:]*):(.*)$/.exec(log.trim());
                     if (result !== null && result.length === 4) {
                         const tag = result[2];
                         const msg = result[3];
+                        //if (log.indexOf("transaction_id") > 0) {
+                        //    console.log("tag === filter", tag, filter, tag === filter);
+                        //}
                         if (filter && tag === filter) {
-                            console.log(msg);
                             emitter.next(msg)
-                        } else if(!filter){
+                        } else if (!filter) {
                             emitter.next(msg);
                         }
                     }
@@ -188,6 +190,9 @@ export class AdbService {
     launchActivity(deviceId: string, activityName: string): Observable<DeviceLog> {
         return new Observable(emitter => {
             this.adbClient.startActivity(deviceId, {component: activityName})
+                .then(() => {
+                    return new Promise(resolve => setTimeout(resolve, 5000))
+                })
                 .then(() => {
                     emitter.next({type: DeviceLogType.INFO, log: "Activity started"});
                     emitter.complete();
@@ -250,6 +255,7 @@ export class AdbService {
         return from(this.adbClient.install(deviceId, path))
             .pipe(
                 first(),
+                delay(2000),
                 map(() => <DeviceLog>{log: "Apk installed", type: DeviceLogType.INFO}),
             )
     }
