@@ -43,19 +43,19 @@
                     <template v-if="selectedTestResult">
                         <div class="md-layout md-alignment-center-center">
                             <div class="md-layout-item-40">
-                               <md-field>
-                                   <label>Choice the phone</label>
-                                   <md-select v-model="selectedReportDevice" name="selectedReportDevice"
-                                              id="selectedReportDevice" placeholder="Device"
-                                              v-on:md-selected="selectDevice">
-                                       <md-option v-for="item in selectedReportDevices" :value="item._ref.id"
-                                                  :key="item._ref.id">
+                                <md-field>
+                                    <label>Choice the phone</label>
+                                    <md-select v-model="selectedReportDevice" name="selectedReportDevice"
+                                               id="selectedReportDevice" placeholder="Device"
+                                               v-on:md-selected="selectDevice">
+                                        <md-option v-for="item in selectedReportDevices" :value="item._ref.id"
+                                                   :key="item._ref.id">
                                     <span v-init:report="reportByDevice.get(item._ref.id)">
-                                        {{item.name}}
+                                        <span :style="{'color': (selectedTestResult.status === 'PASS' ? '#5dc050' : '#D12311')}">{{item.name}}</span>
                                     </span>
-                                       </md-option>
-                                   </md-select>
-                               </md-field>
+                                        </md-option>
+                                    </md-select>
+                                </md-field>
                             </div>
                             &nbsp;
                             <div class="md-layout-item">
@@ -72,8 +72,9 @@
                     </template>
                 </md-tab>
                 <md-tab id="tab-pages-1" md-label="Images">
-                    <div class="md-layout md-gutter">
-                        <div class="md-layout-item md-size-20" v-for="image in images" :key="image">
+                    <div class="md-layout md-gutter" v-for="data in images" v-bind:key="data">
+                        <h1 class="md-layout-item md-size-100">{{ data[0] }}</h1>
+                        <div class="md-layout-item md-size-20" v-for="image of data[1]" v-bind:key="image">
                             <img :src="image"/>
                         </div>
                     </div>
@@ -112,7 +113,7 @@
         protected selectedReportDevices: Device[] = [];
         protected selectedTestResult: TestResult = null;
         protected selectedReportDevice: string = null;
-        private images: string[] = [];
+        private images: Map<String, String[]> = new Map<String, String[]>();
 
         mounted() {
             let reportId = this.$route.params.reportId;
@@ -161,9 +162,21 @@
             this.selectedTestResult = this.selectedReportModel.tests[0].result;
             this.selectedReportDevice = this.selectedReportModel.tests[0].device._ref.id;
 
-            this.$subscribeTo(Services.getInstance().jobsService.getImagesUrl(this.selectedTestResult.screenshots), urls => {
-                this.images = urls;
+            const deviceScreenshotsList = this.selectedReportModel.tests.map(test => {
+                return {
+                    screenshots: test.result.screenshots,
+                    device: test.device.name
+                };
             });
+
+            for (let deviceScreenshots of deviceScreenshotsList) {
+                this.$subscribeTo(Services.getInstance().jobsService.getImagesUrl(deviceScreenshots.screenshots), urls => {
+                    this.images.set(deviceScreenshots.device, urls);
+                    this.$forceUpdate();
+                });
+            }
+
+
         }
 
     }
