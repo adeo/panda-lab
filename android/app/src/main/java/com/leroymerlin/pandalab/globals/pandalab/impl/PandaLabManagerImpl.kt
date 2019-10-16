@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.google.gson.GsonBuilder
 import com.leroymerlin.pandalab.AgentReceiver
 import com.leroymerlin.pandalab.OverlayService
 import com.leroymerlin.pandalab.R
@@ -61,88 +62,119 @@ class PandaLabManagerImpl(private var context: Context) :
     }
 
     override fun listenDeviceStatus(): Observable<DeviceStatus> {
-        return RxFirestore.observeDocumentRef(this.getDeviceDocument())
-            .map { DeviceStatus.secureValueOf(it.getString("status")) }
-            .toObservable()
+        return this.isEnrolled()
+            .filter { it }
+            .firstOrError()
+            .flatMapObservable {
+                getDeviceId()?.let { serialId ->
+                    RxFirestore.observeDocumentRef(this.getDeviceDocument(serialId))
+                        .map { DeviceStatus.secureValueOf(it.getString("status")) }
+                        .toObservable()
+                } ?: Observable.error(Error("Device not enrolled"))
+            }
+    }
+
+    override fun listenDevice(): Observable<Device> {
+        return this.isEnrolled()
+            .filter { it }
+            .firstOrError()
+            .flatMapObservable {
+                getDeviceId()?.let { serialId ->
+                    RxFirestore.observeDocumentRef(this.getDeviceDocument(serialId))
+                        .map {
+                            val model = getDeviceModel(serialId, getDeviceDocument(serialId))
+                            model.lastConnexion = it.getLong("lastConnexion") ?: 0
+                            model
+                        }
+                        .toObservable()
+                } ?: Observable.error(Error("Device not enrolled"))
+            }
     }
 
     override fun bookDevice(): Completable {
-        return RxFirestore.updateDocument(
-            this.getDeviceDocument(),
-            "status",
-            DeviceStatus.booked.name
-        ).doOnComplete {
-            val notificationIntent = Intent(context, AgentReceiver::class.java)
-            notificationIntent.action = "com.leroymerlin.pandalab.INTENT.CANCEL_BOOK"
-            val pendingIntent = PendingIntent.getBroadcast(
-                context,
-                0, notificationIntent, 0
-            )
+        return getDeviceId()?.let { serialId ->
+            RxFirestore.updateDocument(
+                this.getDeviceDocument(serialId),
+                "status",
+                DeviceStatus.booked.name
+            ).doOnComplete {
+                val notificationIntent = Intent(context, AgentReceiver::class.java)
+                notificationIntent.action = "com.leroymerlin.pandalab.INTENT.CANCEL_BOOK"
+                val pendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    0, notificationIntent, 0
+                )
 
-            val notification = NotificationCompat.Builder(context, OverlayService.CHANNEL_ID)
-                .setContentTitle("Pandalab device booked")
-                .setContentText("Click to release the device")
-                .setSmallIcon(R.drawable.ic_close_black)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(pendingIntent)
-                .build()
+                val notification = NotificationCompat.Builder(context, OverlayService.CHANNEL_ID)
+                    .setContentTitle("Pandalab device booked")
+                    .setContentText("Click to release the device")
+                    .setSmallIcon(R.drawable.ic_close_black)
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setContentIntent(pendingIntent)
+                    .build()
 
-            with(NotificationManagerCompat.from(context)) {
-                this.notify(bookNotificationId, notification)
+                with(NotificationManagerCompat.from(context)) {
+                    this.notify(bookNotificationId, notification)
+                }
+
             }
-
-        }
+        } ?: Completable.error(Error("Device not enrolled"))
 
 
     }
 
     override fun cancelDeviceBooking(): Completable {
-        return RxFirestore.updateDocument(
-            this.getDeviceDocument(),
-            "status",
-            DeviceStatus.offline.name
-        ).doOnComplete {
-            with(NotificationManagerCompat.from(context)) {
-                this.cancel(bookNotificationId)
+        return getDeviceId()?.let { serialId ->
+            RxFirestore.updateDocument(
+                this.getDeviceDocument(serialId),
+                "status",
+                DeviceStatus.offline.name
+            ).doOnComplete {
+                with(NotificationManagerCompat.from(context)) {
+                    this.cancel(bookNotificationId)
+                }
             }
-        }
+        } ?: Completable.error(Error("Device not enrolled"))
     }
 
     override fun updateDevice(): Completable {
-        val deviceDoc = getDeviceDocument()
-
-        if (this.auth.currentUser == null) {
-            Log.w(TAG, "device is not enrolled")
-            return Completable.complete()
-        }
-        return RxFirestore.getDocument(deviceDoc)
-            .map { data -> data.getDocumentReference("agent") }
-            .map { agentDoc -> getDevice(agentDoc) }
-            .flatMapCompletable { RxFirestore.setDocument(deviceDoc, it, SetOptions.merge()) }
+        return getDeviceId()?.let { serialId ->
+            val deviceDoc = getDeviceDocument(serialId)
+            if (this.auth.currentUser == null) {
+                Log.w(TAG, "device is not enrolled")
+                return Completable.complete()
+            }
+            RxFirestore.getDocument(deviceDoc)
+                .map { data -> data.getDocumentReference("agent") }
+                .map { agentDoc -> getDeviceModel(serialId, agentDoc) }
+                .flatMapCompletable { RxFirestore.setDocument(deviceDoc, it, SetOptions.merge()) }
+        } ?: Completable.error(Error("Device not enrolled"))
     }
 
-    override fun enroll(token: String, agentId: String): Completable {
-        val deviceDoc = getDeviceDocument()
+    override fun enroll(serialId: String, token: String, agentId: String): Completable {
+        this.deviceId.save(serialId)
+        val deviceDoc = getDeviceDocument(serialId)
         this.auth.signOut()
-
         return RxFirebaseAuth.signInWithCustomToken(this.auth, token)
-            .map { getDevice(this.db.collection("agents").document(agentId)) }
+            .map { getDeviceModel(serialId, this.db.collection("agents").document(agentId)) }
             .flatMapCompletable { RxFirestore.setDocument(deviceDoc, it, SetOptions.merge()) }
-            .andThen(subscribeToFirebaseTopic(this.getDeviceId()))
+            .andThen(subscribeToFirebaseTopic(serialId))
 
 
     }
 
 
-    override fun isLogged(): Boolean {
-        return this.auth.currentUser?.let { true } ?: false
+    override fun isEnrolled(): Observable<Boolean> {
+        return RxFirebaseAuth.observeAuthState(this.auth)
+            .map { it.currentUser != null }
     }
 
-    private fun getDeviceDocument() = this.db.collection("devices").document(getDeviceId())
+    private fun getDeviceDocument(serialId: String) =
+        this.db.collection("devices").document(serialId)
 
-    private fun getDevice(agentDoc: DocumentReference): Device {
+    private fun getDeviceModel(serialId: String, agentDoc: DocumentReference): Device {
         return Device(
-            UtilsPhone.getPhoneSerialId(this.context)!!,
+            serialId,
             UtilsPhone.getPhoneModel(),
             UtilsPhone.getPhoneIp(true),
             UtilsPhone.getPhoneModel(),
@@ -157,7 +189,7 @@ class PandaLabManagerImpl(private var context: Context) :
         )
     }
 
-    override fun getDeviceId(): String {
+    override fun getDeviceId(): String? {
         return deviceId.getValue()
     }
 
@@ -166,7 +198,7 @@ class PandaLabManagerImpl(private var context: Context) :
             FirebaseMessaging.getInstance().subscribeToTopic(serialId)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        Log.d(TAG, "Subscription to $serialId firebase topic is sucessful")
+                        Log.d(TAG, "Subscription to $serialId firebase topic is successful")
                         it.onComplete()
                     } else {
                         Log.e(TAG, "Subscription to $serialId firebase topic has failed")

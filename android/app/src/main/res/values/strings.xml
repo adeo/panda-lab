@@ -16,11 +16,11 @@
     <string name="errorToken">No firebase token found, retry.</string>
     <string name="errorNetwork">Error, please verify your internet connexion.</string>
     <string name="enroll">Enroll</string>
-    <string name="no_enroll">This device isn\'t enrolled</string>
     <string name="enroll_with_identifier">This device is enrolled with identifier: %s</string>
-    <string name="overlay_perms">Enable overlay permission to enable all the features</string>
+    <string name="overlay_perms">Permission to continue</string>
     <string name="overlay_label_working">Pandalab - device in use</string>
     <string name="overlay_label_available">Pandalab - device available</string>
     <string name="free_device">Cancel booking</string>
     <string name="book_device">Book device</string>
+    <string name="home_not_enrolled">Device not enrolled\nWaiting for enroll command</string>
 </resources>

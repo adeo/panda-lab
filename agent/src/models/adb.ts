@@ -3,14 +3,14 @@ import {DeviceLog} from './device';
 import {DeviceStatus} from 'pandalab-commons';
 
 export interface DeviceAdb {
-    uid: string;
-    appBuildTime: number;
-    model: string;
     id: string;
+    appBuildTime: number;
+    serialId: string;
+    model: string;
     type: string;
     path: string;
-    deviceState: DeviceStatus;
-    deviceLogs: Array<Timestamp<DeviceLog>>;
+    //deviceState: DeviceStatus;
+    //deviceLogs: Array<Timestamp<DeviceLog>>;
 }
 
 export interface AdbStatus {

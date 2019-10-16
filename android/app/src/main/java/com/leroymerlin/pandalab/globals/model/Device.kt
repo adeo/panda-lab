@@ -15,7 +15,7 @@ data class Device(
     val phoneBrand: String,
     val phoneAndroidVersion: String,
     val currentServiceVersion: String,
-    val lastConnexion: Long,
+    var lastConnexion: Long,
     val agent: DocumentReference
 ) : Serializable
 

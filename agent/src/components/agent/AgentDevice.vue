@@ -97,7 +97,7 @@
 
         @Watch('data', {immediate: true})
         updateView() {
-            let deviceId: string = (this.data.adbDevice && this.data.adbDevice.uid) ? this.data.adbDevice.uid : this.data.firebaseDevice ? this.data.firebaseDevice._ref.id : this.data.adbDevice.id;
+            let deviceId: string = (this.data.adbDevice && this.data.adbDevice.serialId) ? this.data.adbDevice.serialId : this.data.firebaseDevice.serialId;
             this.device = {
                 name: this.data.firebaseDevice ? this.data.firebaseDevice.name : this.data.adbDevice.model,
                 deviceId: deviceId,

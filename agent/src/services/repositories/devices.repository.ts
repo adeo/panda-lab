@@ -10,9 +10,9 @@ export class DevicesRepository {
         return devicesData;
     }
 
-    searchDeviceData(name: string): DeviceData | null {
+    searchDeviceData(phoneDevice: string): DeviceData | null {
         for(let device of this.getDevicesData()){
-            if(device.name.toLowerCase() === name.toLowerCase()){
+            if(device.name.toLowerCase() === phoneDevice.toLowerCase()){
                 return device
             }
         }

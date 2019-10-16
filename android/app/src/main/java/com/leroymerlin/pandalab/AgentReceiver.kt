@@ -23,24 +23,14 @@ class AgentReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
 
         when (intent.action) {
-            "com.leroymerlin.pandalab.INTENT.GET_ID" -> {
-                val uniqueId: String = DeviceIdentifier(context).getValue()
-                val transactionId = intent.getStringExtra("transaction_id")
-                val result = hashMapOf(
-                    "transaction_id" to transactionId,
-                    "device_id" to uniqueId,
-                    "build_time" to BuildConfig.BUILD_TIME
-                )
-                Log.i(transactionId, Gson().toJson(result))
-            }
             "com.leroymerlin.pandalab.INTENT.ENROLL" -> {
 
                 val agent = intent.getStringExtra("agent_id")
                 val token = intent.getStringExtra("token_id")
+                val serialId = intent.getStringExtra("serial_id")
 
-                PandaLabApplication.getApp(context).component.pandaLabManager().enroll(
-                    token, agent
-                ).subscribe({
+                PandaLabApplication.getApp(context).component.pandaLabManager()
+                    .enroll(serialId, token, agent).subscribe({
                     Log.d(TAG, "device enrolled")
                 }, {
                     Log.e(TAG, "can't enroll device", it)
@@ -56,7 +46,8 @@ class AgentReceiver : BroadcastReceiver() {
                     })
             }
             "com.leroymerlin.pandalab.INTENT.CANCEL_BOOK" -> {
-                PandaLabApplication.getApp(context).component.pandaLabManager().cancelDeviceBooking()
+                PandaLabApplication.getApp(context).component.pandaLabManager()
+                    .cancelDeviceBooking()
                     .subscribe({
                         Log.d(TAG, "booking canceled")
                     }, {

@@ -9,6 +9,7 @@ import {AgentService} from "../agent.service";
 import * as winston from "winston";
 import {AgentsService} from "../agents.service";
 import {DeviceAdb} from "../../models/adb";
+import {AdbService} from "./adb.service";
 
 
 export class SpoonService {
@@ -19,6 +20,7 @@ export class SpoonService {
                 private agentRepo: SetupService,
                 private agentService: AgentService,
                 private firebaseRepo: FirebaseRepository,
+                private adb : AdbService,
                 private agentsService: AgentsService,
                 private jobsService: JobsService,
                 private workspace: FilesRepository) {
@@ -74,7 +76,7 @@ export class SpoonService {
     private runTest(taskData: TaskData): Observable<Device> {
         const device = taskData.device;
         const task = taskData.task;
-        return this.agentService.getDeviceAdb(device._ref.id).pipe(
+        return this.adb.getDeviceWithSerial(device.serialId).pipe(
             flatMap(deviceAdb => {
                 if (deviceAdb === null) {
                     // device is offline

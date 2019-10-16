@@ -176,6 +176,7 @@ class LocalServicesProvider implements ServicesProvider {
                     agentRepository,
                     agentService,
                     this.firebaseRepo,
+                    adbRepository,
                     this.agentsService,
                     this.jobsService,
                     workspaceRepository);
