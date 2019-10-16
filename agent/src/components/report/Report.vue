@@ -53,9 +53,9 @@
                                     <span v-init:report="reportByDevice.get(item._ref.id)">
                                         <span :style="{'color': (selectedTestResult.status === 'PASS' ? '#5dc050' : '#D12311')}">{{item.name}}</span>
                                     </span>
-                                        </md-option>
-                                    </md-select>
-                                </md-field>
+                                       </md-option>
+                                   </md-select>
+                               </md-field>
                             </div>
                             &nbsp;
                             <div class="md-layout-item">
@@ -72,9 +72,8 @@
                     </template>
                 </md-tab>
                 <md-tab id="tab-pages-1" md-label="Images">
-                    <div class="md-layout md-gutter" v-for="data in images" v-bind:key="data">
-                        <h1 class="md-layout-item md-size-100">{{ data[0] }}</h1>
-                        <div class="md-layout-item md-size-20" v-for="image of data[1]" v-bind:key="image">
+                    <div class="md-layout md-gutter">
+                        <div class="md-layout-item md-size-20" v-for="image in images" :key="image">
                             <img :src="image"/>
                         </div>
                     </div>
@@ -168,15 +167,6 @@
                     device: test.device.name
                 };
             });
-
-            for (let deviceScreenshots of deviceScreenshotsList) {
-                this.$subscribeTo(Services.getInstance().jobsService.getImagesUrl(deviceScreenshots.screenshots), urls => {
-                    this.images.set(deviceScreenshots.device, urls);
-                    this.$forceUpdate();
-                });
-            }
-
-
         }
 
     }
