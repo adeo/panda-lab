@@ -43,15 +43,15 @@
                     <template v-if="selectedTestResult">
                         <div class="md-layout md-alignment-center-center">
                             <div class="md-layout-item-40">
-                               <md-field>
-                                   <label>Choice the phone</label>
-                                   <md-select v-model="selectedReportDevice" name="selectedReportDevice"
-                                              id="selectedReportDevice" placeholder="Device"
-                                              v-on:md-selected="selectDevice">
-                                       <md-option v-for="item in selectedReportDevices" :value="item._ref.id"
-                                                  :key="item._ref.id">
-                                    <span v-init:report="reportByDevice.get(item._ref.id)" :style="{'color': (reportByDevice.get(item._ref.id).status === 'PASS' ? '#5dc050' : '#D12311')}">
-                                        {{item.name}}
+                                <md-field>
+                                    <label>Choice the phone</label>
+                                    <md-select v-model="selectedReportDevice" name="selectedReportDevice"
+                                               id="selectedReportDevice" placeholder="Device"
+                                               v-on:md-selected="selectDevice">
+                                        <md-option v-for="item in selectedReportDevices" :value="item._ref.id"
+                                                   :key="item._ref.id">
+                                    <span v-init:report="reportByDevice.get(item._ref.id)">
+                                        <span :style="{'color': (selectedTestResult.status === 'PASS' ? '#5dc050' : '#D12311')}">{{item.name}}</span>
                                     </span>
                                        </md-option>
                                    </md-select>
@@ -112,7 +112,7 @@
         protected selectedReportDevices: Device[] = [];
         protected selectedTestResult: TestResult = null;
         protected selectedReportDevice: string = null;
-        private images: string[] = [];
+        private images: Map<String, String[]> = new Map<String, String[]>();
 
         mounted() {
             let reportId = this.$route.params.reportId;
@@ -161,8 +161,11 @@
             this.selectedTestResult = this.selectedReportModel.tests[0].result;
             this.selectedReportDevice = this.selectedReportModel.tests[0].device._ref.id;
 
-            this.$subscribeTo(Services.getInstance().jobsService.getImagesUrl(this.selectedTestResult.screenshots), urls => {
-                this.images = urls;
+            const deviceScreenshotsList = this.selectedReportModel.tests.map(test => {
+                return {
+                    screenshots: test.result.screenshots,
+                    device: test.device.name
+                };
             });
         }
 
