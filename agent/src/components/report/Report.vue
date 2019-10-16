@@ -50,7 +50,7 @@
                                               v-on:md-selected="selectDevice">
                                        <md-option v-for="item in selectedReportDevices" :value="item._ref.id"
                                                   :key="item._ref.id">
-                                    <span v-init:report="reportByDevice.get(item._ref.id)">
+                                    <span v-init:report="reportByDevice.get(item._ref.id)" :style="{'color': (reportByDevice.get(item._ref.id).status === 'PASS' ? '#5dc050' : '#D12311')}">
                                         {{item.name}}
                                     </span>
                                        </md-option>
