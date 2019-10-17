@@ -25,6 +25,10 @@ import {AgentsService} from "./agents.service";
 import {DevicesRepository} from "./repositories/devices.repository";
 
 export class AgentService {
+
+    static MOBILE_AGENT_PACKAGE = 'com.leroymerlin.pandalab';
+
+
     private listenDevicesSub: Subscription;
     private manualActions: AgentDeviceData[] = [];
     private changeBehaviour = new BehaviorSubject("");
@@ -176,9 +180,9 @@ export class AgentService {
                         firebaseDevice: device
                     }
                 )
-            } else {
+            } else if (deviceData.adbDevice.agentInstalled) {
                 deviceData.firebaseDevice = device;
-                if (deviceData.adbDevice.appBuildTime < this.setupService.getAgentPublishTime()) {
+                if (device.appBuildTime < this.setupService.getAgentPublishTime()) {
                     deviceData.actionType = ActionType.update_app;
                 } else if (device.status == DeviceStatus.offline || !device.status) {
                     device.status = DeviceStatus.available;
@@ -277,8 +281,10 @@ export class AgentService {
         return concat(
             of(<DeviceLog>{log: 'Install service APK...', type: DeviceLogType.INFO}),
             this.adb.installApk(adbDeviceId, this.setupService.getAgentApk()).pipe(ignoreElements()),
+            of(<DeviceLog>{log: `Open main activity...`, type: DeviceLogType.INFO}),
+            this.adb.launchActivity(adbDeviceId, AgentService.MOBILE_AGENT_PACKAGE + "/.HomeActivity").pipe(ignoreElements()),
             of(<DeviceLog>{log: 'Waiting app detection...', type: DeviceLogType.INFO}),
-            this.adb.isInstalled(adbDeviceId, 'com.leroymerlin.pandalab').pipe(
+            this.adb.isInstalled(adbDeviceId, AgentService.MOBILE_AGENT_PACKAGE).pipe(
                 delay(500),
                 map((installed) => {
                     if (!installed) {
@@ -286,11 +292,9 @@ export class AgentService {
                     }
                 }),
                 retry(),
-                timeout(10000),
+                timeout(20000),
                 ignoreElements(),
             ),
-            of(<DeviceLog>{log: `Open main activity...`, type: DeviceLogType.INFO}),
-            this.adb.launchActivity(adbDeviceId, "com.leroymerlin.pandalab/.HomeActivity").pipe(ignoreElements()),
             of(<DeviceLog>{log: `App installed`, type: DeviceLogType.INFO}),
         );
     }

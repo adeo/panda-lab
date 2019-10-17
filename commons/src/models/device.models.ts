@@ -14,9 +14,9 @@ export interface Device extends FirebaseModel {
     phoneManufacturer: string;
     phoneBrand: string;
     phoneAndroidVersion: string;
-    currentServiceVersion: string;
     lastConnexion: number;
     lastTcpActivation: number;
+    appBuildTime: number;
     pictureIcon: string;
     processor: string;
 }

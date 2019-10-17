@@ -183,8 +183,8 @@ class PandaLabManagerImpl(private var context: Context) :
             UtilsPhone.getPhoneManufacturer(),
             UtilsPhone.getPhoneBrand(),
             UtilsPhone.getPhoneAndroidVersion(),
-            BuildConfig.VERSION_NAME,
             Timestamp(System.currentTimeMillis()).time,
+            BuildConfig.BUILD_TIME,
             agentDoc
         )
     }

@@ -14,6 +14,7 @@ import {
 import {doOnSubscribe} from "../../utils/rxjs";
 import winston from "winston";
 import {Device} from "pandalab-commons";
+import {AgentService} from "../agent.service";
 
 export class AdbService {
 
@@ -97,6 +98,13 @@ export class AdbService {
                                     return of(device)
                                 })),
                     ),
+                    flatMap((device: DeviceAdb) => {
+                        return from(this.isInstalled(device.id, AgentService.MOBILE_AGENT_PACKAGE))
+                            .pipe(map((isInstalled: boolean) => {
+                                device.agentInstalled = isInstalled;
+                                return device
+                            }))
+                    }),
                     toArray())
             }),
         ).subscribe((values: DeviceAdb[]) => {

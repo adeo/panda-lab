@@ -23,6 +23,7 @@ class InfosActivity : AppCompatActivity() {
     private val tag = "InfosActivity"
     private var statusSub: Disposable? = null
     private var deviceSub: Disposable? = null
+    private var updateSub: Disposable? = null
 
     @Inject
     lateinit var pandaLabManager: PandaLabManager
@@ -36,6 +37,8 @@ class InfosActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+
+        updateDeviceStatus()
 
         statusSub = pandaLabManager.listenDeviceStatus()
             .subscribe({ status ->
@@ -72,6 +75,7 @@ class InfosActivity : AppCompatActivity() {
         super.onPause()
         statusSub?.dispose()
         deviceSub?.dispose()
+        updateSub?.dispose()
     }
 
 
@@ -111,16 +115,20 @@ class InfosActivity : AppCompatActivity() {
 
 
         update_button.setOnClickListener {
-            pandaLabManager.updateDevice().doOnSubscribe {
-                sync_progress?.visibility = View.VISIBLE
-            }.doOnTerminate {
-                sync_progress?.visibility = View.GONE
-            }.subscribe({
-                Log.i(tag, "device updated")
-            }, {
-                Log.e(tag, "can't update device", it)
-            })
+            updateDeviceStatus()
         }
+    }
+
+    private fun updateDeviceStatus() {
+        updateSub = pandaLabManager.updateDevice().doOnSubscribe {
+            sync_progress?.visibility = View.VISIBLE
+        }.doOnTerminate {
+            sync_progress?.visibility = View.GONE
+        }.subscribe({
+            Log.i(tag, "device updated")
+        }, {
+            Log.e(tag, "can't update device", it)
+        })
     }
 
 }

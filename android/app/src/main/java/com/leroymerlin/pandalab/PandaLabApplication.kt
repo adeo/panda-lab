@@ -26,9 +26,10 @@ class PandaLabApplication : MultiDexApplication() {
             .flatMapMaybe { s: DeviceStatus -> component.pandaLabManager().updateOverlay(s) }
             .retry()
             .subscribe(
-                {},
-                { Log.e(TAG, "cant' listen status", it) }
+                { Log.i(TAG, "get new status : $it")},
+                { Log.e(TAG, "can not listen status", it) }
             )
+
     }
 
     private fun createBaseComponent(): PandaLabComponent {
