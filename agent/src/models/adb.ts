@@ -1,6 +1,3 @@
-import {Timestamp} from 'rxjs';
-import {DeviceLog} from './device';
-import {DeviceStatus} from 'pandalab-commons';
 
 export interface DeviceAdb {
     id: string;
@@ -22,9 +19,9 @@ export enum AdbStatusState {
     LOADING = "loading"
 }
 
-export interface LogcatMessage {
-    pid: number;
-    tid: number;
-    tag: string;
-    message: string;
-}
+// export interface LogcatMessage {
+//     pid: number;
+//     tid: number;
+//     tag: string;
+//     message: string;
+// }

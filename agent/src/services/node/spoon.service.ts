@@ -53,7 +53,7 @@ export class SpoonService {
             flatMap(tasks => {
                 return from<JobTask[]>(tasks).pipe(
                     concatMap(task => {
-                        return this.firebaseRepo.getDocument<Device>(task.device).pipe(
+                        return this.firebaseRepo.getDocument<Device>(task.device as any).pipe(
                             filter(device => device.status === DeviceStatus.available),
                             flatMap(device => this.saveDeviceStatus(device, DeviceStatus.working)),
                             map(device => {

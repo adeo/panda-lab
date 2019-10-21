@@ -165,6 +165,7 @@ export class AgentService {
                 adbDevice: adbDevice
             }
         });
+
         firebaseDevices.forEach(device => {
             const deviceData = devicesData.find(a => a.adbDevice && a.adbDevice.serialId == device.serialId);
             if (!deviceData) {
@@ -182,11 +183,11 @@ export class AgentService {
                 )
             } else if (deviceData.adbDevice.agentInstalled) {
                 deviceData.firebaseDevice = device;
-                if (device.appBuildTime < this.setupService.getAgentPublishTime()) {
-                    deviceData.actionType = ActionType.update_app;
-                } else if (device.status == DeviceStatus.offline || !device.status) {
+                if (device.status == DeviceStatus.offline || !device.status) {
                     device.status = DeviceStatus.available;
                     deviceData.actionType = ActionType.update_status;
+                } else if (device.appBuildTime < this.setupService.getAgentPublishTime()) {
+                    deviceData.actionType = ActionType.update_app;
                 } else if (device.status == DeviceStatus.available && deviceData.adbDevice.path.startsWith("usb") && this.enableTCP &&
                     (!deviceData.firebaseDevice.lastTcpActivation || deviceData.firebaseDevice.lastTcpActivation < Date.now() - 1000 * 60 * 60)) {
                     deviceData.actionType = ActionType.enable_tcp;
@@ -281,8 +282,6 @@ export class AgentService {
         return concat(
             of(<DeviceLog>{log: 'Install service APK...', type: DeviceLogType.INFO}),
             this.adb.installApk(adbDeviceId, this.setupService.getAgentApk()).pipe(ignoreElements()),
-            of(<DeviceLog>{log: `Open main activity...`, type: DeviceLogType.INFO}),
-            this.adb.launchActivity(adbDeviceId, AgentService.MOBILE_AGENT_PACKAGE + "/.HomeActivity").pipe(ignoreElements()),
             of(<DeviceLog>{log: 'Waiting app detection...', type: DeviceLogType.INFO}),
             this.adb.isInstalled(adbDeviceId, AgentService.MOBILE_AGENT_PACKAGE).pipe(
                 delay(500),
@@ -292,16 +291,16 @@ export class AgentService {
                     }
                 }),
                 retry(),
-                timeout(20000),
+                timeout(10000),
                 ignoreElements(),
             ),
+            of(<DeviceLog>{log: `Open main activity...`, type: DeviceLogType.INFO}),
+            this.adb.launchActivity(adbDeviceId, AgentService.MOBILE_AGENT_PACKAGE + "/.HomeActivity").pipe(ignoreElements()),
             of(<DeviceLog>{log: `App installed`, type: DeviceLogType.INFO}),
         );
     }
 
     private enrollAction(adbDevice: DeviceAdb): Observable<DeviceLog> {
-
-
         return concat<DeviceLog>(
             this.installClientAppAction(adbDevice.id),
             of(<DeviceLog>{log: `Generate firebase token...`, type: DeviceLogType.INFO}),
