@@ -19,6 +19,9 @@ import io.reactivex.Completable
 import java.sql.Timestamp
 import androidx.core.content.ContextCompat
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.google.gson.GsonBuilder
@@ -48,7 +51,9 @@ class PandaLabManagerImpl(private var context: Context) :
 //        available = "available",
 //        working = "working",
 //        booked = "booked",
-        if (status.lockDevice) {
+
+        val canOverlay = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)
+        if (status.lockDevice && canOverlay) {
             return this.listenDeviceStatus()
                 .filter { it == status }
                 .firstElement()

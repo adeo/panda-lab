@@ -46,7 +46,7 @@ class HomeActivity : Activity() {
     }
 
 
-    fun checkPermissions(request: Boolean): Boolean {
+    private fun checkPermissions(request: Boolean): Boolean {
         if (PackageManager.PERMISSION_GRANTED != ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.READ_PHONE_STATE

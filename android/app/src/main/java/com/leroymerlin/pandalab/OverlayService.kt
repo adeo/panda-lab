@@ -71,6 +71,7 @@ class OverlayService : Service() {
                         closeService()
                     } else {
                         floatyText?.text =
+
                             if (status == DeviceStatus.available) {
                                 floatyView?.visibility = View.VISIBLE
                                 //floatyView?.findViewById<View>(R.id.overlay_top)?.setBackgroundResource(R.color.colorPrimary)
