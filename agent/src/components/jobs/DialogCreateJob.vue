@@ -16,22 +16,35 @@
                     </md-button>
                 </div>
             </div>
-            <div class="md-layout-item md-layout md-gutter">
+            <div class="md-layout">
                 <div v-if="artifacts" class="md-layout-item md-size-100">
                     <div>
-                        <small>Flavor : </small>
+                        <small>Flavor :</small>
                     </div>
-                    <md-radio v-model="artifactSelected" v-for="artifact in artifacts" v-bind:key="artifact.path" v-bind:value="artifact">{{ artifact.buildType }}</md-radio>
+                    <md-radio v-model="artifactSelected" v-for="artifact in artifacts" v-bind:key="artifact.path"
+                              v-bind:value="artifact">{{ artifact.buildType }}
+                    </md-radio>
                 </div>
-                <div v-if="devices.length > 0" class="md-layout-item md-size-100">
+
+                <div class="md-layout-item md-size-100">
+                    <md-checkbox v-model="maxDevices.custom" value="true">Custom devices Pool</md-checkbox>
+                    <md-field class="md-layout-item">
+                        <label for="max-devices">Max devices ( min value 1 )</label>
+                        <md-input v-if="maxDevices.custom" type="number" id="max-devices" name="max-devices"
+                                  autocomplete="max-devices" v-model="maxDevices.count" :disabled="!maxDevices.custom"
+                                  min="1"/>
+                        <span class="md-error" v-if="maxDevices.count <= 0">The min value is 1</span>
+                    </md-field>
+                </div>
+
+
+                <div v-if="devices" class="md-layout-item">
+                    <h1 class="md-title">Devices</h1>
                     <md-table v-model="devices" md-card md-sort="status" md-sort-order="asc"
                               md-fixed-header
                               @md-selected="onSelectDevices" md-item
                               :md-selected-value-="devices"
                               :md-selected-value.sync="selectedDevices">
-                        <md-table-toolbar>
-                            <h1 class="md-title">Devices</h1>
-                        </md-table-toolbar>
                         <md-table-row slot="md-table-row" slot-scope="{ item }" md-selectable="multiple"
                                       md-auto-select>
                             <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
@@ -40,6 +53,21 @@
                             <md-table-cell md-label="Model" md-sort-by="phoneModel">{{ item.phoneModel }}
                             </md-table-cell>
                             <md-table-cell md-label="Status" md-sort-by="status">{{ item.status }}
+                            </md-table-cell>
+                        </md-table-row>
+                    </md-table>
+                </div>
+                <div v-if="groups" class="md-layout-item">
+                    <h1 class="md-title">Groups</h1>
+                    <md-table v-model="groups" md-card md-sort="status" md-sort-order="asc" md-fixed-header
+                              @md-selected="onSelectGroups" md-item
+                              :md-selected-value-="groups"
+                              :md-selected-value.sync="selectedGroups">
+                        <md-table-row slot="md-table-row" slot-scope="{ item }" md-selectable="multiple"
+                                      md-auto-select>
+                            <md-table-cell md-label="Name" md-sort-by="name">{{ item.name }}</md-table-cell>
+                            <md-table-cell md-label="DevicesPage" md-sort-by="phoneBrand">{{
+                                item.devices.length }}
                             </md-table-cell>
                         </md-table-row>
                     </md-table>
@@ -57,7 +85,8 @@
 <script lang="ts">
     import {Component, Vue} from "vue-property-decorator";
     import {Services} from "../../services/services.provider";
-    import {Artifact, Device} from "pandalab-commons";
+    import {Artifact, Device, DevicesGroup} from "pandalab-commons";
+    import {Subscription} from "vue-rx-decorators";
 
     @Component
     export default class DialogCreateJob extends Vue {
@@ -80,6 +109,17 @@
         private devicesService = Services.getInstance().devicesService;
 
         protected artifacts: Array<Artifact> = [];
+
+        protected maxDevices = {
+            custom: false,
+            count: "",
+        };
+
+        @Subscription(function () {
+            return Services.getInstance().devicesService.listenGroups();
+        })
+        groups: DevicesGroup[] = [];
+        selectedGroups: DevicesGroup[] = [];
 
         /**
          * When Vue Component is created, register on event : DIALOG_CREATE_JOB_DISPLAY_EVENT
@@ -116,6 +156,11 @@
             this.selectedDevices.forEach(device => console.log(`Select ${device.name}`));
         }
 
+        onSelectGroups(groups: DevicesGroup[]) {
+            this.selectedGroups = groups;
+            this.selectedGroups.forEach(group => console.log(`Select ${group.name}`));
+        }
+
         /**
          * Submit form
          * 1. Display Loader
@@ -126,12 +171,16 @@
          */
         onSubmit() {
             this.loading = true;
-            //TODO add form to select devices, groups, timeout, ...
             const devices = this.selectedDevices.map(device => device._ref.id);
-            console.log("select devices : ", devices);
-            this.$subscribeTo(this.jobService.createNewJob(this.artifactSelected as Artifact, devices, [], 60 * 5, devices.length > 0 ? devices.length : 1), jobId => {
-                console.log(`Create job id = ${jobId}`);
-                // this.onClose();
+            const groups = this.selectedGroups.map(group => group._ref.id);
+            let deviceCount = -1;
+            if (this.maxDevices.custom) {
+                const maxDevices = this.calculatePoolDevices();
+                if (+this.maxDevices.count <= maxDevices) {
+                    deviceCount = +this.maxDevices.count;
+                }
+            }
+            this.$subscribeTo(this.jobService.createNewJob(this.artifactSelected as Artifact, devices, groups, 60 * 30, deviceCount), jobId => {
                 this.snackbar.message = `Le job ${jobId} a bien été créé`;
                 this.snackbar.display = true;
                 this.loading = false;
@@ -152,6 +201,20 @@
          */
         private onClose() {
             this.$router.back();
+        }
+
+        private calculatePoolDevices(): number {
+            let devicesIds: Set<string> = new Set<string>();
+            this.selectedGroups.map(group => group.devices).reduce((previousValue, currentValue) => {
+                return [...previousValue, ...currentValue];
+            }, []).forEach(value => {
+                devicesIds.add(value);
+            });
+            this.selectedDevices.map(device => device._ref.id).forEach(value => {
+                devicesIds.add(value);
+            });
+
+            return devicesIds.size;
         }
     }
 
