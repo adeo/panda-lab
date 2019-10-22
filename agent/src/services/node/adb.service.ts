@@ -1,4 +1,4 @@
-import {BehaviorSubject, from, interval, merge, Observable, of, Subscription} from 'rxjs';
+import {BehaviorSubject, defer, from, interval, merge, Observable, of, Subscription} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
 import {
     catchError,
@@ -13,7 +13,6 @@ import {
 } from "rxjs/operators";
 import {doOnSubscribe} from "../../utils/rxjs";
 import winston from "winston";
-import {Device} from "pandalab-commons";
 import {AgentService} from "../agent.service";
 
 export class AdbService {
@@ -68,7 +67,7 @@ export class AdbService {
         }
 
         this.trackingSub = merge(
-            interval(2000),
+            interval(5000),
             adbEventObs,
         ).pipe(
             doOnSubscribe(() => {
@@ -76,9 +75,6 @@ export class AdbService {
                 this.updateAdbStatusFlux(AdbStatusState.LOADING)
             }),
             switchMap(() => this.adbClient.listDevicesWithPaths() as Promise<DeviceAdb[]>),
-            distinctUntilChanged((prev, current) => {
-                return JSON.stringify(prev) === JSON.stringify(current)
-            }),
             map(value => {
                 //deep copy to fix distinctUntilChanged error with uid in objects
                 return JSON.parse(JSON.stringify(value))
@@ -106,6 +102,9 @@ export class AdbService {
                             }))
                     }),
                     toArray())
+            }),
+            distinctUntilChanged((prev, current) => {
+                return JSON.stringify(prev) === JSON.stringify(current)
             }),
         ).subscribe((values: DeviceAdb[]) => {
             this.updateAdbStatusFlux(AdbStatusState.STARTED);
@@ -185,7 +184,7 @@ export class AdbService {
 
 
     launchActivity(deviceId: string, activityName: string): Observable<any> {
-        return from(this.adbClient.startActivity(deviceId, {component: activityName})).pipe(first());
+        return defer(() => this.adbClient.startActivity(deviceId, {component: activityName})).pipe(first());
     }
 
     sendBroadcastWithData(deviceId: string, broadcastName: string, actionName: string, data: { [key: string]: string; }): Observable<string> {
@@ -207,7 +206,7 @@ export class AdbService {
     }
 
     launchActivityWithExtras(deviceId: string, activityName: string, extras: { [key: string]: string; }): Observable<any> {
-        return from(this.adbClient.startActivity(deviceId, {component: activityName, extras: extras}))
+        return defer(() => this.adbClient.startActivity(deviceId, {component: activityName, extras: extras}))
             .pipe(first())
     }
 
@@ -225,36 +224,16 @@ export class AdbService {
     }
 
     isInstalled(deviceId: string, packageName: string): Observable<boolean> {
-        return from(this.adbClient.isInstalled(deviceId, packageName) as Promise<boolean>);
+        return defer(() => this.adbClient.isInstalled(deviceId, packageName) as Promise<boolean>);
     }
 
     installApk(deviceId: string, path: string): Observable<any> {
-        return from(this.adbClient.install(deviceId, path)).pipe(first());
-        // return concat<DeviceLog>(
-        //
-        //     of(<DeviceLog>{log: "Apk installed", type: DeviceLogType.INFO}),
-        //     this.isInstalled(deviceId, path)
-        // );
-
-        // from()
-        //     .pipe(
-        //         first(),
-        //         flatMap(() => this.isInstalled(deviceId, path)
-        //             .map(installed => {
-        //                 if(!installed){
-        //
-        //                 }
-        //             })
-        //             .pipe(retry())
-        //         ),
-        //         map(() => <DeviceLog>{log: "Apk installed", type: DeviceLogType.INFO}),
-        //     )
+        return defer(() => this.adbClient.install(deviceId, path)).pipe(first());
     }
 
     connectIp(ip: string): Observable<any> {
-        return from(this.adbClient.connect(ip, 5555))
+        return defer(() => this.adbClient.connect(ip, 5555))
             .pipe(first(), timeout(10000));
-        //map(() => <DeviceLog>{log: "connected to device", type: DeviceLogType.INFO}),
     }
 }
 

@@ -23,4 +23,5 @@
     <string name="free_device">Cancel booking</string>
     <string name="book_device">Book device</string>
     <string name="home_not_enrolled">Device not enrolled\nWaiting for enroll command</string>
+    <string name="last_update">Last Update</string>
 </resources>
