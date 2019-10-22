@@ -29,7 +29,7 @@ export class FilesRepository {
         this.agentApkPath = `${this.workspacePath}${this.path.sep}panda-lab-mobile.apk`;
         this.spoonJarPath = `${this.workspacePath}${this.path.sep}spoon-runner.jar`;
 
-
+        this.prepare();
     }
 
     private mkdir(pathDir: string) {
@@ -65,7 +65,6 @@ export class FilesRepository {
 
     private sub = this.downloadSubjectEmitter.pipe(
         concatMap(data => {
-
             return from(new Promise<{ error?: string, filePath: string }>((resolve, reject) => {
                 if (this.fs.existsSync(data.filePath)) {
                     // file already downloaded
@@ -73,8 +72,9 @@ export class FilesRepository {
                     resolve({filePath: data.filePath});
                     return;
                 }
-                this.logger.info(`Start downloading file, path = ${data.url}`);
 
+                this.prepare();
+                this.logger.info(`Start downloading file, path = ${data.url}`);
                 const file = this.fs.createWriteStream(data.filePath);
                 const https = require('https');
                 console.log(data.url);
