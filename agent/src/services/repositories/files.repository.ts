@@ -81,6 +81,7 @@ export class FilesRepository {
                 https.get(data.url, res => {
                     res.pipe(file);
                     file.on('finish',  () => {
+                        file.close();
                         this.logger.info(`End download apk, path = ${data.filePath}`);
                         resolve({filePath: data.filePath});
                     });
