@@ -1,11 +1,47 @@
+var webpack = require('webpack');
+const CopyPlugin = require('copy-webpack-plugin');
+
 module.exports = {
+    configureWebpack: config => {
+        // Configuration applied to all builds
+        return {
+            plugins: [
+                new CopyPlugin([
+                    {from: '**/*.proto', to: 'node_modules/'},
+                    {from: 'protobufjs/package.json', to: 'node_modules/protobufjs'},
+                ], {context: 'node_modules/'}),
+                new CopyPlugin([
+                    {from: 'protos/**/*.proto', to: 'src/'},
+                ], {context: 'node_modules/@google-cloud/firestore/build/'}),
+
+
+
+            ]
+        }
+    },
     pluginOptions: {
         electronBuilder: {
 
             builderOptions: {
-                asar: true,
-                mac:{
-                    icon: './src/assets/icons/mac/icon.icns'
+                asar: false,
+                extraFiles: [
+                    {
+                        "from": "./dist_electron/bundled/node_modules/protobufjs",
+                        "to": "Resources/app/node_modules/protobufjs",
+                    },
+                    {
+                        "from": "./dist_electron/bundled/src",
+                        "to": "Resources/app/src",
+                    },
+                ],
+                //     {
+                //         "from": "./node_modules/protobufjs/google/protobuf",
+                //         "to": "./node_modules/protobufjs/dist/google/protobuf",
+                //         "filter": ["**/*"]
+                //     }
+                // ],
+                mac: {
+                    icon: './src/assets/icons/mac/icon.icns',
                 },
                 win: {
                     icon: './src/assets/icons/win/icon.ico'
@@ -16,7 +52,38 @@ module.exports = {
             },
             chainWebpackMainProcess: config => {
                 //Fix firebase log message
-                config.resolve.mainFields.delete('main').prepend('main')
+                config.resolve.mainFields.delete('main').prepend('main');
+                config.plugin('modules').use(webpack.NormalModuleReplacementPlugin, [
+                    /@grpc\/proto-loader/,
+                    function (resource) {
+                        resource.request = resource.request.replace(
+                            /@grpc\/proto-loader/,
+                            `webpack-proto-loader`
+                        )
+                    }
+                ]);
+
+                //
+                // // Chain webpack config for electron main process only
+                // const prefixRE = /^VUE_APP_/;
+                // const resolveClientEnv = () => {
+                //     const env = {};
+                //     Object.keys(process.env).forEach(key => {
+                //         if (prefixRE.test(key) || key === 'NODE_ENV') {
+                //             env[key] = process.env[key]
+                //         }
+                //     });
+                //     for (const key in env) {
+                //         env[key] = JSON.stringify(env[key])
+                //     }
+                //     return {
+                //         'process.env': env
+                //     }
+                // };
+                // config.plugin('define').use(require('webpack/lib/DefinePlugin'), [
+                //     resolveClientEnv()
+                // ]);
+                return config
             },
             chainWebpackRendererProcess: config => {
                 // Chain webpack config for electron renderer process only
