@@ -1,9 +1,9 @@
-import {AsyncSubject, BehaviorSubject, from, Observable, Subject} from "rxjs";
+import {from, Observable, Subject} from "rxjs";
 import {concatMap, filter, first, map} from "rxjs/operators";
 import "rxjs-compat/add/operator/multicast";
 import {doOnSubscribe} from "../../utils/rxjs";
 import * as winston from "winston";
-
+import {WriteStream} from "fs";
 
 
 export class FilesRepository {
@@ -18,7 +18,7 @@ export class FilesRepository {
     path = require('path');
     request = require('request');
 
-    constructor(private logger : winston.Logger) {
+    constructor(private logger: winston.Logger) {
         this.homeDir = require('os').homedir();
         this.fs = require('fs');
         this.path = require('path');
@@ -47,9 +47,18 @@ export class FilesRepository {
         return this.apkPath;
     }
 
-    getJobDirectory(jobId: string): string {
+    getJobDirectories(): string[] {
+        let directory = `${this.apkPath}${this.path.sep}`;
+        return this.fs.readdirSync(directory).filter(file => {
+            return this.fs.statSync(directory + file).isDirectory();
+        });
+    }
+
+    getJobDirectory(jobId: string, autoCreate: boolean = true): string {
         let directory = `${this.apkPath}${this.path.sep}${jobId}`;
-        this.mkdir(directory);
+        if (autoCreate) {
+            this.mkdir(directory);
+        }
         return directory;
     }
 
@@ -75,20 +84,44 @@ export class FilesRepository {
 
                 this.prepare();
                 this.logger.info(`Start downloading file, path = ${data.url}`);
-                const file = this.fs.createWriteStream(data.filePath);
-                const https = require('https');
+                const file: WriteStream = this.fs.createWriteStream(data.filePath);
+                const https = require('follow-redirects').https;
                 console.log(data.url);
-                https.get(data.url, res => {
-                    res.pipe(file);
-                    file.on('finish',  () => {
-                        file.close();
-                        this.logger.info(`End download apk, path = ${data.filePath}`);
-                        resolve({filePath: data.filePath});
+
+
+                https.get(data.url)
+                    .on('response', res => {
+                        console.log('response');
+                        let downloaded = 0;
+                        const length = parseInt(res.headers['content-length'], 10);
+                        res.on('data', chunck => {
+                            file.write(chunck);
+                            downloaded += chunck.length;
+                            this.logger.verbose(`Downloaded ${downloaded} / ${length}`);
+                        })
+                            .on('end', () => {
+                                file.end();
+                                this.logger.info(`End download, path = ${data.filePath}`);
+                                resolve({filePath: data.filePath});
+                            })
+                            .on('error', err => {
+                                // this.fs.unlinkSync(data.filePath);
+                                this.logger.info(`Error download, path = ${data.filePath}`, err);
+                                resolve({error: `Error download`, filePath: data.filePath});
+                            });
                     });
-                }).on('error', (err) => {
-                    this.logger.info(`Error download apk, path = ${data.filePath}`, err);
-                    resolve({error: `Error download apk`, filePath: data.filePath});
-                });
+                // https.get(data.url, res => {
+                //     res.pipe(file);
+                //     file.on('finish',  () => {
+                //         file.close();
+                //         this.logger.info(`End download, path = ${data.filePath}`);
+                //         resolve({filePath: data.filePath});
+                //     });
+                // }).on('error', (err) => {
+                //     this.fs.unlinkSync(data.filePath);
+                //     this.logger.info(`Error download, path = ${data.filePath}`, err);
+                //     resolve({error: `Error download`, filePath: data.filePath});
+                // });
             }))
         })).subscribe(this.downloadSubjectReceiver);
 
@@ -108,13 +141,16 @@ export class FilesRepository {
         );
     }
 
-    fileExist(file: string) {
+    fileExist(file: string): boolean {
         return this.fs.existsSync(file)
     }
 
     delete(path: string) {
-        if (this.fileExist(path)) {
-            this.fs.unlinkSync(path)
+        try {
+            const rmdir = require('rmdir-recursive').sync;
+            rmdir(path);
+        } catch (e) {
+            this.logger.error(e);
         }
     }
 }

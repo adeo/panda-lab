@@ -1,7 +1,7 @@
 import {AgentStatus, SetupService} from "./setup.service";
-import {combineLatest, from, Observable, of, Subscription, throwError, zip} from "rxjs";
+import {combineLatest, from, Observable, of, scheduled, Subscription, throwError, timer, zip} from "rxjs";
 import {FirebaseRepository} from "../repositories/firebase.repository";
-import {catchError, concatMap, delay, filter, first, flatMap, map, switchMapTo, timeout} from "rxjs/operators";
+import {catchError, concatMap, filter, first, flatMap, map, switchMapTo, tap, timeout, toArray} from "rxjs/operators";
 import {Artifact, CollectionName, Device, DeviceStatus, Job, JobTask, TaskStatus} from 'pandalab-commons';
 import {JobsService} from "../jobs.service";
 import {FilesRepository} from "../repositories/files.repository";
@@ -14,13 +14,14 @@ import {AdbService} from "./adb.service";
 
 export class SpoonService {
     private statusSub: Subscription;
+    private listenDirectories: Subscription;
 
 
     constructor(private logger: winston.Logger,
                 private agentRepo: SetupService,
                 private agentService: AgentService,
                 private firebaseRepo: FirebaseRepository,
-                private adb : AdbService,
+                private adb: AdbService,
                 private agentsService: AgentsService,
                 private jobsService: JobsService,
                 private workspace: FilesRepository) {
@@ -36,14 +37,49 @@ export class SpoonService {
                         this.statusSub.unsubscribe();
                         this.statusSub = null;
                     }
+                    if (this.listenDirectories) {
+                        this.listenDirectories.unsubscribe();
+                        this.listenDirectories = null;
+                    }
                     break;
                 case AgentStatus.READY:
                     this.statusSub = this.listenJobs().subscribe();
+                    this.listenDirectories = this.listenJobsDirectories().subscribe();
                     break
             }
-        })
+        });
     }
 
+    private deleteJobDirectory(jobId: string) {
+        const directory = this.workspace.getJobDirectory(jobId, false);
+        console.log("Delete directory", directory);
+        this.workspace.delete(directory);
+    }
+
+    private listenJobsDirectories(): Observable<any> {
+        return this.jobsService.listenJobs()
+            .pipe(
+                tap(jobs => {
+                    const jobIds = this.workspace.getJobDirectories();
+                    const idsToDelete = jobIds.filter(x => {
+                        const ids = jobs.map(job => job._ref.id);
+                        return !ids.includes(x);
+                    });
+
+                    console.log("Job Ids to delete", idsToDelete);
+
+                    idsToDelete.forEach(jobId => {
+                        this.deleteJobDirectory(jobId);
+                    });
+                }),
+                flatMap(jobs => from<Job[]>(jobs)),
+                tap(job => {
+                    if (job.completed) {
+                        this.deleteJobDirectory(job._ref.id);
+                    }
+                }),
+            );
+    }
     private listenJobs(): Observable<any> {
         return combineLatest(this.tasksAsync, this.devices, (tasks, devices) => {
             return tasks
@@ -260,14 +296,15 @@ export class SpoonService {
         const job: Job = info.job;
         const artifact: Artifact = info.artifact;
         const testArtifact: Artifact = info.testArtifact;
-        const apkDirectory = this.workspace.getApkDirectory();
 
         function getFilenameArtifact(artifact: Artifact): string {
             return artifact.path.split('/').slice(-1)[0];
         }
 
-        const artifactPath = `${apkDirectory}${this.workspace.path.sep}${getFilenameArtifact(artifact)}`;
-        const testArtifactPath = `${apkDirectory}${this.workspace.path.sep}${getFilenameArtifact(testArtifact)}`;
+        const jobDirectory = this.workspace.getJobDirectory(job._ref.id);
+
+        const artifactPath = `${jobDirectory}${this.workspace.path.sep}${getFilenameArtifact(artifact)}`;
+        const testArtifactPath = `${jobDirectory}${this.workspace.path.sep}${getFilenameArtifact(testArtifact)}`;
 
         const result = of(<TaskData>{
             job,
@@ -292,6 +329,17 @@ export class SpoonService {
             }),
         );
     }
+
+    /*
+            Services.getInstance().jobsService.listenJobsCompleted()
+            .pipe(
+                flatMap(jobs => from<Job[]>(jobs)),
+                tap(job => {
+                    // Remove apk
+                }),
+            )
+            .subscribe();
+     */
 
 }
 

@@ -94,7 +94,7 @@ export class SetupService {
         return this.workspace.agentApkPath;
     }
 
-    private configureSpoonJar(): Observable<string> {  //TODO check file version & change url
+    private configureSpoonJar(): Observable<string> {
         const spoonJarPath = this.workspace.spoonJarPath;
         if (!this.workspace.fileExist(spoonJarPath)) {
             return this.workspace.downloadFile(spoonJarPath, 'https://search.maven.org/remote_content?g=com.squareup.spoon&a=spoon-runner&v=LATEST&c=jar-with-dependencies')

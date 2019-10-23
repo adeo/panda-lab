@@ -51,7 +51,11 @@ export class JobsService {
 
     public listenJob(id: string) :  Observable<Job>{
         return this.firebaseRepo.listenDocumentRef<Job>(this.firebaseRepo.getCollection(CollectionName.JOBS).doc(id))
+    }
 
+    public listenJobs() :  Observable<Job[]>{
+        const query = this.firebaseRepo.getCollection(CollectionName.JOBS);
+        return this.firebaseRepo.listenQuery<Job>(query);
     }
 
     public getJob(id: string): Observable<Job> {
