@@ -94,13 +94,16 @@
         private showCancelBooking = false;
         private actionSub: Subscription;
 
+        constructor(props) {
+            super(props);
+            this.agentService = Services.getInstance().node.agentService;
+        }
 
         @Watch('data', {immediate: true})
         updateView() {
-            let deviceId: string = (this.data.adbDevice && this.data.adbDevice.serialId) ? this.data.adbDevice.serialId : this.data.firebaseDevice.serialId;
             this.device = {
                 name: this.data.firebaseDevice ? this.data.firebaseDevice.name : this.data.adbDevice.model,
-                deviceId: deviceId,
+                deviceId: this.data.getDataSerialID(),
                 type: this.data.adbDevice ? this.data.adbDevice.id : this.data.firebaseDevice.ip,
                 enrolled: (this.data.firebaseDevice != null),
             };
@@ -127,7 +130,7 @@
 
             this.showTCPConnect = this.data.firebaseDevice && this.data.firebaseDevice.status == DeviceStatus.offline && this.data.firebaseDevice.ip !== "" && this.data.firebaseDevice.lastTcpActivation > 0;
             this.showEnroll = this.data.firebaseDevice === undefined;
-            this.showTCPEnable = this.data.firebaseDevice && this.data.firebaseDevice.status == DeviceStatus.available && this.data.firebaseDevice.lastTcpActivation <= 0 && this.data.adbDevice.path.startsWith("usb");
+            this.showTCPEnable = this.data.canActivateTCP();
             this.showCancelBooking = this.data.firebaseDevice && this.data.firebaseDevice.status == DeviceStatus.booked;
             this.actionTypeLabel = "";
             switch (this.data.actionType) {
@@ -166,53 +169,27 @@
 
         }
 
-        constructor(props) {
-            super(props);
 
-            this.agentService = Services.getInstance().node.agentService;
-
-
-        }
 
         updateInfos() {
             this.agentService.updateDeviceInfos(this.data.firebaseDevice._ref.id)
         }
 
         enroll() {
-            this.agentService.addManualAction({
-                actionType: ActionType.enroll,
-                adbDevice: this.data.adbDevice,
-                firebaseDevice: this.data.firebaseDevice,
-                action: null
-            });
+            this.agentService.addManualAction(this.data, ActionType.enroll);
         }
 
         remoteConnect() {
-            this.agentService.addManualAction({
-                actionType: ActionType.try_connect,
-                adbDevice: this.data.adbDevice,
-                firebaseDevice: this.data.firebaseDevice,
-                action: null
-            });
+            this.agentService.addManualAction(this.data, ActionType.try_connect);
         }
 
         enableTCP() {
-            this.agentService.addManualAction({
-                actionType: ActionType.enable_tcp,
-                adbDevice: this.data.adbDevice,
-                firebaseDevice: this.data.firebaseDevice,
-                action: null
-            });
+            this.agentService.addManualAction(this.data, ActionType.enable_tcp);
         }
 
         cancelBooking() {
             this.data.firebaseDevice.status = DeviceStatus.offline;
-            this.agentService.addManualAction({
-                actionType: ActionType.update_status,
-                adbDevice: this.data.adbDevice,
-                firebaseDevice: this.data.firebaseDevice,
-                action: null
-            });
+            this.agentService.addManualAction(this.data, ActionType.update_status);
         }
 
         toggleLogs() {

@@ -1,4 +1,4 @@
-import {BehaviorSubject, defer, from, interval, merge, Observable, of, Subscription} from 'rxjs';
+import {BehaviorSubject, defer, EMPTY, from, interval, merge, Observable, of, Subscription} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
 import {
     catchError,
@@ -90,16 +90,20 @@ export class AdbService {
                                     return device;
                                 }),
                                 catchError(error => {
-                                    this.logger.warn("can't read device properties : " + device.id, error);
-                                    return of(device)
+                                    this.logger.warn("Can't read device properties : " + device.id, error);
+                                    return EMPTY
                                 })),
                     ),
                     flatMap((device: DeviceAdb) => {
                         return from(this.isInstalled(device.id, AgentService.MOBILE_AGENT_PACKAGE))
                             .pipe(map((isInstalled: boolean) => {
-                                device.agentInstalled = isInstalled;
-                                return device
-                            }))
+                                    device.agentInstalled = isInstalled;
+                                    return device
+                                }),
+                                catchError(error => {
+                                    this.logger.warn("Can't read device properties : " + device.id, error);
+                                    return EMPTY
+                                }))
                     }),
                     toArray())
             }),

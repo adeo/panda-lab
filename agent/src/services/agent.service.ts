@@ -94,8 +94,10 @@ export class AgentService {
         return this.firebaseRepo.firebase.functions().httpsCallable("updateDeviceInfos")({uid: deviceUid})
     }
 
-    public addManualAction(data: AgentDeviceData) {
-        this.manualActions.push(data);
+    public addManualAction(data: AgentDeviceData, type: ActionType) {
+        let newData = data.copyData();
+        newData.actionType = type;
+        this.manualActions.push(newData);
         this.notifyChange()
     }
 
@@ -114,11 +116,13 @@ export class AgentService {
             .pipe(
                 map(result => this.generateDevicesData(result[1], result[0])),
                 map(devicesData => this.calculateDeviceActions(devicesData)),
-                tap(data => this.agentDevicesData.next(data)),
+                tap(data => this.agentDevicesData.next(data.sort((a, b) => {
+                    return a.getDataSerialID() < b.getDataSerialID() ? -1 : 1;
+                }))),
             );
     }
 
-    private calculateDeviceActions(devicesData) {
+    private calculateDeviceActions(devicesData): AgentDeviceData[] {
         const currentDevicesData = this.agentDevicesData.getValue();
         return devicesData.map((deviceData: AgentDeviceData) => {
             let currentDeviceData = this.findDataInList(currentDevicesData, deviceData);
@@ -130,7 +134,8 @@ export class AgentService {
             } else {
                 let index = this.findIndexDataInList(this.manualActions, deviceData);
                 if (index >= 0) {
-                    deviceData = this.manualActions.splice(index, 1)[0]
+                    deviceData = this.manualActions.splice(index, 1)[0];
+                    this.logger.info("Start manual action " + deviceData.actionType);
                 }
                 switch (deviceData.actionType) {
                     case ActionType.enroll:
@@ -142,12 +147,13 @@ export class AgentService {
                         deviceData.action = this.startAction(deviceData.actionType, this.installClientAppAction(deviceData.adbDevice.id));
                         break;
                     case ActionType.update_status:
-                        deviceData.action = this.startAction(deviceData.actionType, this.saveDeviceAction(deviceData.firebaseDevice, "Save device status"));
+                        deviceData.action = this.startAction(deviceData.actionType, this.saveDeviceAction(deviceData.firebaseDevice, "Save device status to " + deviceData.firebaseDevice.status));
                         break;
                     case ActionType.try_connect:
                         deviceData.action = this.startAction(deviceData.actionType, this.tryToConnectAction(deviceData));
                         break;
                     case ActionType.enable_tcp:
+                        this.logger.info("enable_tcp");
                         deviceData.action = this.startAction(deviceData.actionType, this.enableTcpAction(deviceData));
                         break;
                     case ActionType.none:
@@ -160,10 +166,10 @@ export class AgentService {
 
     private generateDevicesData(adbDevices: DeviceAdb[], firebaseDevices: Device[]) {
         const devicesData: AgentDeviceData[] = adbDevices.map(adbDevice => {
-            return <AgentDeviceData>{
-                actionType: this.autoEnroll ? ActionType.enroll : ActionType.none,
-                adbDevice: adbDevice
-            }
+            let agentDeviceData = new AgentDeviceData();
+            agentDeviceData.actionType = this.autoEnroll ? ActionType.enroll : ActionType.none;
+            agentDeviceData.adbDevice = adbDevice;
+            return agentDeviceData
         });
 
         firebaseDevices.forEach(device => {
@@ -174,13 +180,11 @@ export class AgentService {
                 if (!isBooked && !isOffline) {
                     device.status = DeviceStatus.offline;
                 }
-                const canConnect = device.lastTcpActivation && device.lastTcpActivation < Date.now() - 1000 * 10;
-                devicesData.push(
-                    <AgentDeviceData>{
-                        actionType: this.enableTCP && device.ip && canConnect && isOffline ? ActionType.try_connect : !isBooked && !isOffline ? ActionType.update_status : ActionType.none,
-                        firebaseDevice: device
-                    }
-                )
+                const canConnect = device.lastTcpActivation && device.lastTcpActivation >=0 && device.lastTcpActivation < Date.now() - 1000 * 10;
+                let agentDeviceData = new AgentDeviceData();
+                agentDeviceData.actionType = this.enableTCP && device.ip && canConnect && isOffline ? ActionType.try_connect : !isBooked && !isOffline ? ActionType.update_status : ActionType.none;
+                agentDeviceData.firebaseDevice = device;
+                devicesData.push(agentDeviceData)
             } else if (deviceData.adbDevice.agentInstalled) {
                 deviceData.firebaseDevice = device;
                 if (device.status == DeviceStatus.offline || !device.status) {
@@ -188,8 +192,7 @@ export class AgentService {
                     deviceData.actionType = ActionType.update_status;
                 } else if (device.appBuildTime < this.setupService.getAgentPublishTime()) {
                     deviceData.actionType = ActionType.update_app;
-                } else if (device.status == DeviceStatus.available && deviceData.adbDevice.path.startsWith("usb") && this.enableTCP &&
-                    (!deviceData.firebaseDevice.lastTcpActivation || deviceData.firebaseDevice.lastTcpActivation < Date.now() - 1000 * 60 * 60)) {
+                } else if (deviceData.canActivateTCP() && this.enableTCP) {
                     deviceData.actionType = ActionType.enable_tcp;
                 } else {
                     deviceData.actionType = ActionType.none;
@@ -245,7 +248,7 @@ export class AgentService {
                 log: "enable tcp command sent",
                 type: DeviceLogType.INFO
             })),
-            of("").pipe(delay(4000), flatMap(() => this.saveDeviceAction(device.firebaseDevice, "save device status"))),
+            of("").pipe(delay(8000), flatMap(() => this.saveDeviceAction(device.firebaseDevice, "Save device status"))),
             from(this.updateDeviceInfos(device.firebaseDevice._ref.id)).pipe(ignoreElements()),
         )
     }
@@ -329,7 +332,7 @@ export class AgentService {
                     return this.saveDeviceAction(device, "Store device image");
                 })),
             of(<DeviceLog>{log: `Device enrolled !`, type: DeviceLogType.INFO})
-        )
+        ).pipe(timeout(60000))
 
     }
 
@@ -340,13 +343,40 @@ export class AgentService {
             first(),
         ).toPromise()
     }
+
+
 }
 
-export interface AgentDeviceData {
-    actionType: ActionType,
-    adbDevice: DeviceAdb,
-    firebaseDevice?: Device,
-    action: ReplaySubject<Timestamp<DeviceLog>>
+export class AgentDeviceData {
+    actionType: ActionType;
+    adbDevice: DeviceAdb;
+    firebaseDevice?: Device;
+    action: ReplaySubject<Timestamp<DeviceLog>>;
+
+    public copyData(): AgentDeviceData {
+        let data = new AgentDeviceData();
+        data.adbDevice = this.adbDevice;
+        data.firebaseDevice = this.firebaseDevice;
+        return data;
+    }
+
+    public getDataSerialID(): string {
+        if (this.adbDevice) {
+            return this.adbDevice.serialId;
+        } else if (this.firebaseDevice.serialId) {
+            return this.firebaseDevice.serialId;
+        }
+        return "";
+    }
+
+    public canActivateTCP(): boolean {
+        if (this.firebaseDevice && this.adbDevice) {
+            return this.firebaseDevice.status == DeviceStatus.available && this.adbDevice.path.startsWith("usb") &&
+                (!this.firebaseDevice.lastTcpActivation || this.firebaseDevice.lastTcpActivation < Date.now() - 1000 * 60 * 30);
+        }
+        return false;
+    }
+
 }
 
 export enum ActionType {
