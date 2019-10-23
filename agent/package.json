@@ -1,5 +1,5 @@
 {
-  "name": "agent",
+  "name": "PandaLab",
   "version": "0.1.0",
   "main": "background.js",
   "private": true,
@@ -9,7 +9,7 @@
     "serve": "npm run prebuild && vue-cli-service serve",
     "build": "npm run prebuild && vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "electron:build": "npm run prebuild && vue-cli-service electron:build",
+    "electron:build": "npm run prebuild && vue-cli-service electron:build -mwl",
     "electron:serve": "npm run prebuild && vue-cli-service electron:serve",
     "postinstall": "node postinstall.js && electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"

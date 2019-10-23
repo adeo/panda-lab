@@ -7,13 +7,12 @@ module.exports = {
         return {
             plugins: [
                 new CopyPlugin([
-                    {from: '**/*.proto', to: 'node_modules/'},
+                    {from: 'protobufjs/**/*.proto', to: 'node_modules/'},
                     {from: 'protobufjs/package.json', to: 'node_modules/protobufjs'},
                 ], {context: 'node_modules/'}),
                 new CopyPlugin([
                     {from: 'protos/**/*.proto', to: 'src/'},
                 ], {context: 'node_modules/@google-cloud/firestore/build/'}),
-
 
 
             ]
@@ -27,27 +26,17 @@ module.exports = {
                 extraFiles: [
                     {
                         "from": "./dist_electron/bundled/node_modules/protobufjs",
-                        "to": "Resources/app/node_modules/protobufjs",
-                    },
-                    {
-                        "from": "./dist_electron/bundled/src",
-                        "to": "Resources/app/src",
+                        "to": "resources/app/node_modules/protobufjs",
                     },
                 ],
-                //     {
-                //         "from": "./node_modules/protobufjs/google/protobuf",
-                //         "to": "./node_modules/protobufjs/dist/google/protobuf",
-                //         "filter": ["**/*"]
-                //     }
-                // ],
                 mac: {
                     icon: './src/assets/icons/mac/icon.icns',
                 },
                 win: {
-                    icon: './src/assets/icons/win/icon.ico'
+                    icon: './src/assets/icons/win/icon.ico',
                 },
                 linux: {
-                    icon: './src/assets/icons/png/128x128.png'
+                    icon: './src/assets/icons/png/512x512.png'
                 }
             },
             chainWebpackMainProcess: config => {
