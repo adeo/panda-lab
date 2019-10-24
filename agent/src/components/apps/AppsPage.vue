@@ -36,7 +36,7 @@
     @Component({
         components: {AppCell},
     })
-    export default class Apps extends Vue {
+    export default class AppsPage extends Vue {
         private apps: AppModel[] = [];
 
         mounted() {

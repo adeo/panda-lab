@@ -13,31 +13,19 @@
             </div>
 
             <div class="md-layout-item" v-if="reports">
-                <md-tabs md-alignment="centered">
-                    <md-tab id="tab-pages-2" md-label="Reports">
-                        <md-table v-model="reports" md-card>
-                            <md-table-toolbar>
-                                <h1 class="md-title">Reports</h1>
-                            </md-table-toolbar>
-
-                            <md-table-row slot="md-table-row" slot-scope="{ item }" @click="openTestReport(item)">
-                                <md-table-cell md-label="Device Name">{{ item.versionName }}</md-table-cell>
-                                <md-table-cell md-label="Tests">{{ item.totalTests }}</md-table-cell>
-                                <md-table-cell md-label="Success">{{ item.testSuccess }}</md-table-cell>
-                                <md-table-cell md-label="Unstable">{{ item.testUnstable }}</md-table-cell>
-                                <md-table-cell md-label="Failure">{{ item.testFailure }}</md-table-cell>
-                                <md-table-cell md-label="Date">{{ formatter.formatDate(item.date.toDate()) }}
-                                </md-table-cell>
-                            </md-table-row>
-                        </md-table>
-                    </md-tab>
-                    <md-tab id="tab-pages-1" md-label="Metrics">
-                        <div>
-                            <TestReportLineChart :reports="reports"
-                                                 v-on:index="openReportAtIndex($event)"></TestReportLineChart>
-                        </div>
-                    </md-tab>
-                </md-tabs>
+                <TestReportLineChart id="chart" :reports="reports"
+                                     v-on:index="openReportAtIndex($event)"></TestReportLineChart>
+                <md-table id="table" v-model="reports" md-card md-fixed-header>
+                    <md-table-row slot="md-table-row" slot-scope="{ item }" @click="openTestReport(item)">
+                        <md-table-cell md-label="Device Name">{{ item.versionName }}</md-table-cell>
+                        <md-table-cell md-label="Tests">{{ item.totalTests }}</md-table-cell>
+                        <md-table-cell md-label="Success">{{ item.testSuccess }}</md-table-cell>
+                        <md-table-cell md-label="Unstable">{{ item.testUnstable }}</md-table-cell>
+                        <md-table-cell md-label="Failure">{{ item.testFailure }}</md-table-cell>
+                        <md-table-cell md-label="Date">{{ formatter.formatDate(item.date.toDate()) }}
+                        </md-table-cell>
+                    </md-table-row>
+                </md-table>
             </div>
             <template v-else>
                 <md-empty-state
@@ -46,7 +34,6 @@
                         md-label="Reports is loading">
                 </md-empty-state>
             </template>
-            <dialog-create-job v-bind:display="false"/>
         </div>
     </div>
 </template>
@@ -91,6 +78,10 @@
     }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 
+    #chart {
+        height: 270px;
+        margin-bottom: 30px;
+    }
 </style>

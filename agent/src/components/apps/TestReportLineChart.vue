@@ -27,9 +27,15 @@
 
             this.options = {
                 maintainAspectRatio: false,
+                responsive: true,
                 tooltips: {
                     mode: 'index',
                     intersect: false,
+                    callbacks: {
+                        title(item: Chart.ChartTooltipItem[], data: Chart.ChartData): string | string[] {
+                            return data.labels[item[0].index];
+                        }
+                    }
                 },
                 hover: {
                     mode: 'nearest',
@@ -42,6 +48,14 @@
                     }
                 },
                 scales: {
+                    xAxes: [{
+                        display: true,
+                        ticks: {
+                            callback(value: string, index: any, values: any): string | number {
+                                return value.split("\n")[1];
+                            }
+                        }
+                    }],
                     yAxes: [{
                         stacked: true,
                     }]
@@ -56,19 +70,19 @@
         private convertToChartData(reports: TestReport[]): ChartData {
             const successData: ChartDataSets = {
                 data: [],
-                backgroundColor: '#5dc050',
+                backgroundColor: 'rgb(62,125,62)',
                 borderColor: '#5dc050',
                 label: "Success"
             };
             const unstableData: ChartDataSets = {
                 data: [],
-                backgroundColor: '#EC870A',
+                backgroundColor: 'rgb(161,72,10)',
                 borderColor: '#EC870A',
                 label: "Unstable"
             };
             const failureData: ChartDataSets = {
                 data: [],
-                backgroundColor: '#D12311',
+                backgroundColor: 'rgb(142,28,14)',
                 borderColor: '#D12311',
                 label: "Error"
             };

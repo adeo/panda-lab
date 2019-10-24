@@ -11,10 +11,10 @@ import AgentPage from "../components/agent/AgentPage.vue";
 import DevicesPage from "../components/devices/DevicesPage.vue";
 import Groups from "../components/groups/Groups.vue";
 import GroupDetails from "../components/groups/GroupDetails.vue";
-import Apps from "../components/apps/Apps.vue";
-import AppDetails from "../components/apps/AppDetails.vue";
+import AppsPage from "../components/apps/AppsPage.vue";
+import AppDetailsPage from "../components/apps/AppDetailsPage.vue";
 import Report from "../components/report/Report.vue";
-import VersionDetail from '../components/apps/VersionDetail.vue';
+import VersionDetailsPage from '../components/apps/VersionDetailsPage.vue';
 import AdminPage from '../components/admin/AdminPage.vue';
 import {AdminGuard, LogoutGuard} from "./admin.guards";
 import AgentsList from "../components/agents/AgentsList.vue";
@@ -53,9 +53,9 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'jobs/:jobId', component: JobPage},
         {path: 'phone', component: Jobs,},
         {path: 'devices/:deviceId', component: Device,},
-        {path: 'applications', component: Apps,},
-        {path: 'applications/:applicationId', component: AppDetails,},
-        {path: 'applications/:applicationId/versions/:versionId', component: VersionDetail,},
+        {path: 'applications', component: AppsPage,},
+        {path: 'applications/:applicationId', component: AppDetailsPage,},
+        {path: 'applications/:applicationId/versions/:versionId', component: VersionDetailsPage,},
         {path: 'applications/:applicationId/versions/:versionId/createJob', component: DialogCreateJob,},
         {path: 'reports/:reportId', component: Report,},
         {path: 'agents', component: AgentsList,},

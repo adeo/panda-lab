@@ -133,6 +133,7 @@ export class JobsService {
     listenAppReports(appId: string): Observable<TestReport[]> {
         return this.firebaseRepo.listenQuery<TestReport>(this.firebaseRepo.getCollection(CollectionName.JOB_REPORTS)
             .orderBy("date", "asc")
+            .limit(30)
             .where('app', '==', this.firebaseRepo.getCollection(CollectionName.APPLICATIONS).doc(appId)))
     }
 

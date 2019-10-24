@@ -29,34 +29,20 @@
                     </div>
                 </div>
 
-                <md-tabs md-alignment="centered">
-                    <md-tab id="tab-pages-2" md-label="Versions">
-                        <md-table v-model="versions" md-card>
-                            <md-table-row slot="md-table-row" slot-scope="{ item }">
-                                <md-table-cell md-label="Version" md-sort-by="id" md-numeric>{{ item.versionName }}
-                                </md-table-cell>
-                                <md-table-cell md-label="VersionCode">{{ item.versionCode }}</md-table-cell>
-                                <md-table-cell md-label="Date">{{ formatter.formatDate(item.timestamp.toDate()) }}</md-table-cell>
+                <TestReportLineChart id="chart" :reports="reports"
+                                     v-on:index="openReportAtIndex($event)"></TestReportLineChart>
+                <md-table v-model="versions" md-card md-fixed-header>
 
-                                <md-table-cell md-label="Actions">
-                                    <md-button @click=createJob(item) class="md-icon-button">
-                                        <md-icon>add</md-icon>
-                                    </md-button>
+                    <md-table-row slot="md-table-row" slot-scope="{ item }" @click=openVersion(item)>
+                        <md-table-cell md-label="Version" md-sort-by="id" md-numeric>{{ item.versionName }}
+                        </md-table-cell>
+                        <md-table-cell md-label="VersionCode">{{ item.versionCode }}</md-table-cell>
+                        <md-table-cell md-label="Date">{{ formatter.formatDate(item.timestamp.toDate()) }}
+                        </md-table-cell>
+                        <md-table-cell md-label="Report">{{ reportCount(item._ref) }}</md-table-cell>
+                    </md-table-row>
+                </md-table>
 
-                                    <md-button @click=openVersion(item) class="md-icon-button">
-                                        <md-icon>chevron_right</md-icon>
-                                    </md-button>
-
-                                </md-table-cell>
-                            </md-table-row>
-                        </md-table>
-                    </md-tab>
-                    <md-tab id="tab-pages-1" md-label="Metrics">
-                        <div>
-                            <TestReportLineChart :reports="reports" v-on:index="openReportAtIndex($event)"></TestReportLineChart>
-                        </div>
-                    </md-tab>
-                </md-tabs>
             </div>
             <template v-else>
                 <md-empty-state
@@ -71,31 +57,30 @@
 </template>
 <script lang="ts">
 
-    import {Component, Emit, Mixins, Vue} from "vue-property-decorator";
+    import {Component, Vue} from "vue-property-decorator";
     import "rxjs-compat/add/operator/map";
     import "rxjs-compat/add/operator/mergeMap";
     import "rxjs-compat/add/operator/toArray";
     import {AppModel, AppVersion, TestReport} from "pandalab-commons";
     import {Services} from "../../services/services.provider";
     import TestReportLineChart from "./TestReportLineChart.vue";
-    import {ChartData, ChartDataSets} from "chart.js"
-    import {DIALOG_CREATE_JOB_DISPLAY_EVENT} from "../../models/events";
-    import DialogCreateJob from "../jobs/DialogCreateJob.vue";
     import {DateFormatter} from "../utils/Formatter";
+    import {combineLatest} from "rxjs";
 
     @Component({
         components: {TestReportLineChart},
     })
-    export default class AppDetails extends Vue {
+    export default class AppDetailsPage extends Vue {
         private app: AppModel = null;
         private allVersions: AppVersion[] = [];
         private versions: AppVersion[] = [];
+        private allReports: TestReport[] = [];
+        private reports: TestReport[] = [];
         private flavors: string[] = [];
         private flavor: string = "";
 
         protected formatter = new DateFormatter();
 
-        private reports: TestReport[] = [];
 
         mounted() {
 
@@ -104,7 +89,12 @@
                 this.app = app;
             });
 
-            this.$subscribeTo(Services.getInstance().appsService.listenAppVersions(appId), versions => {
+            this.$subscribeTo(combineLatest(
+                Services.getInstance().appsService.listenAppVersions(appId),
+                Services.getInstance().jobsService.listenAppReports(appId)
+            ), (result) => {
+                const versions = result[0] as AppVersion[];
+                const reports = result[1] as TestReport[];
 
                 const flavorsSet = new Set<string>();
                 versions.forEach(version => {
@@ -113,27 +103,30 @@
 
                 this.flavors = Array.from(flavorsSet.values());
                 if (!flavorsSet.has(this.flavor) && this.flavors.length > 0) {
-                    this.flavor = this.flavors[0];
+                    this.flavor = this.flavors.sort()[0];
                 }
-
                 this.allVersions = versions;
+                this.allReports = reports;
+
                 this.updateVersions()
             });
 
-            this.$subscribeTo(Services.getInstance().jobsService.listenAppReports(appId), reports => {
-                this.reports = reports;
-            })
+        }
+
+        protected reportCount(versionRef) {
+            return this.allReports.filter(report => report.version.id === versionRef.id).length
         }
 
         protected updateVersions() {
-            this.versions = this.allVersions.filter(value => value.flavor === this.flavor)
+            this.versions = this.allVersions.filter(value => value.flavor === this.flavor);
+            this.reports = this.allReports.filter(report => this.versions.findIndex(version => version._ref.id === report.version.id) >= 0);
         }
 
         protected onBack() {
             this.$router.back();
         }
 
-        protected createJob(version: AppVersion){
+        protected createJob(version: AppVersion) {
             this.$router.push(`/applications/${this.$route.params.applicationId}/versions/${version._ref.id}/createJob`);
         }
 
@@ -142,7 +135,7 @@
             this.$router.push('/reports/' + testReport._ref.id)
         }
 
-        protected openVersion(version: AppVersion){
+        protected openVersion(version: AppVersion) {
             this.$router.push(`/applications/${this.$route.params.applicationId}/versions/` + version._ref.id);
         }
 
@@ -150,7 +143,9 @@
 
 </script>
 <style lang="css" scoped>
-    .md-tabs {
-        margin-top: 50px;
+
+    #chart {
+        height: 270px;
+        margin-bottom: 30px;
     }
 </style>
