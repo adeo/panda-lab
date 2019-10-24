@@ -10,6 +10,9 @@
                 <h2 class="md-layout-item pl-title">
                     Version detail
                 </h2>
+                <md-button @click="createJob" class="md-fab md-primary">
+                    <md-icon>add</md-icon>
+                </md-button>
             </div>
 
             <div class="md-layout-item" v-if="reports">
@@ -72,6 +75,10 @@
 
         protected openTestReport(report: TestReport) {
             this.$router.push("/reports/" + report._ref.id)
+        }
+
+        protected createJob() {
+            this.$router.push(`/applications/${this.$route.params.applicationId}/versions/${this.$route.params.versionId}/createJob`);
         }
 
 

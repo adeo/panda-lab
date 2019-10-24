@@ -126,10 +126,6 @@
             this.$router.back();
         }
 
-        protected createJob(version: AppVersion) {
-            this.$router.push(`/applications/${this.$route.params.applicationId}/versions/${version._ref.id}/createJob`);
-        }
-
         protected openReportAtIndex(index: number) {
             let testReport = this.reports[index];
             this.$router.push('/reports/' + testReport._ref.id)
