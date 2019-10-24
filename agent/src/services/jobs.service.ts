@@ -49,11 +49,11 @@ export class JobsService {
         );
     }
 
-    public listenJob(id: string) :  Observable<Job>{
+    public listenJob(id: string): Observable<Job> {
         return this.firebaseRepo.listenDocumentRef<Job>(this.firebaseRepo.getCollection(CollectionName.JOBS).doc(id))
     }
 
-    public listenJobs() :  Observable<Job[]>{
+    public listenJobs(): Observable<Job[]> {
         const query = this.firebaseRepo.getCollection(CollectionName.JOBS);
         return this.firebaseRepo.listenQuery<Job>(query);
     }
@@ -158,6 +158,12 @@ export class JobsService {
                             flatMap(value => this.firebaseRepo.getDocument<Device>(value.device as any)
                                 .pipe(
                                     map(device => {
+                                        if (device == null) { // device has been deleted
+                                            device = <Device>{
+                                                name: "unknown (deleted)",
+                                                _ref: value.device,
+                                            }
+                                        }
                                         value.device = device as any;
                                         return value;
                                     }))

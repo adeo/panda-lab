@@ -45,6 +45,8 @@ body {
 .pl-container {
   padding: 24px 3%;
   max-width: 100%;
+  position: relative;
+  min-height: 100%;
 }
 
 .theme-white.md-progress-spinner.md-theme-default .md-progress-spinner-circle {

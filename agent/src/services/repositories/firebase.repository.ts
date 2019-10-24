@@ -62,11 +62,7 @@ export class FirebaseRepository {
         return new Observable(emitter => {
             const subs = documentReference
                 .onSnapshot(doc => {
-                    if (doc.exists) {
-                        emitter.next(this.toFirebaseModel<T>(doc));
-                    } else {
-                        emitter.next(null);
-                    }
+                    emitter.next(this.toFirebaseModel<T>(doc));
                 }, emitter.error, emitter.complete);
             emitter.add(subs);
         });
@@ -117,10 +113,13 @@ export class FirebaseRepository {
 
 
     private toFirebaseModel<T extends FirebaseModel>(doc: DocumentSnapshot): T {
-        return {
-            ...doc.data(),
-            _ref: doc.ref,
-        } as FirebaseModel as T
+        if (doc.exists) {
+            return {
+                ...doc.data(),
+                _ref: doc.ref,
+            } as FirebaseModel as T
+        }
+        return null;
     }
 }
 

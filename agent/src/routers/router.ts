@@ -13,7 +13,7 @@ import Groups from "../components/groups/Groups.vue";
 import GroupDetails from "../components/groups/GroupDetails.vue";
 import AppsPage from "../components/apps/AppsPage.vue";
 import AppDetailsPage from "../components/apps/AppDetailsPage.vue";
-import Report from "../components/report/Report.vue";
+import ReportPage from "../components/report/ReportPage.vue";
 import VersionDetailsPage from '../components/apps/VersionDetailsPage.vue';
 import AdminPage from '../components/admin/AdminPage.vue';
 import {AdminGuard, LogoutGuard} from "./admin.guards";
@@ -57,7 +57,7 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'applications/:applicationId', component: AppDetailsPage,},
         {path: 'applications/:applicationId/versions/:versionId', component: VersionDetailsPage,},
         {path: 'applications/:applicationId/versions/:versionId/createJob', component: DialogCreateJob,},
-        {path: 'reports/:reportId', component: Report,},
+        {path: 'reports/:reportId', component: ReportPage,},
         {path: 'agents', component: AgentsList,},
         {path: 'agents/:agentId', component: AgentDetail,},
         {
