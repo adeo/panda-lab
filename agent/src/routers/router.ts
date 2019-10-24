@@ -16,11 +16,10 @@ import AppDetails from "../components/apps/AppDetails.vue";
 import Report from "../components/report/Report.vue";
 import VersionDetail from '../components/apps/VersionDetail.vue';
 import AdminPage from '../components/admin/AdminPage.vue';
-import {AdminGuard} from "./admin.guards";
+import {AdminGuard, LogoutGuard} from "./admin.guards";
 import AgentsList from "../components/agents/AgentsList.vue";
 import AgentDetail from "../components/agents/AgentDetail.vue";
 import JobPage from "../components/jobs/JobPage.vue";
-import CreateJob from "../components/jobs/CreateJob.vue";
 import DialogCreateJob from "../components/jobs/DialogCreateJob.vue";
 
 Vue.use(VueRouter);
@@ -37,10 +36,6 @@ const SPLASH_ROUTE: RouteConfig = {
     beforeEnter: AuthentGuard
 };
 
-
-function AgentdDetail() {
-
-}
 
 const HOME_ROUTE: RouteConfig = {
     path: '/',
@@ -69,6 +64,10 @@ const HOME_ROUTE: RouteConfig = {
             path: '/admin',
             component: AdminPage,
             beforeEnter: AdminGuard
+        },
+        {
+            path: '/logout',
+            beforeEnter: LogoutGuard
         }
     ]
 };

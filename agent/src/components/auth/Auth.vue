@@ -1,5 +1,7 @@
 <template>
-    <div id="auth">
+    <div id="root">
+        <img id="logo" src="../../assets/images/logo_neg.svg"/>
+        <h2 id="title" class="">Sign in</h2>
         <div id="firebaseui-auth-container"></div>
     </div>
 </template>
@@ -106,6 +108,31 @@
 
     }
 </script>
-<style>
+<style lang="scss">
+
+    @import "../../assets/css/theme";
+
+    #root {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        background: $primary-color;
+    }
+
+    #logo {
+        height: 160px;
+        margin: auto;
+        display: block;
+        margin-top: 100px;
+    }
+
+    #title {
+        color: white;
+        margin-top: 100px;
+        display: block;
+        text-align: center;
+    }
 
 </style>

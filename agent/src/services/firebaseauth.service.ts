@@ -8,7 +8,6 @@ import {FirebaseAuth} from '@firebase/auth-types';
 import {FirebaseFunctions} from '@firebase/functions-types';
 import {StoreRepository} from "./repositories/store.repository";
 import UserCredential = firebase.auth.UserCredential;
-import {CollectionName} from "pandalab-commons";
 import winston from "winston";
 
 export class FirebaseAuthService {
@@ -105,7 +104,7 @@ export class FirebaseAuthService {
     }
 
     signInWithAgentToken(agentToken: string, agentUUID: string): Observable<UserLab> {
-        return from(firebase.auth().signInWithCustomToken(agentToken))
+        return from(this.firebaseRepo.firebase.auth().signInWithCustomToken(agentToken))
             .pipe(
                 flatMap((userCredentials: UserCredential) => userCredentials.user.updateProfile({displayName: agentUUID})),
                 tap(() => {
@@ -121,6 +120,10 @@ export class FirebaseAuthService {
             token: token,
             uid: uid
         }))
+    }
+
+    async logout() {
+        return this.firebaseRepo.firebase.auth().signOut()
     }
 }
 

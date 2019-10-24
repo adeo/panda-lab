@@ -68,7 +68,7 @@ import {RuntimeEnv} from "../services/services.provider";
             },
             {
                 name: "Agents",
-                icon: "apps",
+                icon: "devices",
                 link: "/agents"
             },
         ];
@@ -82,13 +82,21 @@ import {RuntimeEnv} from "../services/services.provider";
                 this.menuItems.push({
                     name: 'Agent',
                     link: '/agentDevices',
-                    icon: 'devices'
+                    icon: 'important_devices'
                 })
             } else {
+
+                this.menuItems.push(
+                    {
+                        name: "Logout",
+                        icon: "logout",
+                        link: "/logout"
+                    }
+                );
                 this.$subscribeTo(Services.getInstance().authService.listenUser(), user => {
                     if (user.role === Role.admin) {
                         if (this.menuItems.find(item => item.link === '/admin') === undefined) {
-                            this.menuItems.push({
+                            this.menuItems.splice(this.menuItems.length - 1, 0, {
                                 name: "Admin",
                                 icon: "security",
                                 link: "/admin"
@@ -144,7 +152,8 @@ import {RuntimeEnv} from "../services/services.provider";
         cursor: pointer;
         margin-top: 24px;
     }
-    #logo{
+
+    #logo {
         width: 80%;
         display: block;
         margin: auto;

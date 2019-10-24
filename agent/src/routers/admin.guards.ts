@@ -5,7 +5,6 @@ import {Role} from "pandalab-commons";
 
 export const AdminGuard: NavigationGuard = async (to, from, next) => {
     const isWeb = getRuntimeEnv() == RuntimeEnv.WEB;
-    console.log(`is web ${isWeb}`);
     if (isWeb) {
         const user = await Services.getInstance().authService.listenUser().pipe(first()).toPromise();
         console.log(`role =  ${user.role}`);
@@ -15,4 +14,10 @@ export const AdminGuard: NavigationGuard = async (to, from, next) => {
         }
     }
     next('/home');
+};
+
+
+export const LogoutGuard: NavigationGuard = async (to, from, next) => {
+    await Services.getInstance().authService.logout();
+    next('/login');
 };

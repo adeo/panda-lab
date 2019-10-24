@@ -57,8 +57,12 @@
             animation: spin 2s linear infinite;
         }
 
-        #loader-container{
+        #loader-container {
             height: 100%;
+
+            img {
+                max-height: 420px;
+            }
         }
 
     }
