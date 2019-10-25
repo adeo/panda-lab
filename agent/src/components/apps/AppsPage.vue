@@ -4,10 +4,8 @@
             <h2 class="pl-title">Applications</h2>
             <template v-if="apps">
                 <div id="app-layout" class="md-layout md-alignment-top-left">
-                    <div v-for="app in apps" v-bind:key="app._ref.id" class="md-app-cell">
-                        <AppCell class="md-medium-size-33"
-                                 :app="app"></AppCell>
-                    </div>
+                    <AppCell v-for="app in apps" v-bind:key="app._ref.id" class="md-medium-size-33"
+                             :app="app"></AppCell>
                 </div>
                 <div class="apps-card-container">
                 </div>
@@ -50,7 +48,6 @@
         }
 
 
-
     }
 
 </script>
@@ -59,12 +56,7 @@
         margin: 10px;
     }
 
-    .md-app-cell {
-        padding-left: 8px;
-        padding-right: 8px;
-    }
-
-    #app-layout{
+    #app-layout {
         margin: 0px;
     }
 </style>

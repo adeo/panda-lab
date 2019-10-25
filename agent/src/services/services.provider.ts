@@ -106,7 +106,6 @@ class LocalServicesProvider implements ServicesProvider {
         this.logger = this.createLogger();
 
         this.firebaseRepo = new FirebaseRepository(config);
-        this.userService = new UserService(this.firebaseRepo);
         this.jobsService = new JobsService(this.firebaseRepo);
         this.devicesService = new DevicesService(this.firebaseRepo);
 
@@ -169,7 +168,7 @@ class LocalServicesProvider implements ServicesProvider {
                 break;
             }
         }
-
+        this.userService = new UserService(this.firebaseRepo, this.authService, this.appsService);
     }
 
     private createLogger() {

@@ -73,7 +73,7 @@
                         break;
 
                 }
-            })
+            });
 
             this.$subscribeTo(Services.getInstance().jobsService.listenAppReports(this.app._ref.id), reports => {
                 this.reports = reports;
@@ -94,7 +94,6 @@
         }
 
         openAppDetails() {
-            console.log("open app page");
             this.$router.push('applications/' + this.app._ref.id)
         }
 
@@ -154,6 +153,7 @@
     }
 
     #card {
+        margin: 8px;
         width: 400px;
         display: flex;
         flex-direction: column;

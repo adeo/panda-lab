@@ -50,8 +50,8 @@
         }
 
         @Subscription()
-        protected get users() {
-            return Services.getInstance().userService.users;
+        protected users() {
+            return Services.getInstance().userService.getUsers();
         }
 
         protected onUserRoleChange(user: User, role: Role) {

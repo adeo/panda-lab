@@ -22,6 +22,7 @@ import AgentDetail from "../components/agents/AgentDetail.vue";
 import JobPage from "../components/jobs/JobPage.vue";
 import DialogCreateJob from "../components/jobs/DialogCreateJob.vue";
 import GuestPage from "../components/auth/GuestPage.vue";
+import HomePage from "../components/home/HomePage.vue";
 
 Vue.use(VueRouter);
 
@@ -55,8 +56,8 @@ const HOME_ROUTE: RouteConfig = {
     beforeEnter: AuthentGuard,
 
     children: [
-        {path: '/', redirect: 'devices'},
-        {path: 'home', redirect: 'devices'},
+        {path: '/', redirect: 'home'},
+        {path: 'home', component: HomePage},
         {path: 'devices', component: DevicesPage,},
         {path: 'groups', component: Groups,},
         {path: 'groups/:groupId', component: GroupDetails,},

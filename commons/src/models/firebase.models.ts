@@ -19,4 +19,5 @@ export enum CollectionName {
     LOGS = "logs",
     JOB_REPORTS = 'job-reports',
     USER_SECURITY = 'user-security',
+    USERS = 'users',
 }

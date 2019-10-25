@@ -53,6 +53,11 @@ export class FirebaseRepository {
             )
     }
 
+    getDocumentFromId<T>(name: CollectionName, documentId: string): Observable<T> {
+        return this.getDocument(this.getCollection(name).doc(documentId));
+    }
+
+
     listenDocument<T>(name: CollectionName, documentId: string): Observable<T> {
         let documentReference = this.getCollection(name).doc(documentId);
         return this.listenDocumentRef(documentReference);

@@ -70,6 +70,10 @@ service cloud.firestore {
         allow write: if isAgent();
     }
 
+    match /users/{userId} {
+        allow read, write: if request.auth.uid == userId;
+    }
+
     match /user-security/{id} {
         allow read: if isAdmin();
         allow write: if isAdmin();

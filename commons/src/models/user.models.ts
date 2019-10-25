@@ -16,3 +16,7 @@ export interface User extends FirebaseModel {
     uid: string,
     email: string,
 }
+
+export interface UserData extends FirebaseModel {
+    apps: string[]
+}

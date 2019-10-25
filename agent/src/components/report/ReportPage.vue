@@ -1,14 +1,16 @@
 <template xmlns:v-init="http://www.w3.org/1999/xhtml">
-    <div class="pl-container">
-        <div class="md-layout md-alignment-center-center">
-            <div class="md-layout-item-5">
-                <md-button class="md-icon-button" @click="$router.back()">
-                    <md-icon>arrow_back</md-icon>
-                </md-button>
+    <div>
+        <div class="pl-container">
+            <div class="md-layout md-alignment-center-center">
+                <div class="md-layout-item-5">
+                    <md-button class="md-icon-button" @click="$router.back()">
+                        <md-icon>arrow_back</md-icon>
+                    </md-button>
+                </div>
+                <h2 class="md-layout-item pl-title">
+                    Report
+                </h2>
             </div>
-            <h2 class="md-layout-item pl-title">
-                Report
-            </h2>
         </div>
         <div v-if="report">
             <div class="md-layout-item md-layout md-gutter">
@@ -76,7 +78,6 @@
         </div>
         <div id="empty" class="md-layout md-gutter md-alignment-center-center" v-else>
             <md-empty-state
-                    md-rounded
                     md-icon="access_time"
                     md-label="Report is loading">
             </md-empty-state>
@@ -193,7 +194,6 @@
     #devices-select {
         margin: 0 3% -20px 3%;
     }
-
 
     .images-container {
         overflow-x: scroll;

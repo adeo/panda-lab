@@ -40,6 +40,10 @@ export class AppsService {
         return this.firebaseRepo.listenCollection<AppModel>(CollectionName.APPLICATIONS)
     }
 
+    public getApplication(applicationId: string): Observable<AppModel> {
+        return this.firebaseRepo.getDocumentFromId(CollectionName.APPLICATIONS, applicationId);
+    }
+
     public listenApp(applicationId: string): Observable<AppModel> {
         return this.firebaseRepo.listenDocument(CollectionName.APPLICATIONS, applicationId);
     }
@@ -58,4 +62,6 @@ export class AppsService {
             .collection(CollectionName.VERSIONS)
             .doc(versionId));
     }
+
+
 }
