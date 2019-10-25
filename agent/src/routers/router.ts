@@ -20,7 +20,7 @@ import {AdminGuard, LogoutGuard} from "./admin.guards";
 import AgentsList from "../components/agents/AgentsList.vue";
 import AgentDetail from "../components/agents/AgentDetail.vue";
 import JobPage from "../components/jobs/JobPage.vue";
-import DialogCreateJob from "../components/jobs/DialogCreateJob.vue";
+import CreateJobPage from "../components/jobs/CreateJobPage.vue";
 import GuestPage from "../components/auth/GuestPage.vue";
 import HomePage from "../components/home/HomePage.vue";
 
@@ -69,7 +69,7 @@ const HOME_ROUTE: RouteConfig = {
         {path: 'applications', component: AppsPage,},
         {path: 'applications/:applicationId', component: AppDetailsPage,},
         {path: 'applications/:applicationId/versions/:versionId', component: VersionDetailsPage,},
-        {path: 'applications/:applicationId/versions/:versionId/createJob', component: DialogCreateJob,},
+        {path: 'applications/:applicationId/versions/:versionId/createJob', component: CreateJobPage,},
         {path: 'reports/:reportId', component: ReportPage,},
         {path: 'agents', component: AgentsList,},
         {path: 'agents/:agentId', component: AgentDetail,},

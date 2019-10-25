@@ -89,7 +89,7 @@
     import {Subscription} from "vue-rx-decorators";
 
     @Component
-    export default class DialogCreateJob extends Vue {
+    export default class CreateJobPage extends Vue {
 
         private applicationId: string = null;
         private versionId: string = null;
