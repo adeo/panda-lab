@@ -5,8 +5,8 @@ import RootPage from "../components/RootPage.vue";
 import Jobs from "../components/jobs/JobsPage.vue";
 import JobsPage from "../components/jobs/JobsPage.vue";
 import Device from "../components/devices/DevicePage.vue";
-import Auth from "../components/auth/Auth.vue";
-import Splash from "../components/auth/Splash.vue";
+import AuthPage from "../components/auth/AuthPage.vue";
+import SplashPage from "../components/auth/SplashPage.vue";
 import AgentPage from "../components/agent/AgentPage.vue";
 import DevicesPage from "../components/devices/DevicesPage.vue";
 import Groups from "../components/groups/Groups.vue";
@@ -21,20 +21,32 @@ import AgentsList from "../components/agents/AgentsList.vue";
 import AgentDetail from "../components/agents/AgentDetail.vue";
 import JobPage from "../components/jobs/JobPage.vue";
 import DialogCreateJob from "../components/jobs/DialogCreateJob.vue";
+import GuestPage from "../components/auth/GuestPage.vue";
 
 Vue.use(VueRouter);
 
 const AUTHENT_ROUTE: RouteConfig = {
     path: '/login',
-    component: Auth,
+    component: AuthPage,
     beforeEnter: AuthentGuard
 };
 
 const SPLASH_ROUTE: RouteConfig = {
     path: '/splash',
-    component: Splash,
+    component: SplashPage,
     beforeEnter: AuthentGuard
 };
+
+const GUEST_ROUTE: RouteConfig = {
+    path: '/guest',
+    component: GuestPage,
+    beforeEnter: AuthentGuard,
+}
+
+const LOGOUT_ROUTE: RouteConfig = {
+    path: '/logout',
+    beforeEnter: LogoutGuard
+}
 
 
 const HOME_ROUTE: RouteConfig = {
@@ -44,7 +56,7 @@ const HOME_ROUTE: RouteConfig = {
 
     children: [
         {path: '/', redirect: 'devices'},
-        {path: '/home', redirect: 'devices'},
+        {path: 'home', redirect: 'devices'},
         {path: 'devices', component: DevicesPage,},
         {path: 'groups', component: Groups,},
         {path: 'groups/:groupId', component: GroupDetails,},
@@ -65,10 +77,6 @@ const HOME_ROUTE: RouteConfig = {
             component: AdminPage,
             beforeEnter: AdminGuard
         },
-        {
-            path: '/logout',
-            beforeEnter: LogoutGuard
-        }
     ]
 };
 
@@ -76,6 +84,8 @@ const HOME_ROUTE: RouteConfig = {
 const routes: Array<RouteConfig> = [
     AUTHENT_ROUTE,
     SPLASH_ROUTE,
+    GUEST_ROUTE,
+    LOGOUT_ROUTE,
     HOME_ROUTE,
 ];
 

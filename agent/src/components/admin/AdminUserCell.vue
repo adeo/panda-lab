@@ -11,12 +11,12 @@
 <script lang="ts">
     import {Component, Prop, Vue} from "vue-property-decorator";
     import {Role, User} from "pandalab-commons";
-    import {Services} from "../../services/services.provider";
 
     @Component
     export default class AdminUserCell extends Vue {
 
-        private roles: Role[] = Object.values(Role);
+        @Prop({required: true})
+        roles: Role[];
 
         @Prop({required: true})
         user: User;

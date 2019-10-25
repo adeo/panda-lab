@@ -1,13 +1,13 @@
 <template>
     <div id="splash">
         <div class="center">
-            <img class="logo" src="https://www.brandcrowd.com/gallery/brands/pictures/picture1470952529624.png"/>
+            <img class="logo" src="../../assets/images/logo_neg.svg"/>
             <div v-if="state === StateEnum.LOADING">
-                <p>Création du token en cours ...</p>
+                <p>Agent is configuring ...</p>
             </div>
             <div v-else>
-                <p>Une erreur est survenue</p>
-                <md-button class="md-raised md-primary md-white" v-on:click="onRetry">Ré-essayer</md-button>
+                <p>Oops, an error occurred</p>
+                <md-button class="md-raised md-primary md-white" v-on:click="onRetry">Retry</md-button>
             </div>
             <p class="step">{{ configurationMessage }}</p>
         </div>
@@ -20,14 +20,13 @@
     import {Services} from "../../services/services.provider";
     import {AgentService} from "../../services/agent.service";
     import {AgentStatus} from "../../services/node/setup.service";
-    // import {ConfigurationService} from "../../services/agent.repository";
 
     enum State {
         LOADING, ERROR
     }
 
     @Component
-    export default class Splash extends Vue  {
+    export default class SplashPage extends Vue  {
 
         protected StateEnum = State;
         protected state: State = State.LOADING;
@@ -69,9 +68,6 @@
             this.cancelSubscription();
         }
 
-        // protected onRetry() {
-        //     this.configure();
-        // }
 
         private cancelSubscription() {
             if (this.subscription) {
@@ -79,27 +75,12 @@
             }
         }
 
-        // private configure() {
-        //     this.cancelSubscription();
-        //     this.state = State.LOADING;
-        //     this.subscription = this.configurationService.configure().subscribe(
-        //         msg => {
-        //             console.log(msg);
-        //             this.configurationMessage = msg;
-        //             this.$forceUpdate();
-        //         }, error => {
-        //             this.state = State.ERROR;
-        //             console.error(`App createAgentToken() error`, error);
-        //         }, () => {
-        //             this.$router.replace('/home');
-        //             console.log(`App createAgentToken() finish()`);
-        //         }
-        //     );
-        // }
     }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+    @import "../../assets/css/theme";
+
     #splash {
         position: fixed;
         width: 100%;
@@ -107,7 +88,7 @@
         left: 0;
         top: 0;
         padding-bottom: 56px;
-        background-color: #546e7a;
+        background-color: $primary-color;
         color: white;
         font-size: 2em;
         line-height: 1em;
@@ -130,8 +111,7 @@
     }
 
     .logo {
-        width: 40%;
-        height: 40%;
-        filter: invert(100%);
+        width: 50%;
+        height: 50%;
     }
 </style>

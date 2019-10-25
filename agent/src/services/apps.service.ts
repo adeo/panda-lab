@@ -1,7 +1,7 @@
 import {FirebaseRepository} from "./repositories/firebase.repository";
 import * as winston from "winston";
 import {filter, flatMap, map} from "rxjs/operators";
-import {AppModel, AppVersion, CollectionName, Job, TestReport} from "pandalab-commons";
+import {AppModel, AppVersion, CollectionName, TestReport} from "pandalab-commons";
 import {Observable} from "rxjs";
 
 
@@ -9,23 +9,7 @@ export class AppsService {
 
     constructor(private logger: winston.Logger,
                 private firebaseRepo: FirebaseRepository) {
-
     }
-
-
-    // public listenLastVersion(applicationId: string): Observable<AppVersion> {
-    //     const query = this.firebaseRepo.getCollection(CollectionName.APPLICATIONS)
-    //         .doc(applicationId)
-    //         .collection(CollectionName.VERSIONS)
-    //         .orderBy('timestamp', "desc")
-    //         .limit(1);
-    //
-    //     return this.firebaseRepo.listenQuery<AppVersion>(query)
-    //         .pipe(
-    //             filter(versions => versions.length > 0),
-    //             map(versions => versions[0])
-    //         )
-    // }
 
 
     public listenLastAppTest(applicationId: string): Observable<{ jobReport: TestReport, version: AppVersion }> {

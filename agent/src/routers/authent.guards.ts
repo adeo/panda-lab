@@ -1,15 +1,19 @@
 import {NavigationGuard} from "vue-router";
 import {getRuntimeEnv, RuntimeEnv, Services} from "../services/services.provider";
+import {UserLab} from "../services/firebaseauth.service";
+import {Role} from "pandalab-commons";
 
 export const AuthentGuard: NavigationGuard = async (to, from, next) => {
-    const isLogged = await isUserLoggedAsync();
+    const user = await getUserAsync();
 
     let goto = null;
 
-    if (!isLogged) {
+    if (user.uuid == null) {
         goto = "/login";
     } else if (!await isConfiguredAsync()) {
         goto = "/splash";
+    }else if(user.role == Role.guest){
+        goto = "/guest";
     }
 
     if (goto != null && goto !== to.path) {
@@ -53,9 +57,10 @@ export const AuthentGuard: NavigationGuard = async (to, from, next) => {
 //     }
 // };
 
-function isUserLoggedAsync(): Promise<boolean> {
-    return Services.getInstance().authService.isConnected();
+function getUserAsync(): Promise<UserLab> {
+    return Services.getInstance().authService.getUser();
 }
+
 
 function isConfiguredAsync(): Promise<boolean> {
     if (getRuntimeEnv() == RuntimeEnv.ELECTRON_RENDERER) {

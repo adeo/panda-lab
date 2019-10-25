@@ -1,39 +1,37 @@
 <template xmlns:v-init="http://www.w3.org/1999/xhtml">
-    <div>
+    <div class="pl-container">
+        <div class="md-layout md-alignment-center-center">
+            <div class="md-layout-item-5">
+                <md-button class="md-icon-button" @click="$router.back()">
+                    <md-icon>arrow_back</md-icon>
+                </md-button>
+            </div>
+            <h2 class="md-layout-item pl-title">
+                Report
+            </h2>
+        </div>
         <div v-if="report">
-            <div class="pl-container">
-                <div class="md-layout md-alignment-center-center">
-                    <div class="md-layout-item-5">
-                        <md-button class="md-icon-button" @click="$router.back()">
-                            <md-icon>arrow_back</md-icon>
-                        </md-button>
-                    </div>
-                    <h2 class="md-layout-item pl-title">
-                        ReportPage
-                    </h2>
+            <div class="md-layout-item md-layout md-gutter">
+                <div class="md-layout-item md-small-size-100 md-size-66">
+                    <md-table v-model="testReports" md-card md-fixed-header @md-selected="selectTest">
+                        <md-table-toolbar>
+                            <h1 class="md-title">Tests</h1>
+                        </md-table-toolbar>
+                        <md-table-row slot="md-table-row" slot-scope="{ item }" md-selectable="single">
+                            <md-table-cell md-label="Status">
+                                <md-icon
+                                        :style="{'color': (item.status === 'success'?'#5dc050' : (item.status ==='unstable')? '#EC870A': '#D12311')}">
+                                    fiber_manual_record
+                                </md-icon>
+                                {{ item.status }}
+                            </md-table-cell>
+                            <md-table-cell md-label="Id">{{ item.id }}</md-table-cell>
+                            <md-table-cell md-label="DevicesPage">{{ item.tests.length }}</md-table-cell>
+                        </md-table-row>
+                    </md-table>
                 </div>
-                <div class="md-layout-item md-layout md-gutter">
-                    <div class="md-layout-item md-small-size-100 md-size-66">
-                        <md-table v-model="testReports" md-card md-fixed-header @md-selected="selectTest">
-                            <md-table-toolbar>
-                                <h1 class="md-title">Tests</h1>
-                            </md-table-toolbar>
-                            <md-table-row slot="md-table-row" slot-scope="{ item }" md-selectable="single">
-                                <md-table-cell md-label="Status">
-                                    <md-icon
-                                            :style="{'color': (item.status === 'success'?'#5dc050' : (item.status ==='unstable')? '#EC870A': '#D12311')}">
-                                        fiber_manual_record
-                                    </md-icon>
-                                    {{ item.status }}
-                                </md-table-cell>
-                                <md-table-cell md-label="Id">{{ item.id }}</md-table-cell>
-                                <md-table-cell md-label="DevicesPage">{{ item.tests.length }}</md-table-cell>
-                            </md-table-row>
-                        </md-table>
-                    </div>
-                    <div class="md-layout-item md-small-hide md-size-33">
-                        <PieChart :data="data"></PieChart>
-                    </div>
+                <div class="md-layout-item md-small-hide md-size-33">
+                    <PieChart :data="data"></PieChart>
                 </div>
             </div>
             <md-tabs md-alignment="centered" v-if="selectedTestResult">
@@ -115,6 +113,9 @@
             let reportId = this.$route.params.reportId;
 
             this.$subscribeTo(Services.getInstance().jobsService.getReport(reportId), result => {
+                if (!result) {
+                    return
+                }
                 this.report = result;
 
                 this.data = {

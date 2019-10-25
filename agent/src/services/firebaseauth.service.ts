@@ -1,5 +1,5 @@
 import {BehaviorSubject, from, Observable} from "rxjs";
-import {filter, first, flatMap, map, tap} from "rxjs/operators";
+import {filter, first, flatMap, tap} from "rxjs/operators";
 import {FirebaseRepository} from "./repositories/firebase.repository";
 import {firebase} from '@firebase/app';
 import '@firebase/auth';
@@ -7,8 +7,8 @@ import '@firebase/functions';
 import {FirebaseAuth} from '@firebase/auth-types';
 import {FirebaseFunctions} from '@firebase/functions-types';
 import {StoreRepository} from "./repositories/store.repository";
-import UserCredential = firebase.auth.UserCredential;
 import winston from "winston";
+import UserCredential = firebase.auth.UserCredential;
 
 export class FirebaseAuthService {
 
@@ -18,7 +18,7 @@ export class FirebaseAuthService {
     private functions: FirebaseFunctions;
     private userBehaviour = new BehaviorSubject<UserLab>(null);
 
-    constructor(private logger: winston.Logger,private firebaseRepo: FirebaseRepository, private storeRepository: StoreRepository) {
+    constructor(private logger: winston.Logger, private firebaseRepo: FirebaseRepository, private storeRepository: StoreRepository) {
         this.auth = this.firebaseRepo.firebase.auth();
         this.functions = this.firebaseRepo.firebase.functions();
         this.setup()
@@ -45,34 +45,49 @@ export class FirebaseAuthService {
 
         this.logger.verbose('start listening');
         this.auth.onAuthStateChanged(user => {
-            if (user) {
-                this.logger.verbose('firebase user logged');
-                user.getIdTokenResult().then(value => {
-                    this.userBehaviour.next(
-                        {
-                            uuid: user.uid,
-                            role: value.claims.role
-                        }
-                    );
-                })
-            } else {
-                this.logger.verbose("firebase user is not logged");
-                this.userBehaviour.next({role: null, uuid: null});
-            }
+            this.onFirebaseUserChange(user, this.userBehaviour.getValue() == null);
         });
     }
 
+
+    private onFirebaseUserChange(user, refresh = false) {
+        if (user) {
+            this.logger.verbose('firebase user logged');
+            user.getIdTokenResult(refresh).then(value => {
+                this.userBehaviour.next(
+                    {
+                        uuid: user.uid,
+                        role: value.claims.role
+                    }
+                );
+            })
+        } else {
+            this.logger.verbose("firebase user is not logged");
+            this.userBehaviour.next({role: null, uuid: null});
+        }
+    }
 
     /**
      * This method check is a user is loaded in firebase auth and if a agent token is already generated
      */
     public async isConnected(): Promise<boolean> {
+        return this.getUser().then(value => value.uuid != null)
+    }
+
+    /**
+     * This method check is a user is loaded in firebase auth and if a agent token is already generated
+     */
+    public async getUser(): Promise<UserLab> {
         return this.userBehaviour
             .pipe(
                 filter(value => value != null),
-                map(user => user.uuid != null),
                 first(),
             ).toPromise()
+    }
+
+
+    public refreshLabUser() {
+        this.onFirebaseUserChange(this.auth.currentUser, true)
     }
 
 

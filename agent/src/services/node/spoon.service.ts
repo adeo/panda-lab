@@ -1,7 +1,7 @@
 import {AgentStatus, SetupService} from "./setup.service";
-import {combineLatest, from, Observable, of, scheduled, Subscription, throwError, timer, zip} from "rxjs";
+import {combineLatest, from, Observable, of, Subscription, throwError, zip} from "rxjs";
 import {FirebaseRepository} from "../repositories/firebase.repository";
-import {catchError, concatMap, filter, first, flatMap, map, switchMapTo, tap, timeout, toArray} from "rxjs/operators";
+import {catchError, concatMap, filter, first, flatMap, map, switchMapTo, tap, timeout} from "rxjs/operators";
 import {Artifact, CollectionName, Device, DeviceStatus, Job, JobTask, TaskStatus} from 'pandalab-commons';
 import {JobsService} from "../jobs.service";
 import {FilesRepository} from "../repositories/files.repository";
@@ -52,7 +52,7 @@ export class SpoonService {
 
     private deleteJobDirectory(jobId: string) {
         const directory = this.workspace.getJobDirectory(jobId, false);
-        console.log("Delete directory", directory);
+        this.logger.info("Delete directory : " + directory);
         this.workspace.delete(directory);
     }
 
@@ -66,7 +66,7 @@ export class SpoonService {
                         return !ids.includes(x);
                     });
 
-                    console.log("Job Ids to delete", idsToDelete);
+                    this.logger.info("Job Ids to delete " + idsToDelete);
 
                     idsToDelete.forEach(jobId => {
                         this.deleteJobDirectory(jobId);
@@ -80,6 +80,7 @@ export class SpoonService {
                 }),
             );
     }
+
     private listenJobs(): Observable<any> {
         return combineLatest(this.tasksAsync, this.devices, (tasks, devices) => {
             return tasks

@@ -32,7 +32,6 @@
         constructor() {
             super();
             this.gridMode = this.listModeStatus;
-            console.log(this.listModeStatus);
         }
 
         mounted() {
@@ -49,7 +48,6 @@
         protected switchMode(isGrid: boolean) {
             this.gridMode = isGrid;
             Services.getInstance().store.save(DevicesPage.GRID_MODE_KEY, this.gridMode ? "grid" : "list");
-            console.log(this.listModeStatus);
         }
 
         protected get listModeStatus() {

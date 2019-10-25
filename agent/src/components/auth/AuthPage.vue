@@ -17,7 +17,7 @@
     import UserCredential = firebase.auth.UserCredential;
 
     @Component
-    export default class Auth extends Vue {
+    export default class AuthPage extends Vue {
 
         private authService: FirebaseAuthService;
 

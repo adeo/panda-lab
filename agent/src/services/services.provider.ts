@@ -14,6 +14,7 @@ import * as winston from "winston";
 import {AppsService} from "./apps.service";
 import {AgentsService} from "./agents.service";
 import {UserService} from "./user.service";
+import {BrowserConsole} from "../utils/console.utils";
 
 const jsonStringify = require('fast-safe-stringify');
 
@@ -102,31 +103,7 @@ class LocalServicesProvider implements ServicesProvider {
             throw new Error("Can't instanciate local services provider in electron renderer process");
         }
 
-
-        const logger = winston.createLogger({
-            level: 'info',
-            format: winston.format.json(),
-        });
-        logger.add(new winston.transports.Console({
-            format: winston.format.combine(
-                winston.format.timestamp({
-                    format: 'YYYY-MM-DD HH:mm:ss'
-                }),
-                winston.format.colorize(),
-                winston.format.printf(info => {
-                    const stringifiedRest = jsonStringify(Object.assign({}, info, {
-                        level: undefined,
-                        message: undefined,
-                        timestamp: undefined,
-                        context: undefined
-                    }));
-                    return `${info.timestamp} ${info.level}: ${(info.context !== undefined) ? "[" + info.context + "]" : ""} ${info.message} ${(stringifiedRest !== '{}') ? stringifiedRest : ''}`;
-                })
-            )
-        }))
-        ;
-
-        this.logger = logger;
+        this.logger = this.createLogger();
 
         this.firebaseRepo = new FirebaseRepository(config);
         this.userService = new UserService(this.firebaseRepo);
@@ -136,13 +113,11 @@ class LocalServicesProvider implements ServicesProvider {
         this.agentsService = new AgentsService(this.firebaseRepo);
 
         this.appsService = new AppsService(
-            this.logger,
+            this.logger.child({context: 'Apps'}),
             this.firebaseRepo
         );
 
         const authLogger = this.logger.child({context: 'Auth'});
-
-
         switch (runtimeEnv) {
             case RuntimeEnv.ELECTRON_MAIN: {
 
@@ -195,6 +170,37 @@ class LocalServicesProvider implements ServicesProvider {
             }
         }
 
+    }
+
+    private createLogger() {
+        const logger = winston.createLogger({
+            level: 'verbose',
+            format: winston.format.json(),
+        });
+
+        let timestampFormat = winston.format.timestamp({
+            format: 'YYYY-MM-DD HH:mm:ss'
+        });
+        let printfFormat = winston.format.printf(info => {
+            const stringifiedRest = jsonStringify(Object.assign({}, info, {
+                level: undefined,
+                message: undefined,
+                timestamp: undefined,
+                context: undefined
+            }));
+            return `${info.timestamp} ${info.level[0].toUpperCase()}/${(info.context !== undefined) ? info.context + ":" : ":"} ${info.message} ${(stringifiedRest !== '{}') ? stringifiedRest : ''}`;
+        });
+
+        if (getRuntimeEnv() == RuntimeEnv.WEB) {
+            logger.add(new BrowserConsole({
+                format: winston.format.combine(timestampFormat, printfFormat),
+            }));
+        } else {
+            logger.add(new winston.transports.Console({
+                format: winston.format.combine(timestampFormat, winston.format.colorize(), printfFormat)
+            }));
+        }
+        return logger;
     }
 
     static newInstance(config: ServicesConfiguration) {

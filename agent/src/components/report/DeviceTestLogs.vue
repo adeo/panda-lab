@@ -58,16 +58,9 @@
     @import "../../assets/css/theme";
 
     .date {
-        width: 140px;
+        width: 130px;
     }
 
-    .tag {
-        width: 140px;
-    }
-
-    .level {
-        width: 80px;
-    }
 
     .message {
         overflow: auto;
@@ -105,11 +98,12 @@
         padding-top: 4px;
     }
     #logs-container {
+        font-size: 12px;
         transition: max-height 0.26s ease;
         //max-height: 1200px;
         //overflow: scroll;
         display: block;
-        padding: 12px 12px;
+        padding: 18px;
     }
 
 </style>

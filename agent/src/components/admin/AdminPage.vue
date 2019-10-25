@@ -12,7 +12,7 @@
                 </md-table-row>
                 <md-table-row v-for="user in users" v-bind:key="user._ref.id">
                     <md-table-cell>{{ user.email }}</md-table-cell>
-                    <AdminUserCell :user="user" :onRoleChange="onUserRoleChange"></AdminUserCell>
+                    <AdminUserCell :roles="roles" :user="user" :onRoleChange="onUserRoleChange"></AdminUserCell>
                 </md-table-row>
             </md-table>
 
@@ -44,7 +44,9 @@
         };
 
         mounted() {
-            this.roles = Object.values(Role);
+            this.roles = Object.values(Role).filter(value => {
+                return value != Role.agent && value != Role.mobile_agent
+            });
         }
 
         @Subscription()
@@ -52,7 +54,7 @@
             return Services.getInstance().userService.users;
         }
 
-        private onUserRoleChange(user: User, role: Role) {
+        protected onUserRoleChange(user: User, role: Role) {
             user.role = role;
             const saveUserAsync = Services.getInstance().firebaseRepo.saveDocument(user);
             this.$subscribeTo(saveUserAsync, () => {

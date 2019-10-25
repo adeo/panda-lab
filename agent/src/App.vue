@@ -18,7 +18,7 @@
 <script lang="ts">
     import {Component, Vue} from 'vue-property-decorator';
     import {router} from "./routers/router";
-    import Auth from "./components/auth/Auth.vue";
+    import Auth from "./components/auth/AuthPage.vue";
 
     @Component({
         components: {Auth},
