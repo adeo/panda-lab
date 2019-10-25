@@ -1,4 +1,3 @@
-import {RuntimeEnv} from "../services/services.provider";
 <template>
     <div id="root">
         <div class="md-layout">
@@ -39,75 +38,94 @@ import {RuntimeEnv} from "../services/services.provider";
 
     @Component
     export default class RootPage extends Vue {
-
-        menuItems: MenuItem[] = [
+        static MENU = [
             {
                 name: "Home",
                 icon: "home",
-                link: "/home"
+                link: "/home",
+                role: Role.user,
             },
             {
                 name: "Devices",
                 icon: "phone_android",
-                link: "/devices"
+                link: "/devices",
+                role: Role.user,
             },
             {
                 name: "Groups",
                 icon: "group_work",
-                link: "/groups"
+                link: "/groups",
+                role: Role.user,
             },
             {
                 name: "Jobs",
                 icon: "schedule",
-                link: "/jobs"
+                link: "/jobs",
+                role: Role.user,
             },
             {
                 name: "Applications",
                 icon: "apps",
-                link: "/applications"
+                link: "/applications",
+                role: Role.user,
             },
             {
                 name: "Agents",
                 icon: "devices",
-                link: "/agents"
+                link: "/agents",
+                role: Role.user,
             },
+            {
+                name: 'Agent',
+                link: '/agentDevices',
+                icon: 'important_devices',
+                role: Role.agent,
+            },
+            {
+                name: "Admin",
+                icon: "security",
+                link: "/admin",
+                role: Role.admin,
+            },
+            {
+                name: "Logout",
+                icon: "logout",
+                link: "/logout",
+                role: Role.guest,
+            }
         ];
 
-        isElectron: Boolean = getRuntimeEnv() == RuntimeEnv.ELECTRON_RENDERER;
-        private route: string;
+        protected isElectron: Boolean = getRuntimeEnv() == RuntimeEnv.ELECTRON_RENDERER;
+        protected route: string;
+        protected menuItems: MenuItem[] = [];
 
         constructor() {
             super();
-            if (this.isElectron) {
-                this.menuItems.push({
-                    name: 'Agent',
-                    link: '/agentDevices',
-                    icon: 'important_devices'
-                })
-            } else {
-
-                this.menuItems.push(
-                    {
-                        name: "Logout",
-                        icon: "logout",
-                        link: "/logout"
-                    }
-                );
-                this.$subscribeTo(Services.getInstance().authService.listenUser(), user => {
-                    if (user.role === Role.admin) {
-                        if (this.menuItems.find(item => item.link === '/admin') === undefined) {
-                            this.menuItems.splice(this.menuItems.length - 1, 0, {
-                                name: "Admin",
-                                icon: "security",
-                                link: "/admin"
-                            });
-                        }
-                    } else {
-                        this.menuItems = this.menuItems.filter(item => item.link !== '/admin');
-                    }
-                });
-            }
         }
+
+        mounted(){
+            this.$subscribeTo(Services.getInstance().authService.listenUser(), user => {
+                this.updateMenu(Role[user.role])
+            });
+        }
+
+        updateMenu(role: Role) {
+            this.menuItems = RootPage.MENU.filter(
+                value => {
+                    switch (value.role) {
+                        case Role.admin:
+                            return [Role.admin].indexOf(role) >= 0;
+                        case Role.guest:
+                            return [Role.guest, Role.admin, Role.user, Role.agent].indexOf(role) >= 0;
+                        case Role.user:
+                            return [Role.admin, Role.user, Role.agent].indexOf(role) >= 0;
+                        case Role.agent:
+                            return [Role.agent].indexOf(role) >= 0;
+                    }
+                }
+            );
+        }
+
 
         @Watch('$route', {immediate: true, deep: true})
         onUrlChange(newVal: any) {
@@ -119,7 +137,6 @@ import {RuntimeEnv} from "../services/services.provider";
         }
 
         protected openPage(link) {
-            console.log("open link", link)
             this.$router.push(link)
         }
     }
@@ -128,6 +145,7 @@ import {RuntimeEnv} from "../services/services.provider";
         name: string,
         icon: string,
         link: string,
+        role: Role,
     }
 
 </script>

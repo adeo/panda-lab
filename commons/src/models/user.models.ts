@@ -3,9 +3,11 @@ import {firestore} from "firebase";
 import Timestamp = firestore.Timestamp;
 
 export enum Role {
-    admin = "admin",
     guest = "guest",
     user = "user",
+    mobile_agent = 'mobile-agent',
+    admin = "admin",
+    agent = "agent",
 }
 
 export interface User extends FirebaseModel {
