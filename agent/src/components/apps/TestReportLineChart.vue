@@ -12,6 +12,9 @@
         @Prop({required: true})
         reports: TestReport[];
 
+        @Prop({default: true})
+        legend: boolean;
+
         protected formatter = new DateFormatter();
 
         @Watch("reports") onReportChange(values: TestReport[]) {
@@ -25,9 +28,21 @@
         constructor() {
             super();
 
+
+        }
+
+        mounted() {
             this.options = {
                 maintainAspectRatio: false,
                 responsive: true,
+                layout: {
+                    padding: {
+                        left: 5,
+                        right: 5,
+                        top: 5,
+                        bottom: 5
+                    }
+                },
                 tooltips: {
                     mode: 'index',
                     intersect: false,
@@ -36,6 +51,9 @@
                             return data.labels[item[0].index];
                         }
                     }
+                },
+                legend:{
+                    display: this.legend,
                 },
                 hover: {
                     mode: 'nearest',
@@ -49,8 +67,8 @@
                 },
                 scales: {
                     xAxes: [{
-                        display: true,
                         ticks: {
+                            display: this.legend,
                             callback(value: string, index: any, values: any): string | number {
                                 return value.split("\n")[1];
                             }
@@ -58,13 +76,12 @@
                     }],
                     yAxes: [{
                         stacked: true,
+                        ticks: {
+                            display: this.legend,
+                        },
                     }]
                 }
             }
-        }
-
-        mounted() {
-
         }
 
         private convertToChartData(reports: TestReport[]): ChartData {

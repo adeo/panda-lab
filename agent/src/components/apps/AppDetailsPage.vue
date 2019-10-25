@@ -23,11 +23,6 @@
             </div>
 
             <div class="md-layout-item" v-if="app">
-                <div class="md-layout md-alignment-center-left">
-                    <div>
-
-                    </div>
-                </div>
 
                 <TestReportLineChart id="chart" :reports="reports"
                                      v-on:index="openReportAtIndex($event)"></TestReportLineChart>
