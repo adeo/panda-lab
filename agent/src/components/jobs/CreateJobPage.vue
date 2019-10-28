@@ -29,7 +29,7 @@
                 <div class="md-layout-item md-size-100">
                     <md-checkbox v-model="maxDevices.custom" value="true">Custom devices Pool</md-checkbox>
                     <md-field class="md-layout-item">
-                        <label for="max-devices">Max devices ( min value 1 )</label>
+                        <label>Max devices ( min value 1 )</label>
                         <md-input v-if="maxDevices.custom" type="number" id="max-devices" name="max-devices"
                                   autocomplete="max-devices" v-model="maxDevices.count" :disabled="!maxDevices.custom"
                                   min="1"/>
