@@ -5,11 +5,11 @@ import com.android.build.gradle.api.ApkVariantOutput
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
 import com.leroymerlin.pandalab.tasks.FirebaseAuthentificationTask
+import com.leroymerlin.pandalab.tasks.PandaLabTest
 import com.leroymerlin.pandalab.tasks.PandaLabTestTask
 import com.leroymerlin.pandalab.tasks.UploadApkTask
 import groovy.transform.TypeChecked
-import org.gradle.api.Plugin
-import org.gradle.api.Project
+import org.gradle.api.*
 
 class PandaLabPlugin implements Plugin<Project> {
     static def PANDA_LAB_GROUP = "pandalab"
@@ -17,10 +17,11 @@ class PandaLabPlugin implements Plugin<Project> {
     Project project
     PandaLabExtension extension
 
+
     @TypeChecked
     void apply(Project project) {
         this.project = project
-        this.extension = project.extensions.create("pandalab", PandaLabExtension)
+        this.extension = project.extensions.create("pandalab", PandaLabExtension, project)
 
         project.extensions.extraProperties.set("PandaLabTestTask", PandaLabTestTask)
 
@@ -95,12 +96,40 @@ class PandaLabPlugin implements Plugin<Project> {
             }
         }
 
-        project.tasks.withType(PandaLabTestTask).each {
-            it.setup()
+        this.extension.testsRegistries.each {
+            data ->
+                List<Task> depTasks = []
+                try {
+                    def uploadTaskName = getUploadTaskName(data.variantName, "")
+                    depTasks.add(project.tasks.getByName(uploadTaskName))
+                } catch (e) {
+                    throw new GradleException("test ${data.name} use an invalid variantName ${data.variantName}. " +
+                            "Available variants are : ${project.extensions.getByType(BaseAppModuleExtension).applicationVariants.findAll { ApplicationVariant it -> it.testVariant }.collect { it.name }.join(", ")}", e)
+                }
+
+                try {
+                    def testUploadTaskName = getUploadTaskName(data.variantName, "test")
+                    depTasks.add(project.tasks.getByName(testUploadTaskName))
+                } catch (e) {
+                    throw new GradleException("test ${data.name} variant name ${data.variantName} has no test variant." +
+                            "Available variants are : ${project.extensions.getByType(BaseAppModuleExtension).applicationVariants.findAll { ApplicationVariant it -> it.testVariant }.collect { it.name }.join(", ")}", e)
+                }
+
+                createTask(data, depTasks);
+
         }
 
 
         project.task("uploadToPandaLab", group: PANDA_LAB_GROUP, dependsOn: project.tasks.withType(UploadApkTask))
+    }
+
+    def createTask(PandaLabTest pandaLabTest, List<Task> depTasks) {
+        project.tasks.create(pandaLabTest.name + "PandaLabTest", PandaLabTestTask.class) {
+            group = PANDA_LAB_GROUP
+            dependsOn = depTasks
+            data = pandaLabTest
+            onlyIf { pandaLabTest.enable }
+        }
     }
 
     static GString getUploadTaskName(String variantName, String type) {
@@ -110,7 +139,10 @@ class PandaLabPlugin implements Plugin<Project> {
 }
 
 
+@TypeChecked
 class PandaLabExtension {
+    private Project project
+    NamedDomainObjectContainer<PandaLabTest> testsRegistries;
 
     File serviceAccountFile
     String apiUrl
@@ -119,6 +151,16 @@ class PandaLabExtension {
     String projectId
     String appName
     String versionSuffix = System.currentTimeMillis()
+
+    PandaLabExtension(Project project) {
+        this.project = project
+        this.testsRegistries = project.container(PandaLabTest)
+    }
+
+    void tests(@DelegatesTo(PandaLabTest) Action<? super NamedDomainObjectContainer<PandaLabTest>> action) {
+        action.execute(testsRegistries)
+    }
+
 
 }
 

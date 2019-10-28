@@ -1,7 +1,6 @@
 package com.leroymerlin.pandalab.tasks
 
-import com.android.build.gradle.api.ApplicationVariant
-import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
+
 import com.google.firebase.cloud.FirestoreClient
 import com.leroymerlin.pandalab.PandaLabPlugin
 import groovy.json.JsonOutput
@@ -11,36 +10,38 @@ import org.gradle.api.GradleException
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 
+class PandaLabTest {
+    PandaLabTest(String name) {
+        this.name = name;
+    }
+
+    String name
+    String variantName
+    Boolean waitForResult = true
+    Long timeoutInSecond = 15 * 60
+    List<String> groups = []
+    List<String> devices = []
+    Long devicesCount = 0
+    boolean enable = true;
+}
+
+
 class PandaLabTestTask extends DefaultTask {
     @Input
-    String variantName
+    PandaLabTest data
 
-    @Input
-    Boolean waitForResult = true
-
-    @Input
-    Long timeoutInSecond = 15 * 60
-
-    @Input
-    List<String> groups = []
-
-    @Input
-    List<String> devices = []
-
-    @Input
-    Long devicesCount = 0
-
+//    @TypeChecked
     @TaskAction
     def launchTask() {
 
-        def uploadTaskName = PandaLabPlugin.getUploadTaskName(variantName, "")
-        def upTask = project.tasks.getByName(uploadTaskName)
+        def uploadTaskName = PandaLabPlugin.getUploadTaskName(data.variantName, "")
+        def upTask = project.tasks.getByName(uploadTaskName) as UploadApkTask
         def body = [
                 artifact       : upTask.getDocumentRef().path,
-                groups          : groups ?: [],
-                devices        : devices ?: [],
-                devicesCount   : devicesCount,
-                timeoutInSecond: timeoutInSecond
+                groups         : data.groups ?: [],
+                devices        : data.devices ?: [],
+                devicesCount   : data.devicesCount,
+                timeoutInSecond: data.timeoutInSecond
         ]
 
         String apiUrl = project.pandalab.apiUrl
@@ -62,9 +63,9 @@ class PandaLabTestTask extends DefaultTask {
             throw new GradleException("Can't create test job. Error code ${code} received.")
         }
 
-        if (waitForResult) {
+        if (data.waitForResult) {
             def doc = FirebaseHelper.syncListener(FirestoreClient.firestore.collection("jobs").document(resp['jobId'] as String),
-                    timeoutInSecond,
+                    data.timeoutInSecond,
                     { document ->
                         return document.exists() && document.getBoolean("completed")
                     })
@@ -77,26 +78,5 @@ class PandaLabTestTask extends DefaultTask {
         }
     }
 
-
-    void setup() {
-        def testUploadTaskName = PandaLabPlugin.getUploadTaskName(variantName, "test")
-        def uploadTaskName = PandaLabPlugin.getUploadTaskName(variantName, "")
-        try {
-            def upTask = project.tasks.getByName(uploadTaskName)
-            dependsOn.add(upTask)
-        } catch (e) {
-            throw new GradleException("task ${name} use an invalid variantName ${variantName}. " +
-                    "Available variants are : ${project.extensions.getByType(BaseAppModuleExtension).applicationVariants.findAll { ApplicationVariant it -> it.testVariant }.collect { it.name }.join(", ")}", e)
-        }
-
-        try {
-            def upTaskTest = project.tasks.getByName(testUploadTaskName)
-            dependsOn.add(upTaskTest)
-        } catch (e) {
-            throw new GradleException("task ${name} variant name ${variantName} has no test variant." +
-                    "Available variants are : ${project.extensions.getByType(BaseAppModuleExtension).applicationVariants.findAll { ApplicationVariant it -> it.testVariant }.collect { it.name }.join(", ")}", e)
-        }
-
-    }
 
 }

@@ -45,14 +45,39 @@ class PandaLabPluginTest {
     @Test
     void testGenerateTasks() {
         def pandalab = project.extensions.getByType(PandaLabExtension)
-
         pandalab.apiUrl = "https://laburl.com?appName=myAppName&token=secureToken"
         project.evaluate()
+    }
+
+    @Test
+    void testPandalabTest() {
+        project.pandalab {
+            tests {
+                myTestConfig1 {
+                    variantName = "debug"
+                    waitForResult = true
+                    devices = ["aa885792-c5de-4076-a6f8-c28d4c841efb"]
+                }
+                myTestConfig2 {
+                    variantName = "debug"
+                    waitForResult = false
+                }
+                myTestConfig3 {
+                    variantName = "debug"
+                    enable = false
+                }
+            }
+        }
+        project.evaluate()
+        Asserts.notNull(project.tasks.withType(PandaLabTestTask).size() == 3, "task not created")
+
 
     }
 
 
-    @Test
+
+//    @Test
+    @Ignore
     void testFirebase() {
         def pandalab = project.extensions.getByType(PandaLabExtension)
         def authent = project.task("testAuthent", type: FirebaseAuthentificationTask) {
@@ -79,35 +104,5 @@ class PandaLabPluginTest {
 
     }
 
-    @Test
-    @Ignore
-    void testPandalabTest() {
-        def pandalab = project.extensions.getByType(PandaLabExtension)
-
-        pandalab.apiUrl = "https://us-central1-panda-lab-lm.cloudfunctions.net"
-        def authent = project.task("testAuthent", type: FirebaseAuthentificationTask) {
-            serviceAccountFile = new File("../../.config/firebase-adminsdk.json")
-        }
-        authent.login()
-
-        def upload = project.task("uploadMultiDebugToPandaLab", type: UploadApkTask) {
-            appName = "passport"
-            versionUID = "multi-2.1.0-SNAPSHOT-66-1564672173491"
-            buildType = "debug"
-            flavorName = "multi"
-            apkType = "debug"
-        }
-
-        def runPandaLabTest = project.task("runPandaLabTest", type: PandaLabTestTask) {
-            variantName = "multiDebug"
-            waitForResult = true
-            devices = ["aa885792-c5de-4076-a6f8-c28d4c841efb"]
-        }
-
-
-        runPandaLabTest.launchTask()
-
-
-    }
 
 }
