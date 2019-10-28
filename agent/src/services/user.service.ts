@@ -14,7 +14,7 @@ export class UserService {
     }
 
     public getUsers(): Observable<User[]> {
-        return this.firebaseRepo.getQuery<User>(this.firebaseRepo.getCollection(CollectionName.USER_SECURITY));
+        return this.firebaseRepo.getQuery<User>(this.firebaseRepo.getCollection(CollectionName.USERS_SECURITY));
     }
 
 

@@ -18,6 +18,8 @@ export enum CollectionName {
     TASK_REPORTS = "task-reports",
     LOGS = "logs",
     JOB_REPORTS = 'job-reports',
-    USER_SECURITY = 'user-security',
+    USERS_SECURITY = 'users-security',
+    TOKENS_SECURITY = 'tokens-security',
     USERS = 'users',
+    CONFIG = 'config',
 }

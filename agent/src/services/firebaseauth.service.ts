@@ -9,6 +9,7 @@ import {FirebaseFunctions} from '@firebase/functions-types';
 import {StoreRepository} from "./repositories/store.repository";
 import winston from "winston";
 import UserCredential = firebase.auth.UserCredential;
+import {Role} from "pandalab-commons";
 
 export class FirebaseAuthService {
 
@@ -54,10 +55,14 @@ export class FirebaseAuthService {
         if (user) {
             this.logger.verbose('firebase user logged');
             user.getIdTokenResult(refresh).then(value => {
+                let role = value.claims.role;
+                if (!role) {
+                    role = Role.guest;
+                }
                 this.userBehaviour.next(
                     {
                         uuid: user.uid,
-                        role: value.claims.role
+                        role: role
                     }
                 );
             })

@@ -29,14 +29,14 @@ service cloud.firestore {
         allow write: if isAgent()
     }
 
-    match /deviceGroups/{group} {
+    match /groups/{group} {
         allow read: if isAdmin() || isUser() || isAgent();
         allow write: if isAdmin();
     }
 
     match /devices/{device} {
         allow read: if isAgent() || isAdmin() || isUser() || isMobileAgent();
-        allow write: if isMobileAgent() || isAgent();
+        allow write: if isMobileAgent() || isAgent();
     }
 
     match /jobs/{job} {
@@ -74,7 +74,7 @@ service cloud.firestore {
         allow read, write: if request.auth.uid == userId;
     }
 
-    match /user-security/{id} {
+    match /users-security/{id} {
         allow read: if isAdmin();
         allow write: if isAdmin();
     }

@@ -7,7 +7,7 @@ import * as admin from "firebase-admin";
 import {jobService} from "./services/job.service";
 import {CallableContext} from "firebase-functions/lib/providers/https";
 import {deviceService} from "./services/device.service";
-import {CollectionName} from "pandalab-commons";
+import {CollectionName, User} from "pandalab-commons";
 import {AgentModel} from "../../commons/src/models/agents.models";
 import QuerySnapshot = admin.firestore.QuerySnapshot;
 import DecodedIdToken = admin.auth.DecodedIdToken;
@@ -18,14 +18,15 @@ admin.initializeApp({
     storageBucket: "panda-lab-lm.appspot.com"
 });
 
+const functions = require('firebase-functions');
 
 //Generate api key at start
 const uuidv4 = require('uuid/v4');
-admin.firestore().collection("config").doc("secrets").get()
+admin.firestore().collection(CollectionName.CONFIG).doc("secrets").get()
     .then(document => {
         if (!document.exists || document.get("apiKey") === undefined) {
             console.warn("Generate new api key");
-            return admin.firestore().collection("config").doc("secrets")
+            return admin.firestore().collection(CollectionName.CONFIG).doc("secrets")
                 .set({'apiKey': uuidv4()}, {merge: true})
                 .then(() => "api key added")
         }
@@ -33,37 +34,6 @@ admin.firestore().collection("config").doc("secrets").get()
     })
     .catch(e => console.error("Error checking apiKey", e));
 
-
-const functions = require('firebase-functions');
-
-admin.firestore().collection('user-security')
-    .onSnapshot(querySnapshot => {
-        querySnapshot.docChanges().forEach(change => {
-            if (change.type === 'added' || change.type === 'modified') {
-                console.log('User security added or modified: ', change.doc.data());
-                const uid = change.doc.data().uid;
-                admin.auth().getUser(uid)
-                    .then(user => {
-                        return change.doc.ref.set({email: user.email}, {merge: true});
-                    })
-                    .catch(reason => {
-                        console.error("can't add email in user-security", reason);
-                    });
-
-                admin.auth().setCustomUserClaims(uid, {role: change.doc.data().role})
-                    .then(() => {
-                        console.log(`Claims for user ${change.doc.data().uid} updated with success`)
-                    }).catch(reason => {
-                    console.error("can't add claim", reason)
-                });
-            } else if (change.type === 'removed') {
-                admin.auth().deleteUser(change.doc.id)
-                    .catch(reason => {
-                        console.error("Can't delete auth user", reason);
-                    });
-            }
-        });
-    });
 
 interface DeveloperClaims {
     role: string;
@@ -84,7 +54,7 @@ function createCustomToken(uid: string, role: string, parentUid: string): Promis
         .then(function (customToken) {
             console.log(`Custom token generated = [${customToken}], uid = [${uid}}, role = [${role}]`);
             const data = {token: customToken};
-            return admin.firestore().collection("token-security").doc(uid).set({
+            return admin.firestore().collection(CollectionName.TOKENS_SECURITY).doc(uid).set({
                 ...data,
                 role: role,
                 parentUid: parentUid
@@ -97,7 +67,7 @@ function createCustomToken(uid: string, role: string, parentUid: string): Promis
 }
 
 function refreshCustomToken(uid: string, oldToken: string): Promise<{ token: string }> {
-    return admin.firestore().collection("token-security").doc(uid).get()
+    return admin.firestore().collection(CollectionName.TOKENS_SECURITY).doc(uid).get()
         .then(value => {
             const data = value.data();
             if (value.exists && data && data.token === oldToken) {
@@ -111,13 +81,43 @@ function refreshCustomToken(uid: string, oldToken: string): Promise<{ token: str
 }
 
 
-function saveUserSecurity(uid: string, role: string) {
-    return admin.firestore().collection('user-security').doc(uid).set({
+async function saveUserSecurity(uid: string, role: string) {
+    let email = "unknown";
+    try {
+        const user = await admin.auth().getUser(uid);
+        if (user.email) {
+            email = user.email;
+        }
+    } catch (e) {
+        console.error("can't add email in " + CollectionName.USERS_SECURITY, e)
+    }
+
+    return admin.firestore().collection(CollectionName.USERS_SECURITY).doc(uid).set(<User>{
         uid: uid,
         role: role,
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        email: email
     });
 }
+
+exports.updateUserClaims = functions.firestore.document(CollectionName.USERS_SECURITY + '/{userId}').onWrite(async (change: Change<DocumentSnapshot>, context: EventContext) => {
+    const uid = context.params.userId;
+    if (change.after.exists) {
+        console.log('User security added or modified: ', change.after.data());
+        const user = change.after.data() as User;
+        return admin.auth().setCustomUserClaims(uid, {role: user.role})
+            .then(() => {
+                console.log(`Claims for user ${uid} updated with success`)
+            }).catch(reason => {
+                console.error("can't add claim", reason)
+            });
+    } else {
+        return admin.auth().deleteUser(uid)
+            .catch(reason => {
+                console.error("Can't delete auth user", reason);
+            });
+    }
+});
 
 
 exports.refreshCustomToken = functions.https.onCall((data, context) => {
@@ -141,7 +141,7 @@ exports.updateDeviceInfos = functions.https.onCall(async (data: any, context: Ca
     if (token.role === DESKTOP_AGENT) {
         return deviceService.updateDeviceInfos(data.uid);
     } else {
-        let message = `The role [${token.role}] is not authorized to update device infos`;
+        const message = `The role [${token.role}] is not authorized to update device infos`;
         console.error(message);
         throw new functions.https.HttpsError("role-unauthorized", message);
     }
@@ -174,17 +174,19 @@ exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, conte
     // create custom claims for web
     // return createCustomToken(user.uid, WEB_AGENT);
 
-    admin.firestore().collection("user-security")
+    admin.firestore().collection(CollectionName.USERS_SECURITY)
         .where('role', '==', ADMIN).get()
         .then(snapshot => {
             if (snapshot.docs.length === 0) {
+                console.log("no admin found. " + user.uid + " became admin");
                 return saveUserSecurity(user.uid, ADMIN);
             } else {
+                console.log("no admin found. " + user.uid + " became admin");
                 return saveUserSecurity(user.uid, GUEST);
             }
         })
         .catch(err => {
-            console.error('Error during the access to user-security');
+            console.error('Error during the access to ' + CollectionName.USERS_SECURITY);
             throw new functions.https.HttpsError("role-unauthorized", `Error during the access to userèsecurity`);
         })
 });
