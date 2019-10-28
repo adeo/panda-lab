@@ -13,7 +13,7 @@ export enum CollectionName {
     VERSIONS = "versions",
     APPLICATIONS = "applications",
     DEVICES = "devices",
-    DEVICE_GROUPS = "deviceGroups",
+    DEVICE_GROUPS = "groups",
     AGENTS = "agents",
     TASK_REPORTS = "task-reports",
     LOGS = "logs",

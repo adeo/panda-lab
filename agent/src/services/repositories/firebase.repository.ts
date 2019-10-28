@@ -7,7 +7,7 @@ import '@firebase/database';
 import {firestore} from "firebase";
 import {FirebaseNamespace} from '@firebase/app-types';
 import {FullMetadata} from '@firebase/storage-types';
-import {from, Observable, of, throwError} from "rxjs";
+import {defer, from, Observable, of, throwError} from "rxjs";
 import {CollectionName, FirebaseModel} from "pandalab-commons";
 import {catchError, flatMap, map} from "rxjs/operators";
 import CollectionReference = firestore.CollectionReference;
@@ -114,6 +114,15 @@ export class FirebaseRepository {
                     return of(doc);
                 }),
             ) as Observable<T>;
+    }
+
+    deleteDocument<T extends FirebaseModel>(doc: T): Observable<T> {
+        let ref: DocumentReference = doc._ref as any as DocumentReference;
+        if (ref == null)
+            return throwError("_ref not defined. can't delete model");
+        return defer(() => doc._ref.delete()).pipe(
+            map(() => doc)
+        );
     }
 
 
