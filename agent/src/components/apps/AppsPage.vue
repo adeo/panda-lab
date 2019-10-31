@@ -1,5 +1,5 @@
 <template>
-    <div class="md-layout">
+    <div class="pl-container">
         <div class="md-layout-item pl-container">
             <h2 class="pl-title">Applications</h2>
             <template v-if="apps">

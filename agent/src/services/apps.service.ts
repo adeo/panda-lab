@@ -1,8 +1,8 @@
 import {FirebaseRepository} from "./repositories/firebase.repository";
 import * as winston from "winston";
-import {filter, flatMap, map} from "rxjs/operators";
-import {AppModel, AppVersion, CollectionName, TestReport} from "pandalab-commons";
-import {Observable} from "rxjs";
+import {filter, flatMap, map, tap, toArray} from "rxjs/operators";
+import {AppModel, AppVersion, Artifact, CollectionName, TestReport} from "pandalab-commons";
+import {from, Observable} from "rxjs";
 
 
 export class AppsService {
@@ -54,6 +54,16 @@ export class AppsService {
             .collection(CollectionName.VERSIONS)
             .orderBy("versionCode", "desc")
         );
+    }
+
+    public getArtifacts(applicationId: string, versionId: string): Observable<Artifact[]> {
+        const query = this.firebaseRepo.getCollection(CollectionName.APPLICATIONS)
+            .doc(applicationId)
+            .collection(CollectionName.VERSIONS)
+            .doc(versionId)
+            .collection(CollectionName.ARTIFACTS);
+
+        return this.firebaseRepo.getQuery<Artifact>(query);
     }
 
     public getAppVersion(applicationId: string, versionId: string): Observable<AppVersion> {
