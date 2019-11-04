@@ -1,0 +1,9 @@
+{
+  "name": "doc",
+  "version": "0.0.1",
+  "scripts": {
+    "install": "cd ./src && bundle install",
+    "serve": "cd ./src && bundle exec jekyll serve",
+    "build": "cd ./src && bundle exec jekyll build -d ../public"
+  }
+}
