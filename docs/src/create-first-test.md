@@ -1,11 +1,11 @@
 ---
 layout: default
-title: Create your first test
-nav_order: 1
-description: "Create your first test with pandalab"
+title: Create a job test
+nav_order: 9
+description: "Create a job test with pandalab"
 permalink: /create-test
 ---
-# Create your first test
+# Create a job test
 
 The PandaLab gradle plugin makes it easy to create test tasks. It is possible to create several gradle tasks if you have very specific needs.
 

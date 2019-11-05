@@ -1,6 +1,7 @@
 ---
 layout: page
 title: Install
+nav_order: 1
 permalink: /install/
 ---
 # Install

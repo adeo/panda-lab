@@ -1,51 +1,75 @@
 ---
 layout: page
 title: Deploy to firebase
+nav_order: 8
 permalink: /firebase/
 ---
-# Deploy to firebase
+# Firebase
 
-Pandaba est basé sur [firebase](https://firebase.google.com/) afin de proposer une solution facile à mettre en place. Les différents services utilisés sont les suivants : 
+PandaLab was developed around the [firebase] solution (https://firebase.google.com/). The different services used are the following: 
 * Authentification
-* Firestore
-* Storage
-* Functions
+* Cloud Firestore
+* Cloud Storage
+* Cloud Functions
 
 ## Authentification
-Firebase Authentification va permettre de créer des comptes utilisateurs ainsi que des comptes techniques utilisés par des agents mobile ou desktop.
 
-## Firestore
-Firestore va contenir l'ensemble des données afin d'indexer les différentes applications, jobs de tests, rapports de tests, informations utilisateurs etc...
+Firebase Authentication will create different user and technical accounts : 
+* mobile agent
+* desktop agent
+* users
+    * admin
+    * guest
 
-## Storage
-Firebase Storage va contenir l'ensemble des apks qui seront utilisés par les agents desktop. Les rapports de tests seront également uploadés, ainsi que les screenshots correspondant.
+## Cloud Firestore
 
-## Functions
-Firebase Functions va être à l'écoute d'un ensemble d'événements comme la création d'une nouvelle application, l'upload d'un test, le changement de statut d'un téléphone etc...
+Cloud Firestore is a flexible and scalable database. This one is used to store different exploited by the applications:
+* User data
+* Test job
+* Reports
+* List of phones
+* ...
 
-## Create firebase project
+## Cloud Storage
 
+Cloud Storage is a object storage service. This stores all the apk files, as well as the different Spoon reports.
 
+## Cloud Functions
+
+Cloud Functions for Firebase let you automatically run backend code in response to events triggered by Firebase features and HTTPS requests. Your code is stored in Google's cloud and runs in a managed environment. There's no need to manage and scale your own servers.
+
+## Configure Firebase
+
+### Creating a project
+
+Open the Firebase console and click on the button "CREATE NEW PROJECT" : 
+
+![image](/assets/firebase-create-new-project.png)
+
+Define the name of your project :
+
+![image](/assets/firebase-create-new-project-name.png)
+
+Download the [Firebase CLI](https://firebase.google.com/docs/cli) and configure your credentials : 
+
+```bash
+firebase login
+```
+
+Then define the Firebase project on which you will work :
 
 ```bash
 firebase use [PROJECT NAME]
 ```
 
+Clone the [Pandalab project](https://github.com/MobileTribe/panda-lab) and run this command in root folder : 
 ```bash
 firebase deploy
 ```
 
-This is the base Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at [jekyllrb.com](https://jekyllrb.com/)
 
-You can find the source code for Minima at GitHub:
-[jekyll][jekyll-organization] /
-[minima](https://github.com/jekyll/minima)
+Then you had to have a set of deployed functions: 
 
-You can find the source code for Jekyll at GitHub:
-[jekyll][jekyll-organization] /
-[jekyll](https://github.com/jekyll/jekyll)
+![image](/assets/firebase-functions.png)
 
-
-[jekyll-organization]: https://github.com/jekyll
-
-[firebase](https://firebase.google.com/)
+Then you had to have a set of deployed functions. If so, the configuration of your project is complete.
