@@ -46,9 +46,10 @@ export class DevicesService {
         );
     }
 
-    saveGroup(group: DevicesGroup): Observable<DevicesGroup>{
+    saveGroup(group: DevicesGroup): Observable<DevicesGroup> {
         return this.firebaseRepo.saveDocument(group);
     }
+
     createGroup(groupName: string): Observable<DevicesGroup> {
         let group = {
             devices: [],
@@ -56,5 +57,9 @@ export class DevicesService {
         } as DevicesGroup;
         return from(this.firebaseRepo.getCollection(CollectionName.DEVICE_GROUPS).add(group))
             .pipe(flatMap(value => this.firebaseRepo.getDocument<DevicesGroup>(value)));
+    }
+
+    deleteGroup(group: DevicesGroup): Observable<DevicesGroup> {
+        return this.firebaseRepo.deleteDocument(group)
     }
 }

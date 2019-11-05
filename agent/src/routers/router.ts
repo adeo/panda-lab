@@ -9,8 +9,8 @@ import AuthPage from "../components/auth/AuthPage.vue";
 import SplashPage from "../components/auth/SplashPage.vue";
 import AgentPage from "../components/agent/AgentPage.vue";
 import DevicesPage from "../components/devices/DevicesPage.vue";
-import Groups from "../components/groups/Groups.vue";
-import GroupDetails from "../components/groups/GroupDetails.vue";
+import GroupsPage from "../components/groups/GroupsPage.vue";
+import GroupDetailsPage from "../components/groups/GroupDetailsPage.vue";
 import AppsPage from "../components/apps/AppsPage.vue";
 import AppDetailsPage from "../components/apps/AppDetailsPage.vue";
 import ReportPage from "../components/report/ReportPage.vue";
@@ -59,8 +59,8 @@ const HOME_ROUTE: RouteConfig = {
         {path: '/', redirect: 'home'},
         {path: 'home', component: HomePage},
         {path: 'devices', component: DevicesPage,},
-        {path: 'groups', component: Groups,},
-        {path: 'groups/:groupId', component: GroupDetails,},
+        {path: 'groups', component: GroupsPage,},
+        {path: 'groups/:groupId', component: GroupDetailsPage,},
         {path: 'agentDevices', component: AgentPage,},
         {path: 'jobs', component: JobsPage,},
         {path: 'jobs/:jobId', component: JobPage},
