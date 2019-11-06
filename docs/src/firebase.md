@@ -6,7 +6,7 @@ permalink: /firebase/
 ---
 # Firebase
 
-PandaLab was developed around the [firebase] solution (https://firebase.google.com/). The different services used are the following: 
+PandaLab was developed around the [firebase solution](https://firebase.google.com/). The different services used are the following: 
 * Authentification
 * Cloud Firestore
 * Cloud Storage

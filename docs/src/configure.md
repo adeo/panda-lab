@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Configure environnement
-nav_order: 1
+nav_order: 2
 description: "Configure environnement"
 permalink: /configure
 ---
