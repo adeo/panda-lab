@@ -1,8 +1,10 @@
 ---
 layout: default
-title: Configure environnement
+title: Configure
 nav_order: 2
-description: "Configure environnement"
+description: "Configure"
 permalink: /configure
+has_children: true
 ---
 # Configure
+---
