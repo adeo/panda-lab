@@ -34,21 +34,27 @@ These are all the issues that PandaLab is trying to solve. This solution is full
 ### Decentralized agent
 You can have multiple device lab in your teams and share all the available devices no matter where they are connected.
 
+![](assets/screenshots/devices.png)
+
 ### Jobs queue
 PandaLab deals with concurrent jobs on a pool of devices.
 
+![](assets/screenshots/jobs.png)
+
 ### Test report
 PandaLab provide simple but efficient test report and chart.
+![](assets/screenshots/apps.png)
+![](assets/screenshots/chart.png)
+
 
 ### Android instrumentation test support
 For now PandaLab only support android instrumentation test but we are looking to add Appium test support.
+![](assets/screenshots/report.png)
+
 
 ### Manage devices
-The lab agents take care of your devices and deal with device status (available, enrolled, booked, ...).
-
-### Remote testing
-Your device can be used through an network adb remote connection. No need to be connected on USB all day.
-
+The lab agents take care of your devices and deal with device status (available, enrolled, booked, remote connection ...).
+![](assets/screenshots/agent.png)
 
 ### And more soon
 [Access roadmap](roadmap){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 } 
