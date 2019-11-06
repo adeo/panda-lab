@@ -34,7 +34,6 @@ export interface ServicesProvider {
     node?: {
         agentService: AgentService
     }
-
 }
 
 export class Services {

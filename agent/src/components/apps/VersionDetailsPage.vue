@@ -13,6 +13,9 @@
                 <md-button @click="createJob" class="md-fab md-primary">
                     <md-icon>add</md-icon>
                 </md-button>
+                <md-button @click="downloadDialog.show = true" class="md-fab md-primary">
+                    <md-icon>cloud_download</md-icon>
+                </md-button>
             </div>
 
             <div class="md-layout-item" v-if="reports">
@@ -38,15 +41,40 @@
                 </md-empty-state>
             </template>
         </div>
+        <md-dialog :md-active.sync="downloadDialog.show">
+            <md-dialog-title>Download</md-dialog-title>
+            <div v-if="downloadDialog.artifacts === undefined">
+                <p>Loading</p>
+            </div>
+            <div v-else>
+                <md-table v-model="downloadDialog.artifacts" md-card md-fixed-header>
+                    <md-table-row slot="md-table-row" slot-scope="{ item }" @click=onDownloadArtifact(item)>
+                        <md-table-cell md-label="Build type">{{ item.buildType }}</md-table-cell>
+                        <md-table-cell md-label="Flavor">{{ item.flavor }}</md-table-cell>
+                        <md-table-cell md-label="Type">{{ item.type }}</md-table-cell>
+                        <md-table-cell md-label="Version code">{{ item.versionCode }}</md-table-cell>
+                        <md-table-cell md-label="Version name">{{ item.versionName }}</md-table-cell>
+                        <md-table-cell md-label="Date">{{ formatter.formatDate(item.timestamp.toDate()) }}</md-table-cell>
+                    </md-table-row>
+                </md-table>
+            </div>
+        </md-dialog>
+
+        <md-snackbar md-position="center" :md-duration="4000" :md-active.sync="showClipboardSnackbar" md-persistent>
+            <span>URL Copied !</span>
+            <md-button class="md-primary" @click="showClipboardSnackbar = false">Retry</md-button>
+        </md-snackbar>
     </div>
 </template>
 
 <script lang="ts">
     import {Component, Vue} from "vue-property-decorator";
-    import {Services} from "../../services/services.provider";
+    import {getRuntimeEnv, RuntimeEnv, Services} from "../../services/services.provider";
     import {TestReport} from "pandalab-commons";
     import TestReportLineChart from "./TestReportLineChart.vue";
     import {DateFormatter} from "../utils/Formatter";
+    import {Artifact} from "pandalab-commons/dist/models/job.models";
+    import {flatMap} from "rxjs/operators";
 
     @Component({
         components: {TestReportLineChart}
@@ -55,6 +83,11 @@
 
         private reports: TestReport[] = [];
         protected formatter = new DateFormatter();
+        protected downloadDialog = {
+            show: false,
+            artifacts: undefined,
+        };
+        protected showClipboardSnackbar:boolean = false;
 
         mounted() {
             const applicationId = this.$route.params.applicationId;
@@ -62,6 +95,10 @@
             console.log(versionId);
             this.$subscribeTo(Services.getInstance().jobsService.listenVersionReports(applicationId, versionId), reports => {
                 this.reports = reports;
+            });
+
+            this.$subscribeTo(Services.getInstance().appsService.getArtifacts(applicationId, versionId), artifacts => {
+                this.downloadDialog.artifacts = artifacts;
             });
         }
 
@@ -81,6 +118,20 @@
             this.$router.push(`/applications/${this.$route.params.applicationId}/versions/${this.$route.params.versionId}/createJob`);
         }
 
+        protected isElectron: Boolean = getRuntimeEnv() == RuntimeEnv.ELECTRON_RENDERER;
+
+        protected onDownloadArtifact(artifact: Artifact) {
+            this.downloadDialog.show = false;
+            this.$subscribeTo(Services.getInstance().firebaseRepo.getFileUrl(artifact.path), url => {
+                if (this.isElectron) {
+                    const { clipboard } = require('electron');
+                    clipboard.writeText(url);
+                    this.showClipboardSnackbar = true;
+                } else {
+                    window.open(url);
+                }
+            });
+        }
 
     }
 </script>

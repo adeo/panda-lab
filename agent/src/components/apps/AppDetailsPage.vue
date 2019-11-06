@@ -84,12 +84,17 @@
                 this.app = app;
             });
 
-            this.$subscribeTo(combineLatest(
-                Services.getInstance().appsService.listenAppVersions(appId),
-                Services.getInstance().jobsService.listenAppReports(appId)
-            ), (result) => {
-                const versions = result[0] as AppVersion[];
-                const reports = result[1] as TestReport[];
+            let versions = undefined;
+            let reports = undefined;
+
+            const reloadUI = () => {
+                if (versions === undefined) {
+                    return;
+                }
+
+                if (reports === undefined) {
+                    return;
+                }
 
                 const flavorsSet = new Set<string>();
                 versions.forEach(version => {
@@ -104,8 +109,17 @@
                 this.allReports = reports;
 
                 this.updateVersions()
+            };
+
+            this.$subscribeTo(Services.getInstance().appsService.listenAppVersions(appId), v => {
+                versions = v;
+                reloadUI();
             });
 
+            this.$subscribeTo(Services.getInstance().jobsService.listenAppReports(appId), r => {
+                reports = r;
+                reloadUI();
+            });
         }
 
         protected reportCount(versionRef) {
