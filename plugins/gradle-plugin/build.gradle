@@ -4,7 +4,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath "com.leroymerlin.plugins:delivery-plugin:3.3.4"
+        classpath "com.leroymerlin.plugins:delivery-plugin:3.3.5"
     }
 }
 
