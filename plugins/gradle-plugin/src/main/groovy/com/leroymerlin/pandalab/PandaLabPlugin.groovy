@@ -23,8 +23,6 @@ class PandaLabPlugin implements Plugin<Project> {
         this.project = project
         this.extension = project.extensions.create("pandalab", PandaLabExtension, project)
 
-        project.extensions.extraProperties.set("PandaLabTestTask", PandaLabTestTask)
-
         project.plugins.withType(
                 AppPlugin, {
             project.afterEvaluate({
@@ -121,6 +119,7 @@ class PandaLabPlugin implements Plugin<Project> {
 
 
         project.task("uploadToPandaLab", group: PANDA_LAB_GROUP, dependsOn: project.tasks.withType(UploadApkTask))
+        project.task("runPandaLabTests", group: PANDA_LAB_GROUP, dependsOn: project.tasks.withType(PandaLabTestTask))
     }
 
     def createTask(PandaLabTest pandaLabTest, List<Task> depTasks) {
