@@ -1,4 +1,4 @@
-dist_electron/
-panda-lab-lm-firebase-adminsdk.json
-
+/dist_electron/
+/dist/
+.env
 .env.local

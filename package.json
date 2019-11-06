@@ -1,0 +1,15 @@
+{
+  "name": "pandalab",
+  "version": "0.0.1",
+  "scripts": {
+    "install": "npm install --prefix commons && npm install --prefix agent && npm install --prefix functions && npm install --prefix docs",
+    "build": "npm run firebase:build && npm run electron:build && npm run android:build",
+    "deploy": "npm run firebase:deploy && npm run electron:deploy && npm run android:deploy",
+    "firebase:build": "npm run build --prefix agent && npm run build --prefix functions",
+    "firebase:deploy": "firebase deploy",
+    "electron:build": "npm run electron:build --prefix agent",
+    "electron:deploy": "npm run electron:deploy --prefix agent",
+    "android:build": "cd android && ./gradlew assembleDebug",
+    "android:deploy": "cd android && ./gradlew uploadAgentApk"
+  }
+}

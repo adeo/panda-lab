@@ -32,7 +32,7 @@ exports.createMobileAgent = functions.https.onCall((data: any, context: Callable
         throw new HttpsError('unauthenticated', 'user not logged')
     } else {
         const uid: string = data.uid;
-        const auth = context.auth!;
+        const auth = context.auth;
         return securityService.createMobileAgent(uid, auth);
     }
 });
@@ -43,7 +43,7 @@ exports.createAgent = functions.https.onCall(async (data: any, context: Callable
         throw new HttpsError('unauthenticated', 'user not logged')
     } else {
         const uid: string = data.uid;
-        const auth = context.auth!;
+        const auth = context.auth;
         return securityService.createAgent(uid, auth);
     }
 });
@@ -52,10 +52,10 @@ exports.updateDeviceInfos = functions.https.onCall(async (data: any, context: Ca
     console.log("updateDeviceInfos data = ", data);
     if (!context.auth) {
         throw new HttpsError('unauthenticated', 'user not logged')
-    } else if (context.auth!.token.role === Role.agent) {
+    } else if (context.auth.token.role === Role.agent) {
         return deviceService.updateDeviceInfos(data.uid);
     } else {
-        const message = `The role [${context.auth!.token.role}] is not authorized to update device infos`;
+        const message = `The role [${context.auth.token.role}] is not authorized to update device infos`;
         console.error(message);
         throw new functions.https.HttpsError("role-unauthorized", message);
     }

@@ -1,8 +1,8 @@
 {
   "name": "functions",
   "scripts": {
-    "preinstall": "if [ -d ../commons ]; then cd ../commons && npm install && cd ../functions && npm run updateCommons; fi",
-    "updateCommons": "node commons-install.js",
+    "preinstall": "if [ -d ../commons ]; then npm run updateCommons; fi",
+    "updateCommons": "node package-commons.js",
     "lint": "tslint --project tsconfig.json",
     "build": "tsc",
     "serve": "npm run build && npm run setup-env firebase serve --only functions",
