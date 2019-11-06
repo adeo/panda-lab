@@ -10,6 +10,8 @@ import org.gradle.api.GradleException
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 
+import java.util.concurrent.TimeUnit
+
 class PandaLabTest {
     PandaLabTest(String name) {
         this.name = name;
@@ -18,7 +20,7 @@ class PandaLabTest {
     String name
     String variantName
     Boolean waitForResult = true
-    Long timeoutInSecond = 15 * 60
+    Long timeoutInSecond = TimeUnit.HOURS.toSeconds(3)
     List<String> groups = []
     List<String> devices = []
     Long devicesCount = 0

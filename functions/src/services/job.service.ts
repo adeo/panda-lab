@@ -14,6 +14,7 @@ import {
 } from "pandalab-commons";
 import DocumentSnapshot = admin.firestore.DocumentSnapshot;
 import DocumentReference = FirebaseFirestore.DocumentReference;
+import QuerySnapshot = FirebaseFirestore.QuerySnapshot;
 
 
 export enum JobError {
@@ -311,6 +312,11 @@ class JobService {
 
     }
 
+    async onJobDelete(uid: string) {
+        const collection = admin.firestore().collection(CollectionName.TASKS);
+        const query: QuerySnapshot = await collection.where('job', '==', uid).get();
+        return Promise.all(query.docs.map(doc => doc.ref.delete()));
+    }
 }
 
 

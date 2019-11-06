@@ -1,8 +1,8 @@
 import cors = require("cors");
 import express = require("express");
-import * as admin from "firebase-admin";
 import {JobError, jobService} from "./services/job.service";
 import {JobRequest} from "pandalab-commons";
+import {securityService} from "./services/security.service";
 
 const functions = require('firebase-functions');
 const app = express();
@@ -19,18 +19,7 @@ app.use(morgan('combined'));
 //verifyIdToken
 app.use(async (req, res, next) => {
     try {
-        if (req.headers["x-api-key"]) {
-            const apiKey = req.headers["x-api-key"];
-            const secrets = await admin.firestore().collection("config").doc("secrets").get();
-            if (apiKey !== secrets.get("apiKey")) {
-                throw new Error("Wrong api key")
-            }
-        } else if (req.headers["authorization"]) {
-            const idToken = req.headers['authorization'].split('Bearer ')[1];
-            await admin.auth().verifySessionCookie(idToken);
-        } else {
-            throw new Error("Missing authorization header")
-        }
+        await securityService.checkApiRequest(req);
         next();
     } catch (e) {
         console.warn("Connection refused - ", e);

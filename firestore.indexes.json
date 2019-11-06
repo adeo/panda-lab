@@ -73,6 +73,20 @@
           "mode": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "completed",
+          "mode": "ASCENDING"
+        },
+        {
+          "fieldPath": "timeout",
+          "mode": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

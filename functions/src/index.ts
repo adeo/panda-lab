@@ -5,190 +5,65 @@ import {API_FUNCTION, CREATE_JOB} from "./api";
 import {ANALYSE_FILE, CLEAN_ARTIFACT, SAVE_SPOON_RESULT} from "./storage";
 import * as admin from "firebase-admin";
 import {jobService} from "./services/job.service";
-import {CallableContext} from "firebase-functions/lib/providers/https";
+import {CallableContext, HttpsError} from "firebase-functions/lib/providers/https";
 import {deviceService} from "./services/device.service";
-import {CollectionName, User} from "pandalab-commons";
-import {AgentModel} from "../../commons/src/models/agents.models";
-import QuerySnapshot = admin.firestore.QuerySnapshot;
-import DecodedIdToken = admin.auth.DecodedIdToken;
+import {CollectionName, Role} from "pandalab-commons";
+import {securityService} from "./services/security.service";
 
-admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-    databaseURL: "https://panda-lab-lm.firebaseio.com",
-    storageBucket: "panda-lab-lm.appspot.com"
-});
+admin.initializeApp();
+
+securityService.initialize();
 
 const functions = require('firebase-functions');
 
-//Generate api key at start
-const uuidv4 = require('uuid/v4');
-admin.firestore().collection(CollectionName.CONFIG).doc("secrets").get()
-    .then(document => {
-        if (!document.exists || document.get("apiKey") === undefined) {
-            console.warn("Generate new api key");
-            return admin.firestore().collection(CollectionName.CONFIG).doc("secrets")
-                .set({'apiKey': uuidv4()}, {merge: true})
-                .then(() => "api key added")
-        }
-        return Promise.resolve("api key exist")
-    })
-    .catch(e => console.error("Error checking apiKey", e));
-
-
-interface DeveloperClaims {
-    role: string;
-}
-
-const MOBILE_AGENT = "mobile-agent";
-const DESKTOP_AGENT = "agent";
-const ADMIN = "admin";
-const GUEST = "guest";
-
-function createCustomToken(uid: string, role: string, parentUid: string): Promise<{ token: string }> {
-    return admin
-        .auth()
-        .createCustomToken(uid, <DeveloperClaims>{
-            role: role,
-            parent: parentUid
-        })
-        .then(function (customToken) {
-            console.log(`Custom token generated = [${customToken}], uid = [${uid}}, role = [${role}]`);
-            const data = {token: customToken};
-            return admin.firestore().collection(CollectionName.TOKENS_SECURITY).doc(uid).set({
-                ...data,
-                role: role,
-                parentUid: parentUid
-            }).then(() => data)
-        })
-        .catch(function (error) {
-            console.error("createCustomToken() error", error);
-            throw new functions.https.HttpsError("failed-token", error);
-        });
-}
-
-function refreshCustomToken(uid: string, oldToken: string): Promise<{ token: string }> {
-    return admin.firestore().collection(CollectionName.TOKENS_SECURITY).doc(uid).get()
-        .then(value => {
-            const data = value.data();
-            if (value.exists && data && data.token === oldToken) {
-                return createCustomToken(uid, data.role, data.parentUid)
-            } else {
-                return Promise.reject("Can't found token")
-            }
-        })
-
-
-}
-
-
-async function saveUserSecurity(uid: string, role: string) {
-    let email = "unknown";
-    try {
-        const user = await admin.auth().getUser(uid);
-        if (user.email) {
-            email = user.email;
-        }
-    } catch (e) {
-        console.error("can't add email in " + CollectionName.USERS_SECURITY, e)
-    }
-
-    return admin.firestore().collection(CollectionName.USERS_SECURITY).doc(uid).set(<User>{
-        uid: uid,
-        role: role,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        email: email
-    });
-}
 
 exports.updateUserClaims = functions.firestore.document(CollectionName.USERS_SECURITY + '/{userId}').onWrite(async (change: Change<DocumentSnapshot>, context: EventContext) => {
     const uid = context.params.userId;
-    if (change.after.exists) {
-        console.log('User security added or modified: ', change.after.data());
-        const user = change.after.data() as User;
-        return admin.auth().setCustomUserClaims(uid, {role: user.role})
-            .then(() => {
-                console.log(`Claims for user ${uid} updated with success`)
-            }).catch(reason => {
-                console.error("can't add claim", reason)
-            });
-    } else {
-        return admin.auth().deleteUser(uid)
-            .catch(reason => {
-                console.error("Can't delete auth user", reason);
-            });
-    }
+    return securityService.updateUserClaim(uid, change.after);
 });
 
-
 exports.refreshCustomToken = functions.https.onCall((data, context) => {
-    return refreshCustomToken(data.uid, data.token);
+    return securityService.refreshCustomToken(data.uid, data.token);
 });
 
 exports.createMobileAgent = functions.https.onCall((data: any, context: CallableContext) => {
     console.log("createMobileAgent() data = ", data);
-    const token: DecodedIdToken = context.auth!.token;
-    if (token.role === DESKTOP_AGENT) {
-        return createCustomToken(data.uid, MOBILE_AGENT, context.auth!.uid);
+    if (!context.auth) {
+        throw new HttpsError('unauthenticated', 'user not logged')
     } else {
-        console.error(`The role [${token.role}] is not authorized to create custom tokens for mobile`);
-        throw new functions.https.HttpsError("role-unauthorized", `The role [${token.role}] is not authorized to create custom tokens for mobile`);
-    }
-});
-
-exports.updateDeviceInfos = functions.https.onCall(async (data: any, context: CallableContext) => {
-    console.log("updateDeviceInfos data = ", data);
-    const token: DecodedIdToken = context.auth!.token;
-    if (token.role === DESKTOP_AGENT) {
-        return deviceService.updateDeviceInfos(data.uid);
-    } else {
-        const message = `The role [${token.role}] is not authorized to update device infos`;
-        console.error(message);
-        throw new functions.https.HttpsError("role-unauthorized", message);
+        const uid: string = data.uid;
+        const auth = context.auth!;
+        return securityService.createMobileAgent(uid, auth);
     }
 });
 
 exports.createAgent = functions.https.onCall(async (data: any, context: CallableContext) => {
     console.log("createMobileAgent() data = ", data);
-    const token: DecodedIdToken = context.auth!.token;
-    if (token.role === ADMIN) {
-        await admin.firestore().collection(CollectionName.AGENTS).doc(data.uid).set(<AgentModel>{
-            name: data.uid,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            online: false
-        });
-        return createCustomToken(data.uid, DESKTOP_AGENT, context.auth!.uid);
+    if (!context.auth) {
+        throw new HttpsError('unauthenticated', 'user not logged')
     } else {
-        console.error(`The role [${token.role}] is not authorized to create custom tokens for desktop`);
-        throw new functions.https.HttpsError("role-unauthorized", `The role [${token.role}] is not authorized to create custom tokens for desktop`);
+        const uid: string = data.uid;
+        const auth = context.auth!;
+        return securityService.createAgent(uid, auth);
     }
 });
 
-/**
- * On Sign up and claims
- */
-exports.onSignUp = functions.auth.user().onCreate(async (user: UserRecord, context: EventContext) => {
-    // https://firebase.google.com/docs/functions/auth-events
-    // A Cloud Functions event is not triggered when a user signs in for the first time using a custom token.
-    // see the function createAgent
+exports.updateDeviceInfos = functions.https.onCall(async (data: any, context: CallableContext) => {
+    console.log("updateDeviceInfos data = ", data);
+    if (!context.auth) {
+        throw new HttpsError('unauthenticated', 'user not logged')
+    } else if (context.auth!.token.role === Role.agent) {
+        return deviceService.updateDeviceInfos(data.uid);
+    } else {
+        const message = `The role [${context.auth!.token.role}] is not authorized to update device infos`;
+        console.error(message);
+        throw new functions.https.HttpsError("role-unauthorized", message);
+    }
+});
 
-    // create custom claims for web
-    // return createCustomToken(user.uid, WEB_AGENT);
 
-    admin.firestore().collection(CollectionName.USERS_SECURITY)
-        .where('role', '==', ADMIN).get()
-        .then(snapshot => {
-            if (snapshot.docs.length === 0) {
-                console.log("no admin found. " + user.uid + " became admin");
-                return saveUserSecurity(user.uid, ADMIN);
-            } else {
-                console.log("no admin found. " + user.uid + " became admin");
-                return saveUserSecurity(user.uid, GUEST);
-            }
-        })
-        .catch(err => {
-            console.error('Error during the access to ' + CollectionName.USERS_SECURITY);
-            throw new functions.https.HttpsError("role-unauthorized", `Error during the access to userèsecurity`);
-        })
+exports.onUserCreate = functions.auth.user().onCreate(async (user: UserRecord, context: EventContext) => {
+    return securityService.onUserCreated(user.uid)
 });
 
 exports.updateDevicesStatus = functions.database.ref("/agents/{agentId}/online").onUpdate((change, context) => {
@@ -202,8 +77,7 @@ exports.cron = functions.pubsub.schedule('every 1 minutes').onRun(async (context
     return jobService.checkTaskTimeout()
 });
 
-exports.onDeviceUpdated = functions.firestore.document(CollectionName.DEVICES + '/{deviceId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
-
+exports.onDeviceUpdate = functions.firestore.document(CollectionName.DEVICES + '/{deviceId}').onUpdate(async (change: Change<DocumentSnapshot>, context: EventContext) => {
     if (change.after.exists && (!change.before.exists || change.before.get("status") !== change.after.get("status"))) {
         await deviceService.notifyDeviceStatusChange(change.after.id, change.after.get("status"))
     }
@@ -219,14 +93,11 @@ exports.onTaskWrite = functions.firestore.document(CollectionName.TASKS + '/{tas
     } else {
         console.log('onTaskWrite value exist');
     }
-
     return jobService.onTaskUpdate(change.after);
 });
 
-exports.onRemoveJob = functions.firestore.document(CollectionName.JOBS + '/{jobId}').onDelete(async (snapshot: DocumentSnapshot, context: EventContext) => {
-    const collection = admin.firestore().collection(CollectionName.TASKS);
-    const query: QuerySnapshot = await collection.where('job', '==', snapshot.id).get();
-    query.docs.forEach(doc => doc.ref.delete());
+exports.onJobDelete = functions.firestore.document(CollectionName.JOBS + '/{jobId}').onDelete(async (snapshot: DocumentSnapshot, context: EventContext) => {
+    return jobService.onJobDelete(snapshot.id);
 });
 
 exports.analyseFile = ANALYSE_FILE;
