@@ -42,6 +42,8 @@ To know how to recover the file please consult the following link : [documentati
 
 ## Create a task
 
+### Method 1 : create a custom gradle task
+
 A PandaLab task allows you to define the various parameters in order to launch your instrumentation tests on a phone fleet. You can define the variant name, the device lists, the device groups on which the tests will be run.
 
 ```groovy
@@ -62,10 +64,50 @@ task runPandaLabTest(type: PandaLabTestTask) {
 * **timeoutInSecond**: timeout in second. The default value is _900 seconds_.
 * **waitForResult**: wait for the result on all tests launched. Very useful for fail a CI job. The default value is _true_.
 
-## Run a test
+
+#### Run the task
 
 For launch the previously created task launch the command line : 
 
 ```bash
 ./gradlew app:runPandaLabTest
+```
+
+### Method 2 : add test in PandaLab extension
+
+```groovy
+pandalab {
+    serviceAccountFile = file("...")
+    appName = "..."
+    apiUrl = "..."
+    tests {
+        test1 {
+            variantName = "debug"
+            devices = ["345678765433456", "09876543456789098765"]
+            groups = ["pandalab"]
+            timeoutInSecond = 1800
+            waitForResult = false
+        }
+        test2 {
+            variantName = "debug"
+            devices = ["345678765433456", "09876543456789098765"]
+            groups = ["pandalab2"]
+            timeoutInSecond = 1100
+            waitForResult = true
+        }
+    }
+}
+```
+
+The different tests declared in `tests` generate a task gradle with the name of the test with the suffix `PandaLabTest`.
+
+In the example above, it generates the tasks : `test1PandaLabTest` and `test2PandaLabTest`
+
+
+#### Run the task
+
+For launch the previously created tasks launch the command line : 
+
+```bash
+./gradlew app:test1PandaLabTest
 ```
