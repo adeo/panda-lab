@@ -11,7 +11,7 @@ permalink: /
 PandaLab is an open source solution which helps you to manager fleet of devices and to run automatic tests on them.
 {: .fs-6 .fw-300 }
 
-[Get started now](install){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 } [View it on GitHub](https://github.com/MobileTribe/panda-lab){: .btn .fs-5 .mb-4 .mb-md-0 }
+[Get started now](configure){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 } [View it on GitHub](https://github.com/MobileTribe/panda-lab){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
 
