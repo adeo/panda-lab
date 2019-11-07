@@ -65,6 +65,16 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.1.0'
 }
 
+def configFile = new File("../.config/config.json")
+def slurper = new JsonSlurper()
+def configData = slurper.parse(configFile)
+def playServicesSource = new File("../" + configData.googlePlayServicesPath).newDataInputStream()
+def playServicesDestination = new File("./app/google-services.json").newDataOutputStream()
+playServicesDestination << playServicesSource
+playServicesSource.close()
+playServicesDestination.close()
+
+
 apply plugin: 'com.google.gms.google-services'
 
 import com.google.auth.oauth2.GoogleCredentials

@@ -4,7 +4,7 @@
   "main": "background.js",
   "private": true,
   "scripts": {
-    "prebuild": "node protobuf.js",
+    "prebuild": "node protobuf.js && node genEnv.js",
     "serve": "npm run prebuild && vue-cli-service serve",
     "build": "npm run prebuild && vue-cli-service build",
     "lint": "vue-cli-service lint",
@@ -62,6 +62,7 @@
     "babel-eslint": "^10.0.1",
     "copy-webpack-plugin": "^5.0.4",
     "electron": "^5.0.0",
+    "envfile": "^3.0.0",
     "eslint": "^5.16.0",
     "eslint-plugin-vue": "^5.0.0",
     "node-sass": "^4.12.0",
