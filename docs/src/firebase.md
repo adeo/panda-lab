@@ -14,7 +14,7 @@ PandaLab was developed around the [firebase solution](https://firebase.google.co
 * Cloud Storage
 * Cloud Functions
 
-![image](/assets/firebase.png)
+![image](/assets/firebase/firebase.png)
 
 ---
 
@@ -60,11 +60,11 @@ Cloud Functions for Firebase let you automatically run backend code in response 
 
 Open the Firebase console and click on the button "CREATE NEW PROJECT" : 
 
-![image](/assets/firebase-create-new-project.png)
+![image](/assets/firebase/firebase-create-new-project.png)
 
 Define the name of your project :
 
-![image](/assets/firebase-create-new-project-name.png)
+![image](/assets/firebase/firebase-create-new-project-name.png)
 
 Download the [Firebase CLI](https://firebase.google.com/docs/cli) and configure your credentials : 
 
@@ -86,7 +86,7 @@ firebase deploy
 
 Then you had to have a set of deployed functions: 
 
-![image](/assets/firebase-functions.png)
+![image](/assets/firebase/firebase-functions.png)
 
 Then you had to have a set of deployed functions. If so, the configuration of your project is complete.
 
@@ -101,8 +101,8 @@ Modify the file `.config/firebase.json` located at the root of the project :
  "googlePlayServicesPath": ".config/google-play-services.json",
  "storageBucket": "panda-lab-lm.appspot.com",
  "projectId": "panda-lab-lm",
- "apiKey": "AIzaSyB-LYCs9okzeQFQbhi3t0fhe8qq44h6pt0",
- "messagingSender": "24857120470",
+ "apiKey": "AIzaSyB-LYCs9okzeQFQbhi3XXXXXXXXXXX"
+ "messagingSender": "248XXXXXXX",
  "apiUrl": "https://us-central1-panda-lab-lm.cloudfunctions.net",
  "databaseUrl": "https://panda-lab-lm.firebaseio.com",
  "authDomain": "panda-lab-lm.firebaseapp.com",
@@ -114,11 +114,11 @@ Modify the file `.config/firebase.json` located at the root of the project :
 --- 
 **projectId**, **apiKey**, **messagingSender** are available directly in the settings screen of the Firebase console.
 
-![image](/assets/screenshots/firebase-config-web-create.png)
+![image](/assets/firebase/firebase-config-web-create.png)
 
 The following information will need to be added to the file `.config/firebase.json` : 
 
-![image](/assets/screenshots/firebase-config-web-created.png)
+![image](/assets/firebase/firebase-config-web-created.png)
 
 
 
