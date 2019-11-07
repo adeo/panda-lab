@@ -101,7 +101,7 @@ Modify the file `.config/firebase.json` located at the root of the project :
  "googlePlayServicesPath": ".config/google-play-services.json",
  "storageBucket": "panda-lab-lm.appspot.com",
  "projectId": "panda-lab-lm",
- "apiKey": "AIzaSyB-LYCs9okzeQFQbhi3t0fhe8qq44h6pt0"
+ "apiKey": "AIzaSyB-LYCs9okzeQFQbhi3t0fhe8qq44h6pt0",
  "messagingSender": "24857120470",
  "apiUrl": "https://us-central1-panda-lab-lm.cloudfunctions.net",
  "databaseUrl": "https://panda-lab-lm.firebaseio.com",
