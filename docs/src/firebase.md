@@ -83,12 +83,7 @@ Clone the [Pandalab project](https://github.com/MobileTribe/panda-lab) and run t
 firebase deploy
 ```
 
-
-Then you had to have a set of deployed functions: 
-
-![image](/assets/firebase/firebase-functions.png)
-
-Then you had to have a set of deployed functions. If so, the configuration of your project is complete.
+Then you had to have a set of deployed functions, if so then the configuration of your project is complete.
 
 
 ## Configure PandaLab
