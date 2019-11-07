@@ -9,17 +9,17 @@ nav_order: 1
 # Firebase project
 
 ## Create a project
-Open the Firebase console and click on the button "CREATE NEW PROJECT" : 
+Open the Firebase console and click on the button **CREATE NEW PROJECT**.
 
 ![image](/assets/firebase/firebase-create-new-project.png)
 
-Define the name of your project :
+Define the name of your project.
 
 ![image](/assets/firebase/firebase-create-new-project-name.png)
 
 Download and install the [Firebase CLI](https://firebase.google.com/docs/cli)
 
-Configure your credentials :
+Configure your credentials.
 ```bash
 firebase login
 ```

@@ -8,7 +8,7 @@ nav_order: 2
 
 # Web configuration
 
-## Create an web app
+## Create a web app
 
 In the firebase settings create a new web application.
 
@@ -21,9 +21,9 @@ Retrieve information from the configured web application.
 
 ## Configure firebase.json
 
-Modify or create the file `.config/firebase.json` located at the root of the project to add the previous information :
+Modify or create the file `.config/config.json` located at the root of the project to add the previous information :
 
-```javascript
+```json
 {
  "apiKey": "AIzaSyB-LYCs9okzeQFQbhi3XXXXXXXXXXX",
  "authDomain": "panda-lab-lm.firebaseapp.com",
@@ -37,16 +37,24 @@ Modify or create the file `.config/firebase.json` located at the root of the pro
 
 ## Service account
 
-**serviceAccountPath** is the Firebase Admin SDK file created from the console. To create this file please follow the documentation : [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup)
+Create a service account and download the json file from the firebase settings or the google cloud console.
+To create this file please follow the documentation : [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup).
 
---- 
-**projectId**, **apiKey**, **messagingSender** are available directly in the settings screen of the Firebase console.
+Put the file in the `.config` folder and add **serviceAccountPath** to the `.config/config.json` file to set the service account json file path.
 
-![image](/assets/firebase/firebase-config-web-create.png)
+```json
+{
+ "serviceAccountPath": "/.config/firebase-adminsdk.json"
+}
+```
 
-The following information will need to be added to the file `.config/firebase.json` : 
+## Api endpoint
 
-![image](/assets/firebase/firebase-config-web-created.png)
+Add **apiUrl** in the `.config/config.json` file. The rest api endpoint url can be found in the functions part of the firebase console if you already deployed them. 
+If it's your first deployment you can create it with this pattern `https://{datacenter}-{projectName}.cloudfunctions.net`
 
-
-
+```json
+{
+ "apiUrl": "https://us-central1-panda-lab-lm.cloudfunctions.net"
+}
+```
