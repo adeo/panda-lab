@@ -23,7 +23,8 @@ export interface FirebaseConfig {
     databaseURL: string,
     messagingSenderId: string,
     storageBucket: string,
-    apiURL: string
+    apiURL: string,
+    authProviders: string[],
 }
 
 export class FirebaseRepository {

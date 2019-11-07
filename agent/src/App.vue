@@ -19,6 +19,7 @@
     import {Component, Vue} from 'vue-property-decorator';
     import {router} from "./routers/router";
     import Auth from "./components/auth/AuthPage.vue";
+    import {firebase} from '@firebase/app';
 
     @Component({
         components: {Auth},

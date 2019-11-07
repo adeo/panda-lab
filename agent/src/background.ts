@@ -25,7 +25,9 @@ let config = {
     databaseURL: process.env.VUE_APP_DATABASE_URL,
     messagingSenderId: process.env.VUE_APP_MESSAGING_SENDER_ID,
     storageBucket: process.env.VUE_APP_STORAGE_BUCKET,
-    apiURL: process.env.VUE_APP_API_URL
+    apiURL: process.env.VUE_APP_API_URL,
+    authProviders: process.env.VUE_APP_AUTH_PROVIDERS.split(',')
+
 };
 Services.setup(config);
 

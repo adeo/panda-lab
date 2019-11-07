@@ -91,18 +91,12 @@
                     }
                 },
                 signInSuccessUrl: '/home',
-                signInOptions: [
-                    //TODO externalize conf
-                    {
-                        provider: firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-                        authMethod: 'https://accounts.google.com',
-                        clientId: '24857120470-lpj1m345qh0spg0jjfr379dumpf7r96j.apps.googleusercontent.com'
-                    },
-                    firebase.auth.EmailAuthProvider.PROVIDER_ID
-                ]
+                signInOptions: Services.getInstance().config.authProviders,
             };
             let ui = firebaseui.auth.AuthUI.getInstance() ? firebaseui.auth.AuthUI.getInstance() : new firebaseui.auth.AuthUI(firebase.auth());
             ui.start('#firebaseui-auth-container', uiConfig);
+
+            console.log(Services.getInstance().config.authProviders);
         }
 
 
