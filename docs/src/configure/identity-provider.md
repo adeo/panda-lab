@@ -8,7 +8,7 @@ nav_order: 4
 
 # Identity providers
 
-Firebase Authentification permet de se connecter à plusieurs providers :
+Firebase Authentication allows you to connect to multiple providers :
 
 * google.com (OAuth Google)
 * password (Email)
@@ -16,4 +16,27 @@ Firebase Authentification permet de se connecter à plusieurs providers :
 * github.com (OAuth Github)
 * twitter.com (OAuth twitter)
 
+![image](/assets/firebase/pandalab-login-providers.png)
 
+--- 
+
+## Configure the list of providers
+
+The different providers are configurable in the file`.config/config.json` : 
+
+```json
+{
+ // ...
+ "authProviders": [
+     "google.com",
+     "password",
+     "facebook.com",
+     "github.com",
+     "twitter.com"
+ ]
+}
+```
+
+The `authProviders` property is an array with the different providers you want. You are free to select the appropriate providers.
+
+The configuration of the different providers in firebase is available on the [documentation](https://firebase.google.com/docs/auth)
