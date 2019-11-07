@@ -28,6 +28,12 @@ theme: just-the-docs
 plugins:
   - jekyll-feed
 
+aux_links:
+  "PandaLab on GitHub":
+    - "//github.com/MobileTribe/panda-lab"
+
+footer_content: "Distributed by an <a href=\"http://www.apache.org/licenses/LICENSE-2.0\">Apache License, Version 2.0.</a>"
+
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list
 # to override the default setting.
