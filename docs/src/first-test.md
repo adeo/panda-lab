@@ -1,9 +1,9 @@
 ---
 layout: default
 title: Plugin Android project
-description: "Create a job test with pandalab"
+description: "Create a test with pandalab"
 permalink: /create-test
-nav_order: 2
+nav_order: 4
 ---
 # Configure Android project
 

@@ -65,14 +65,24 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.1.0'
 }
 
-def configFile = new File("../.config/config.json")
+
+def configFile = rootProject.file("../.config/config.json")
+if(!configFile.exists()){
+    throw new GradleException("Can't find ${configFile.path} file")
+}
 def slurper = new JsonSlurper()
 def configData = slurper.parse(configFile)
-def playServicesSource = new File("../" + configData.googlePlayServicesPath).newDataInputStream()
-def playServicesDestination = new File("./app/google-services.json").newDataOutputStream()
-playServicesDestination << playServicesSource
-playServicesSource.close()
-playServicesDestination.close()
+
+String jsonFilePath = configData.googlePlayServicesPath
+def jsonFile = rootProject.file("../" + jsonFilePath)
+if(jsonFilePath.startsWith("/")){
+    jsonFile = new File(jsonFilePath)
+}
+if(!jsonFile.exists()){
+    throw new GradleException("Can't find ${jsonFile.path}")
+}
+file("google-services.json").delete()
+file("google-services.json") << jsonFile.text
 
 
 apply plugin: 'com.google.gms.google-services'
