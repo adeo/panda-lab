@@ -2,6 +2,7 @@
   "name": "doc",
   "version": "0.0.1",
   "scripts": {
-
+    "install": "bundle install",
+    "serve": "bundle exec jekyll serve"
   }
 }
