@@ -9,7 +9,7 @@ PandaLab is an open source solution which helps you to manager fleet of devices 
 
 To use PandaLab please check the [documentation](https://mobiletribe.github.io/panda-lab/)
 
-## Developer's informations
+## Developer commands
 
 |Command|Description|
 |--|--|
@@ -46,9 +46,9 @@ To use PandaLab please check the [documentation](https://mobiletribe.github.io/p
 
 `/plugins/gradle-plugin` folder contains the plugin source code
 
+Plugin is built by PandaLab team and is available on jcenter()
 ![https://bintray.com/mobiletribe/maven/com.leroymerlin.plugins:pandalab-plugin/_latestVersion](https://api.bintray.com/packages/mobiletribe/maven/com.leroymerlin.plugins:pandalab-plugin/images/download.svg)
 
-Plugin is built by PandaLab team and is available on jcenter()
 ```groovy
 buildscript {
     repositories{
