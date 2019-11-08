@@ -1,4 +1,4 @@
-import {BehaviorSubject, defer, EMPTY, from, interval, merge, Observable, of, Subscription} from 'rxjs';
+import {BehaviorSubject, defer, EMPTY, from, interval, merge, Observable, Subscription} from 'rxjs';
 import {AdbStatus, AdbStatusState, DeviceAdb} from "../../models/adb";
 import {
     catchError,
@@ -150,6 +150,7 @@ export class AdbService {
         this.startTrackingAdb();
     }
 
+    /*
     readAdbLogcat(deviceId: string, filter?: string): Observable<string> {
         return new Observable(emitter => {
             const {spawn} = require('child_process');
@@ -185,6 +186,7 @@ export class AdbService {
             });
         });
     }
+     */
 
 
     launchActivity(deviceId: string, activityName: string): Observable<any> {

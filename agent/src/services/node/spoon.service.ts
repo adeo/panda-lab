@@ -63,20 +63,21 @@ export class SpoonService {
                     const jobIds = this.workspace.getJobDirectories();
                     const idsToDelete = jobIds.filter(x => {
                         const ids = jobs.map(job => job._ref.id);
+                        console.log(x);
                         return !ids.includes(x);
                     });
 
-                    this.logger.info("Job Ids to delete " + idsToDelete);
-
                     idsToDelete.forEach(jobId => {
+                        this.logger.warn("Job " + jobId + " not found");
                         this.deleteJobDirectory(jobId);
                     });
-                }),
-                flatMap(jobs => from<Job[]>(jobs)),
-                tap(job => {
-                    if (job.completed) {
-                        this.deleteJobDirectory(job._ref.id);
-                    }
+
+                    jobs.filter(job => job.completed)
+                        .filter(job => jobIds.includes(job._ref.id))
+                        .forEach(job => {
+                            this.logger.warn("Job " + job._ref.id + " is completed");
+                            this.deleteJobDirectory(job._ref.id);
+                        });
                 }),
             );
     }

@@ -186,7 +186,7 @@ class LocalServicesProvider implements ServicesProvider {
                 timestamp: undefined,
                 context: undefined
             }));
-            return `${info.timestamp} ${info.level[0].toUpperCase()}/${(info.context !== undefined) ? info.context + ":" : ":"} ${info.message} ${(stringifiedRest !== '{}') ? stringifiedRest : ''}`;
+            return `${info.timestamp} ${info.level}/${(info.context !== undefined) ? info.context + ":" : ":"} ${info.message} ${(stringifiedRest !== '{}') ? stringifiedRest : ''}`;
         });
 
         if (getRuntimeEnv() == RuntimeEnv.WEB) {

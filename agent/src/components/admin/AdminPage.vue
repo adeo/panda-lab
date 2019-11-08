@@ -1,27 +1,30 @@
 <template>
-    <div class="md-layout">
-        <div class="md-layout-item pl-container">
-            <h2 class="pl-title">Admin</h2>
-            <md-table id="table" md-card>
-                <md-table-toolbar>
-                    <h1 class="md-title">Users</h1>
-                </md-table-toolbar>
-                <md-table-row>
-                    <md-table-head>Email</md-table-head>
-                    <md-table-head>Role</md-table-head>
-                </md-table-row>
-                <md-table-row v-for="user in users" v-bind:key="user._ref.id">
-                    <md-table-cell>{{ user.email }}</md-table-cell>
-                    <AdminUserCell :roles="roles" :user="user" :onRoleChange="onUserRoleChange"></AdminUserCell>
-                </md-table-row>
-            </md-table>
-
-            <md-snackbar :md-duration="4000" :md-active.sync="snackbar.display" md-persistent>
-                <span>{{snackbar.msg}}</span>
-                <md-button class="md-primary" @click="snackbar.display = false">Ok</md-button>
-            </md-snackbar>
+    <div class="pl-container">
+        <div class="md-layout  md-alignment-center">
+            <h2 class="md-layout-item pl-title">Admin</h2>
         </div>
+        <md-table id="table" md-card>
+            <md-table-toolbar>
+                <h1 class="md-title">Users</h1>
+            </md-table-toolbar>
+            <md-table-row>
+                <md-table-head>Email</md-table-head>
+                <md-table-head>Role</md-table-head>
+            </md-table-row>
+            <md-table-row v-for="user in users" v-bind:key="user._ref.id">
+                <md-table-cell>{{ user.email }}</md-table-cell>
+                <AdminUserCell :roles="roles" :user="user" :onRoleChange="onUserRoleChange"></AdminUserCell>
+            </md-table-row>
+        </md-table>
+
+        <md-snackbar :md-duration="4000" :md-active.sync="snackbar.display" md-persistent>
+            <span>{{snackbar.msg}}</span>
+            <md-button class="md-primary" @click="snackbar.display = false">Ok</md-button>
+        </md-snackbar>
+
     </div>
+
+
 </template>
 
 <script lang="ts">
@@ -66,10 +69,11 @@
                 this.snackbar.display = true;
             });
         }
+
     }
 
 </script>
-
 <style scoped>
+
 
 </style>

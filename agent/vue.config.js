@@ -20,6 +20,7 @@ module.exports = {
     },
     pluginOptions: {
         electronBuilder: {
+            mainProcessWatch: ['src/background.ts', 'src/services/**'],
 
             builderOptions: {
                 asar: false,

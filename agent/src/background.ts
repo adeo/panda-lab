@@ -1,6 +1,6 @@
 'use strict';
 
-import {app, BrowserWindow, protocol} from 'electron'
+import {app, BrowserWindow, Menu, protocol, Tray, nativeImage} from 'electron'
 import {createProtocol, installVueDevtools} from 'vue-cli-plugin-electron-builder/lib'
 import {Services} from "./services/services.provider";
 
@@ -14,6 +14,9 @@ let win;
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: {secure: true, standard: true}}]);
 
 app.commandLine.appendSwitch('remote-debugging-port', '59221');
+
+app.dock.hide();
+
 
 console.log("###########");
 console.log("ANDROID HOME", process.env.ANDROID_HOME);
@@ -39,6 +42,7 @@ function createWindow() {
         }
     });
 
+    app.dock.show();
 
 
     if (process.env.WEBPACK_DEV_SERVER_URL) {
@@ -52,7 +56,8 @@ function createWindow() {
     }
 
     win.on('closed', () => {
-        win = null
+        win = null;
+        app.dock.hide();
     })
 }
 
@@ -60,9 +65,9 @@ function createWindow() {
 app.on('window-all-closed', () => {
     // On macOS it is common for applications and their menu bar
     // to stay active until the user quits explicitly with Cmd + Q
-    if (process.platform !== 'darwin') {
-        app.quit()
-    }
+    // if (process.platform !== 'darwin') {
+    //     app.quit()
+    // }
 });
 
 app.on('activate', () => {
@@ -76,7 +81,35 @@ app.on('activate', () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
+let tray = null
+
 app.on('ready', async () => {
+
+    let image = nativeImage.createFromPath('src/assets/icons/tray.png');
+
+    if(process.platform === 'darwin'){
+        image = image.resize({height:16, width: 16})
+    }
+
+    tray = new Tray(image);
+    const contextMenu = Menu.buildFromTemplate([
+        {
+            label: 'Show PandaLab', type: 'normal', click: () => {
+                if (win == null) {
+                    createWindow()
+                }
+            }
+        },
+        {
+            label: 'Quit PandaLab', type: 'normal', click: () => {
+                app.quit()
+            }
+        },
+    ]);
+    tray.setToolTip('PandaLab');
+    tray.setContextMenu(contextMenu);
+
+
     if (isDevelopment && !process.env.IS_TEST) {
         // Install Vue Devtools
         try {
