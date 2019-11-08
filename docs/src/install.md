@@ -12,7 +12,7 @@ permalink: /install
 Make sure you follow all the steps in the configure section before trying to deploy.
 {: .fs-6 .fw-300 }
 
-[Configure project](configure){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 } 
+[Configure project](/configure){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 } 
 
 ---
 

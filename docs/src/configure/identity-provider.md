@@ -37,6 +37,11 @@ The different providers are configurable in the file`.config/config.json` :
 }
 ```
 
-The `authProviders` property is an array with the different providers you want. You are free to select the appropriate providers.
+The `authProviders` property is an array with the different providers you want. You are free to use the providers you need.
 
-The configuration of the different providers in firebase is available on the [documentation](https://firebase.google.com/docs/auth)
+Don't forget to configure each of them in the Firebase console.
+
+![image](/assets/firebase/firebase-providers.png)
+
+
+The configuration of the different providers in firebase is available on the [official documentation](https://firebase.google.com/docs/auth)
