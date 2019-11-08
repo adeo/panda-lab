@@ -1,42 +1,72 @@
 # Panda Lab
 
-## Agent
+!["Apache License 2", link="http://www.apache.org/licenses/LICENSE-2.0.txt"](http://img.shields.io/badge/license-ASF2-blue.svg)
+
+PandaLab is an open source solution which helps you to manager fleet of devices and to run automatic tests on them.
+
+
+## [Documentation](https://mobiletribe.github.io/panda-lab/)
+
+To use PandaLab please check the [documentation](https://mobiletribe.github.io/panda-lab/)
+
+## Developer's informations
 
 |Command|Description|
 |--|--|
-|`npm start`| Execute the app in the dev mode (debug port 9222) |
-|`npm run build`| Builds your application and start electron |
+|`npm install`| install all submodule dependencies |
+|`npm run build`| build submodule artifacts |
+|`npm run deploy`| deploy PandaLab on firebase and upload clients |
 
-**Configuration to Debug in intellij**
-
-Configuration > Attach to Node.js/Chrome
-- localhost
-- Use port 9222
-
-
-## Deploy on Firebase
-
-Here are the commands to launch to deploy on Firebase
-
-### Firestore rules
-```shell
-firebase deploy --only firestore:rules
-```
+### Commons
+`/commons` folder contains shared code between  web and agent interface and the firebase functions code.
 
 ### Functions
-```shell
-firebase deploy --only functions
+
+`/functions` folder contains the code for the web and agent interface.
+
+|Command|Description|
+|--|--|
+|`npm run deploy`| deploy function to firebase |
+
+### Agent
+
+`/agent` folder contains the code for the web and agent interface.
+
+|Command|Description|
+|--|--|
+|`npm run serve`| start the web interface in livereload mode |
+|`npm run electron:serve`| start the electron agent in livereload mode |
+
+### Android
+
+`/android` folder contains the code of the Android client app.
+
+
+### Gradle plugin 
+
+`/plugins/gradle-plugin` folder contains the plugin source code
+
+![https://bintray.com/mobiletribe/maven/com.leroymerlin.plugins:pandalab-plugin/_latestVersion](https://api.bintray.com/packages/mobiletribe/maven/com.leroymerlin.plugins:pandalab-plugin/images/download.svg)
+
+Plugin is built by PandaLab team and is available on jcenter()
+```groovy
+buildscript {
+    repositories{
+        jcenter()
+    }   
+    dependencies {
+        classpath "com.leroymerlin.pandalab:gradle-plugin:$pandalab_version"
+    }
+}
+apply plugin: 'com.leroymerlin.pandalab'
 ```
-#### Configuration
 
-### Login
+## License
 
-```shell
-firebase login
-```
+PandaLab is distributed by an [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
-### Choice your firebase project
+## Contributing
 
-```shell
-firebase use <your project name>
-```
+When contributing to this repository, please first discuss the change you wish to make via issue,
+email, or any other method with the owners of this repository before making a change.
+Read more about becoming a contributor in [this guide](https://www.contributor-covenant.org/).

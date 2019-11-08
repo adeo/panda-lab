@@ -20,6 +20,7 @@ Make sure you have followed all the steps in the configure section before trying
 
 Run the following command in the root folder to deploy the project to firebase
 ```bash
+npm install
 npm run deploy
 ```
 
@@ -29,6 +30,7 @@ To update the project you just have to pull and deploy.
 
 ```bash
 git pull
+npm install
 npm run deploy
 ```
 

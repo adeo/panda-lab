@@ -16,7 +16,7 @@
 title: Panda Lab
 logo: "assets/logo.png"
 description: >- # this means to ignore newlines until "baseurl:"
-  PandaLab documentation. Open source testing solution for mobile
+  PandaLab documentation. PandaLab is an open source solution which helps you to manager fleet of devices and to run automatic tests on them.
 baseurl: "/panda-lab" # the subpath of your site, e.g. /blog
 url: "https://mobiletribe.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 livereload: true
