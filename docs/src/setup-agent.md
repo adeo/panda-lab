@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Setup agent
+title: Agent
 description: "Instruction to setup a PandaLab agent"
 permalink: /setup-agent
 nav_order: 4
@@ -8,7 +8,7 @@ nav_order: 4
 # Setup an agent
 
 An agent is a computer in charge of managing devices. Your instance of PandaLab can have as many agent as you want. 
-Each of them will manage his connected devices.
+Each of them will deal with his connected devices.
 
 
 ## Setup environment
@@ -24,7 +24,7 @@ adb --version
 
 ## Install client
 
-Agent client is available in the agents section of your PandaLab web interface. Download the client of the corresponding OS.
+Agent client is available in the **agents** section of your PandaLab web interface. Download the client of the corresponding OS.
 
 ![](assets/screenshots/agent-client.png)
 

@@ -11,7 +11,7 @@ has_children: true
 
 ## Firebase
 
-PandaLab was developed around the [firebase solution](https://firebase.google.com/). In order to deploy your lab, you have to configure
-a Firebase project and retrieve configuration for the different frontend.
+PandaLab was developed around the [firebase solution](https://firebase.google.com/). In order to deploy your lab, you will 
+have to configure a Firebase project and retrieve configuration for the different frontends.
 
-![image](/assets/firebase/firebase.png)
+![image](assets/firebase/firebase.png)

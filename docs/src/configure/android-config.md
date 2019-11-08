@@ -21,9 +21,9 @@ storePassword=XXXXXXXXX
 
 ## Create a firebase Android app
 
-In the firebase settings create a new Android application with `com.leroymerlin.pandalab` as package name and download the `google-services.json`.
+In the firebase settings, create a new Android application with `com.leroymerlin.pandalab` as package name and download the `google-services.json`.
 
-![image](/assets/firebase/firebase-config-web-create.png)
+![image](../assets/firebase/firebase-config-web-create.png)
 
 
 Set the path to the `google-services.json` in `.config/config.json` with the key **googlePlayServicesPath**.

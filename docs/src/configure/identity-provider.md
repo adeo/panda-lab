@@ -16,7 +16,7 @@ Firebase Authentication allows you to connect to multiple providers :
 * github.com (OAuth Github)
 * twitter.com (OAuth twitter)
 
-![image](/assets/firebase/pandalab-login-providers.png)
+![image](/panda-lab/public/assets/firebase/pandalab-login-providers.png)
 
 --- 
 
@@ -37,11 +37,28 @@ The different providers are configurable in the file`.config/config.json` :
 }
 ```
 
-The `authProviders` property is an array with the different providers you want. You are free to use the providers you need.
+The `authProviders` property is an array with the different providers. You are free to use those you need.
 
 Don't forget to configure each of them in the Firebase console.
 
-![image](/assets/firebase/firebase-providers.png)
+![image](../assets/firebase/firebase-providers.png)
 
 
 The configuration of the different providers in firebase is available on the [official documentation](https://firebase.google.com/docs/auth)
+
+
+
+## Role
+
+PandaLab use different user role : 
+* guest
+* user
+* admin
+
+#### Security
+
+_The first user created in the application will be automatically admin. 
+Then the following will be identified as a guest until the administrator grants rights greater than this one._
+
+
+![image](../assets/screenshots/security.png)

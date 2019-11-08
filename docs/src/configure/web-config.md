@@ -12,11 +12,11 @@ nav_order: 2
 
 In the firebase settings create a new web application.
 
-![image](/assets/firebase/firebase-config-web-create.png)
+![image](../assets/firebase/firebase-config-web-create.png)
 
-Retrieve information from the configured web application.
+Retrieve informations from the configured web application.
 
-![image](/assets/firebase/firebase-config-web-created.png)
+![image](../assets/firebase/firebase-config-web-created.png)
 
 
 ## Configure firebase.json
@@ -38,20 +38,20 @@ Modify or create the file `.config/config.json` located at the root of the proje
 ## Service account
 
 Create a service account and download the json file from the firebase settings or the google cloud console.
-To create this file please follow the documentation : [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup).
+To create this file, please follow the documentation : [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup).
 
 Put the file in the `.config` folder and add **serviceAccountPath** to the `.config/config.json` file to set the service account json file path.
 
 ```json
 {
- "serviceAccountPath": "/.config/firebase-adminsdk.json"
+ "serviceAccountPath": ".config/firebase-adminsdk.json"
 }
 ```
 
 ## Api endpoint
 
 Add **apiUrl** in the `.config/config.json` file. The rest api endpoint url can be found in the functions part of the firebase console if you already deployed them. 
-If it's your first deployment you can create it with this pattern `https://{datacenter}-{projectName}.cloudfunctions.net`
+If it's your first deployment, you can create it with this pattern `https://{datacenter}-{projectName}.cloudfunctions.net`
 
 ```json
 {

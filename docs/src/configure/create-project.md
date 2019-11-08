@@ -11,11 +11,11 @@ nav_order: 1
 ## Create a project
 Open the Firebase console and click on the button **CREATE NEW PROJECT**.
 
-![image](/assets/firebase/firebase-create-new-project.png)
+![image](../assets/firebase/firebase-create-new-project.png)
 
 Define the name of your project.
 
-![image](/assets/firebase/firebase-create-new-project-name.png)
+![image](../assets/firebase/firebase-create-new-project-name.png)
 
 Download and install the [Firebase CLI](https://firebase.google.com/docs/cli)
 
@@ -26,10 +26,10 @@ firebase login
 
 ## Change firebase plan
 
-In order to work properly PandaLab need a paid plan to enable all the platform's features. 
+In order to work properly, PandaLab needs a paid plan to enable all the platform's features. 
 We recommend a **Blaze** formula to keep it free until you get a huge traffic on PandaLab.
 
-![image](/assets/firebase/firebase-plan.png)
+![image](../assets/firebase/firebase-plan.png)
 
 
 ## Clone and setup Pandalab

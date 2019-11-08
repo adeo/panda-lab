@@ -9,10 +9,10 @@ permalink: /install
 # Install
 {: .fs-9 }
 
-Make sure you follow all the steps in the configure section before trying to deploy.
+Make sure you have followed all the steps in the configure section before trying to deploy.
 {: .fs-6 .fw-300 }
 
-[Configure project](/configure){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 } 
+[Configure project](configure){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 } 
 
 ---
 
@@ -34,4 +34,4 @@ npm run deploy
 
 ## Install Agent
 
-To install an agent go to the admin section of your deployed website and download the corresponding agent client.
+To install an agent, go to the admin section of your deployed website and download the corresponding agent client.

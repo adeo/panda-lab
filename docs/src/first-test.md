@@ -7,7 +7,8 @@ nav_order: 5
 ---
 # Create your first test
 
-The PandaLab gradle plugin makes it easy to create test tasks. It is possible to create several gradle tasks if you have very specific needs.
+The PandaLab gradle plugin helps you create test tasks to run on the lab. 
+It is possible to create different gradle tasks to deal with very specific needs.
 
 ## Configuration
 
@@ -31,18 +32,39 @@ Then modify the build.gradle file of your application module to configure the Pa
 apply plugin: 'com.leroymerlin.pandalab'
 
 pandalab {
-    serviceAccountFile = file("YOUR FIREBASE ADMIN SDK .JSON")
+    serviceAccountFile = file("path/to/your/firebase-adminsdk.json")
     appName = "APP NAME"
     apiUrl = "YOUR FIREBASE REST API URL"
 }
 ```
 
 
-To know how to recover the file please consult the following link : [documentation](https://firebase.google.com/docs/admin/setup)
+To know how to recover the file please consult the following link : [firebase documentation](https://firebase.google.com/docs/admin/setup)
+
+## Write test
+
+### UI tests
+
+Check the [official documentation](https://developer.android.com/training/testing/ui-testing) to build your **Espresso/UI automation** tests. 
+
+### Take screenshot
+
+If you want screenshot in your test report you have to use [Spoon](https://github.com/square/spoon)
+
+```groovy
+compile {
+    implementation "com.squareup.spoon:spoon-client:1.7.1"
+}
+```
+
+```java
+Spoon.screenshot(activity, "initial_state");
+```
 
 ## Create a task
 
-A PandaLab task allows you to define the various parameters in order to launch your instrumentation tests on your phone fleet. You can define the variant name, the device lists, the device groups on which the tests will be run.
+`pandalab` extension allows you to define various parameters in order to launch your instrumentation tests on your phone fleet.
+You must define the variant name to test, then you can define the devices ids or groups on which the tests must run.
 
 ```groovy
 pandalab {
@@ -78,7 +100,7 @@ The different tests declared in `tests` generate gradle tasks with the name of t
 
 In the example above, it generates the tasks : `test1PandaLabTest` and `test2PandaLabTest`
 
-#### Run one task
+### Run one task
 To launch the previously created task `test1`, launch the command line : 
 
 ```bash
@@ -86,13 +108,13 @@ To launch the previously created task `test1`, launch the command line :
 ```
 
 
-#### Run all tasks
+### Run all tasks
 
 ```bash
 ./gradlew runPandaLabTests
 ```
 
-#### Upload version
+### Upload a version
 
 If you just want to upload a new version to the web interface for a latter use, you can run
 
@@ -100,3 +122,5 @@ If you just want to upload a new version to the web interface for a latter use, 
 ./gradlew uploadToPandaLab
 ```
 That way you will be able to create a test from this version directly in the web interface.
+
+
