@@ -2,7 +2,7 @@
   "name": "pandalab",
   "version": "0.0.1",
   "scripts": {
-    "install": "npm install --prefix commons && npm install --prefix agent && npm install --prefix functions && npm install --prefix docs",
+    "install": "npm install --prefix commons && npm install --prefix agent && npm install --prefix functions",
     "build": "npm run firebase:build && npm run electron:build && npm run android:build",
     "deploy": "npm run firebase:deploy && npm run electron:deploy && npm run android:deploy",
     "firebase:build": "npm run build --prefix agent && npm run build --prefix functions",

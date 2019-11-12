@@ -16,7 +16,7 @@ Firebase Authentication allows you to connect to multiple providers :
 * github.com (OAuth Github)
 * twitter.com (OAuth twitter)
 
-![image](/panda-lab/public/assets/firebase/pandalab-login-providers.png)
+![image](../assets/firebase/pandalab-login-providers.png)
 
 --- 
 
