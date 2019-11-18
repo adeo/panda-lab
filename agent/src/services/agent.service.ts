@@ -146,9 +146,17 @@ export class AgentService {
                         this.logger.info("update client app", deviceData.adbDevice.id);
                         deviceData.action = this.startAction(deviceData.actionType, this.installClientAppAction(deviceData.adbDevice.id));
                         break;
-                    case ActionType.update_status:
-                        deviceData.action = this.startAction(deviceData.actionType, this.saveDeviceAction(deviceData.firebaseDevice, "Save device status to " + deviceData.firebaseDevice.status));
+                    case ActionType.update_status: {
+                        let action = this.saveDeviceAction(deviceData.firebaseDevice, "Save device status to " + deviceData.firebaseDevice.status);
+                        if (deviceData.firebaseDevice.status == DeviceStatus.available) {
+                            action = concat(
+                                action,
+                                this.openClientAppAction(deviceData.adbDevice.id)
+                            )
+                        }
+                        deviceData.action = this.startAction(deviceData.actionType, action);
                         break;
+                    }
                     case ActionType.try_connect:
                         deviceData.action = this.startAction(deviceData.actionType, this.tryToConnectAction(deviceData));
                         break;
@@ -180,7 +188,7 @@ export class AgentService {
                 if (!isBooked && !isOffline) {
                     device.status = DeviceStatus.offline;
                 }
-                const canConnect = device.lastTcpActivation && device.lastTcpActivation >=0 && device.lastTcpActivation < Date.now() - 1000 * 10;
+                const canConnect = device.lastTcpActivation && device.lastTcpActivation >= 0 && device.lastTcpActivation < Date.now() - 1000 * 10;
                 let agentDeviceData = new AgentDeviceData();
                 agentDeviceData.actionType = this.enableTCP && device.ip && canConnect && isOffline ? ActionType.try_connect : !isBooked && !isOffline ? ActionType.update_status : ActionType.none;
                 agentDeviceData.firebaseDevice = device;
@@ -277,7 +285,7 @@ export class AgentService {
         return concat(
             of(<DeviceLog>{log: message, type: DeviceLogType.INFO}),
             this.devicesService.updateDevice(device).pipe(ignoreElements()),
-            of(<DeviceLog>{log: "Update success", type: DeviceLogType.INFO})
+            of(<DeviceLog>{log: "Update success", type: DeviceLogType.INFO}),
         );
     }
 
@@ -297,9 +305,15 @@ export class AgentService {
                 timeout(10000),
                 ignoreElements(),
             ),
+            this.openClientAppAction(adbDeviceId),
+            of(<DeviceLog>{log: `App installed`, type: DeviceLogType.INFO}),
+        );
+    }
+
+    private openClientAppAction(adbDeviceId: string): Observable<DeviceLog> {
+        return concat(
             of(<DeviceLog>{log: `Open main activity...`, type: DeviceLogType.INFO}),
             this.adb.launchActivity(adbDeviceId, AgentService.MOBILE_AGENT_PACKAGE + "/.HomeActivity").pipe(ignoreElements()),
-            of(<DeviceLog>{log: `App installed`, type: DeviceLogType.INFO}),
         );
     }
 

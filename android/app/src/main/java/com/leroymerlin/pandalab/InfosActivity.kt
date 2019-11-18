@@ -4,6 +4,7 @@ package com.leroymerlin.pandalab
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import com.leroymerlin.pandalab.BuildConfig
 import com.leroymerlin.pandalab.PandaLabApplication
@@ -31,6 +32,7 @@ class InfosActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_infos)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         PandaLabApplication.getApp(this).component.inject(this)
         initView()
     }
