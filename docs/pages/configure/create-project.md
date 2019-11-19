@@ -17,13 +17,6 @@ Define the name of your project.
 
 ![image](../assets/firebase/firebase-create-new-project-name.png)
 
-Download and install the [Firebase CLI](https://firebase.google.com/docs/cli)
-
-Configure your credentials.
-```bash
-firebase login
-```
-
 ## Change firebase plan
 
 In order to work properly, PandaLab needs a paid plan to enable all the platform's features. 
@@ -31,6 +24,14 @@ We recommend a **Blaze** formula to keep it free until you get a huge traffic on
 
 ![image](../assets/firebase/firebase-plan.png)
 
+## Install Firebase cli
+
+Download and install the [Firebase CLI](https://firebase.google.com/docs/cli)
+
+Configure your credentials.
+```bash
+firebase login
+```
 
 ## Clone and setup Pandalab
 
@@ -42,6 +43,6 @@ cd panda-lab
 
 Then define the Firebase project on which you will work :
 ```bash
-firebase use [PROJECT NAME]
+firebase use [PROJECT ID]
 ```
 

@@ -50,9 +50,17 @@ Put the file in the `.config` folder and add **serviceAccountPath** to the `.con
 
 ## Api endpoint
 
-Add **apiUrl** in the `.config/config.json` file. The rest api endpoint url can be found in the functions part of the firebase console if you already deployed them. 
+The rest api endpoint url can be found in the functions part of the firebase console if you already deployed them. 
 If it's your first deployment, you can create it with this pattern `https://{datacenter}-{projectName}.cloudfunctions.net`
 
+If not are not sure about your datacenter you can run :
+```bash
+npm install
+npm run deploy --prefix functions
+```
+Then you will have access to your cloud functions url in the functions section of your firebase console.
+
+Add **apiUrl** in the `.config/config.json` file.
 ```json
 {
  "apiUrl": "https://us-central1-panda-lab-lm.cloudfunctions.net"
