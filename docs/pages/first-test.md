@@ -39,7 +39,7 @@ pandalab {
 ```
 
 
-To know how to recover the file please consult the following link : [firebase documentation](https://firebase.google.com/docs/admin/setup)
+To know how to recover the file please consult the following link : [firebase documentation](https://firebase.google.com/docs/admin/setup#initialize_the_sdk)
 
 ## Write test
 

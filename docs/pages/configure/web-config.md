@@ -38,7 +38,7 @@ Modify or create the file `.config/config.json` located at the root of the proje
 ## Service account
 
 Create a service account and download the json file from the firebase settings or the google cloud console.
-To create this file, please follow the documentation : [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup).
+To create this file, please follow the documentation : [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup#initialize_the_sdk).
 
 Put the file in the `.config` folder and add **serviceAccountPath** to the `.config/config.json` file to set the service account json file path.
 
