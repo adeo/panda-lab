@@ -17,7 +17,7 @@ import {AgentService} from "../agent.service";
 
 export class AdbService {
 
-    private adbClient: any;
+    public adbClient: any;
     private Readable: any;
     private request: any;
     private readonly listDevices: BehaviorSubject<Array<DeviceAdb>>;

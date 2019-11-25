@@ -13,6 +13,7 @@ export class FilesRepository {
     private readonly apkPath: string;
     public readonly agentApkPath: string;
     public readonly spoonJarPath: string;
+    public readonly scrcpyJarPath: string;
 
     fs = require('fs');
     path = require('path');
@@ -28,6 +29,7 @@ export class FilesRepository {
         this.apkPath = `${this.workspacePath}${this.path.sep}apk`;
         this.agentApkPath = `${this.workspacePath}${this.path.sep}panda-lab-mobile.apk`;
         this.spoonJarPath = `${this.workspacePath}${this.path.sep}spoon-runner.jar`;
+        this.scrcpyJarPath = `${this.workspacePath}${this.path.sep}scrcpy-v1.11.jar`;
 
         this.prepare();
     }

@@ -63,7 +63,6 @@ export class SpoonService {
                     const jobIds = this.workspace.getJobDirectories();
                     const idsToDelete = jobIds.filter(x => {
                         const ids = jobs.map(job => job._ref.id);
-                        console.log(x);
                         return !ids.includes(x);
                     });
 

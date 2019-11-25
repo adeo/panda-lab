@@ -15,6 +15,9 @@ import {AppsService} from "./apps.service";
 import {AgentsService} from "./agents.service";
 import {UserService} from "./user.service";
 import {BrowserConsole} from "../utils/console.utils";
+import {StreamService} from "./node/stream.service";
+import {WsRepository} from "./repositories/ws.repository";
+import {NetworkRepository} from "./repositories/network.repository";
 
 const jsonStringify = require('fast-safe-stringify');
 
@@ -33,6 +36,8 @@ export interface ServicesProvider {
 
     node?: {
         agentService: AgentService
+        streamService: StreamService
+        wsRepository: WsRepository
     }
 }
 
@@ -49,13 +54,15 @@ export class Services {
     static setup(config: ServicesConfiguration) {
         switch (getRuntimeEnv()) {
             case RuntimeEnv.ELECTRON_MAIN:
+                (global as any).XMLHttpRequest = require('xhr2');
+                (global as any).WebSocket = require('ws');
+                Services.instance = LocalServicesProvider.newInstance(config);
+                break;
             case RuntimeEnv.WEB:
                 // if (getRuntimeEnv() == RuntimeEnv.ELECTRON_MAIN) {
                 //     (global as any).WebSocket = require('ws');
                 //     (global as any).XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
                 // }
-                (global as any).XMLHttpRequest = require('xhr2');
-                (global as any).WebSocket = require('ws');
                 Services.instance = LocalServicesProvider.newInstance(config);
                 break;
             case RuntimeEnv.ELECTRON_RENDERER:
@@ -94,6 +101,8 @@ class LocalServicesProvider implements ServicesProvider {
     userService: UserService;
     node: {
         agentService: AgentService;
+        streamService: StreamService;
+        wsRepository: WsRepository;
     };
 
     private constructor(public config: ServicesConfiguration) {
@@ -134,6 +143,8 @@ class LocalServicesProvider implements ServicesProvider {
                     this.authService,
                     this.firebaseRepo,
                     this.store);
+
+                const networkRepo = new NetworkRepository(this.logger.child({context: "Network"}));
                 const agentService = new AgentService(
                     this.logger.child({context: "Agent"}),
                     adbRepository,
@@ -142,7 +153,8 @@ class LocalServicesProvider implements ServicesProvider {
                     this.devicesService,
                     new DevicesRepository(),
                     this.agentsService,
-                    this.store
+                    this.store,
+                    networkRepo
                 );
                 const spoonRepo = new SpoonService(
                     this.logger.child({context: "Spoon"}),
@@ -153,9 +165,23 @@ class LocalServicesProvider implements ServicesProvider {
                     this.agentsService,
                     this.jobsService,
                     workspaceRepository);
+                const streamService = new StreamService(
+                    this.logger.child({context: "Stream"}),
+                    workspaceRepository,
+                    agentService,
+                    this.devicesService,
+                    adbRepository
+                );
+                const wsRepository = new WsRepository(
+                    this.logger.child({context: "Ws"}),
+                    networkRepo,
+                    streamService,
+                );
 
                 this.node = {
-                    agentService: agentService
+                    agentService: agentService,
+                    streamService: streamService,
+                    wsRepository : wsRepository,
                 };
 
                 spoonRepo.setup();
