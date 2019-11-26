@@ -8,6 +8,7 @@ import {DevicesService} from "../devices.service";
 import {catchError, concatMap, filter, first, flatMap, map, tap} from "rxjs/operators";
 import {defer, Observable, of, Subject} from "rxjs";
 import {doOnSubscribe} from "../../utils/rxjs";
+import {ControlMsg, ControlType} from "../../models/stream";
 
 
 export class StreamService {
@@ -102,8 +103,12 @@ export class StreamService {
         const remoteServerPath = "/data/local/tmp/scrcpy-server";
 
         const localPort = await this.getPort({port: this.getPort.makeRange(27000, 28000)});
-        const maxSize = 0; //unlimited
+        const maxSize = 1920; //unlimited
         const bitRate = 8000000;
+
+        const tunnel_forward = false;
+
+        const control = true;
 
         //const adb = require('adbkit');
         const adbClient = this.adbService.adbClient;
@@ -121,18 +126,22 @@ export class StreamService {
         });
 
         let connection: DeviceConnection = {
+            controlSocket: new ControlSocket(this.logger),
             videoSocket: new VideoSocket(this.logger, () => {
                 this.logger.warn("no client connected. Destroy socket");
                 connection.videoSocket.socket.destroy();
                 connection.videoSocket.socket = null;
+                let socket = connection.controlSocket.socket;
+                if(socket){
+                    socket.destroy();
+                }
+                connection.controlSocket.buffer = null;
                 connection.server.close();
                 connection.server = null;
                 this.cacheMap.delete(adbId);
-
                 require('child_process').execFile(adbClient.options.bin, ["reverse", "--remove", "localabstract:scrcpy"], (error, stdout, stderr) => {
                     this.logger.info("remove tcp connection with device", stdout);
                 });
-
             })
         };
 
@@ -144,13 +153,11 @@ export class StreamService {
                 }, reason => {
                     promiseReject(reason);
                 });
+            } else {
+                connection.controlSocket.initialize(socket)
             }
         });
         connection.server.listen(localPort);
-
-        const tunnel_forward = false;
-
-        const control = false;
 
 
         let maxFps = 30;
@@ -161,12 +168,22 @@ export class StreamService {
             }));
         return promise;
     }
+
+    controlMsg(deviceId: string, msg: ControlMsg) {
+        let deviceConnection = this.cacheMap.get(deviceId);
+        if (deviceConnection) {
+            deviceConnection.controlSocket.sendMessage(msg);
+        } else {
+            this.logger.warn("can't send control to device. Stream not found")
+        }
+    }
 }
 
 
 interface DeviceConnection {
     server?: Server;
-    videoSocket?: VideoSocket;
+    videoSocket: VideoSocket;
+    controlSocket: ControlSocket;
 }
 
 class VideoSocket {
@@ -220,34 +237,84 @@ class VideoSocket {
 
 
     addClient(socket: WebSocket) {
-
-        //initial width and height (it adapts to the stream)
-
         this.logger.info("New client listening");
         this.avcServer.new_client(socket);
-        //const wss = new WebSocketServer({ port: 3333 });
-        //this.socket.pipe(wss)
-        //} else {
-
-        //this.readable.put(data);
-
-        // var currentBuffer = data;
-        // while (currentBuffer.length > 0) {
-        //     currentBuffer = this.analyseStream(currentBuffer);
-        // }
-
-        // }
-        //     let uint8Array = data.slice(12, 12 + this.currentPacketSize);
-        //     if(uint8Array)
-        //     data.slice()subarray(12);
-        //     //console.log("pts", new this.Int64(data, 0).toNumber(true));
-        //     console.log("packetSize", data.readInt32BE(8))
-        //
-        //     //this.fs.appendFileSync(fileName, data);
-        // }
-
     }
+
+
 }
 
 
+class ControlSocket {
+
+    CONTROL_MSG_TEXT_MAX_LENGTH = 300;
+    CONTROL_MSG_CLIPBOARD_TEXT_MAX_LENGTH = 4093;
+    CONTROL_MSG_SERIALIZED_MAX_SIZE = 3 + this.CONTROL_MSG_CLIPBOARD_TEXT_MAX_LENGTH
+
+    public socket: Socket;
+
+    public buffer = new Buffer(this.CONTROL_MSG_SERIALIZED_MAX_SIZE);
+
+    constructor(private logger: winston.Logger) {
+        this.buffer.byteLength
+    }
+
+    initialize(socket: Socket) {
+        this.socket = socket;
+    }
+
+    sendMessage(msg: ControlMsg) {
+
+        let offset = 0;
+        offset = this.buffer.writeInt8(msg.type, offset);
+        switch (msg.type) {
+            case ControlType.CONTROL_MSG_TYPE_INJECT_KEYCODE:
+                offset = this.buffer.writeInt8(msg.action, offset);
+                offset = this.buffer.writeInt32BE(msg.keycode, offset);
+                offset = this.buffer.writeInt32BE(msg.metaState, offset);
+                break;
+            case ControlType.CONTROL_MSG_TYPE_INJECT_TEXT:
+            case ControlType.CONTROL_MSG_TYPE_SET_CLIPBOARD: {
+
+                let stringBuffer = Buffer.from(msg.text);
+                offset = this.buffer.writeInt16BE(stringBuffer.byteLength, offset);
+                stringBuffer.copy(this.buffer, offset);
+                offset = offset + stringBuffer.byteLength;
+                break;
+            }
+            case ControlType.CONTROL_MSG_TYPE_INJECT_MOUSE_EVENT:
+                offset = this.buffer.writeInt8(msg.action, offset);
+                offset = this.buffer.writeInt32BE(0, offset); // pointerId is Long (64 bites)
+                offset = this.buffer.writeInt32BE(msg.pointerId, offset);
+                offset = this.writePosition(offset, msg);
+                offset = this.buffer.writeInt16BE(msg.pressure, offset);
+                offset = this.buffer.writeInt32BE(msg.buttons, offset);
+                break;
+            case ControlType.CONTROL_MSG_TYPE_INJECT_SCROLL_EVENT:
+                offset = this.writePosition(offset, msg);
+                offset = this.buffer.writeInt32BE(msg.hScroll, offset);
+                offset = this.buffer.writeInt32BE(msg.vScroll, offset);
+                break;
+            case ControlType.CONTROL_MSG_TYPE_BACK_OR_SCREEN_ON:
+            case ControlType.CONTROL_MSG_TYPE_EXPAND_NOTIFICATION_PANEL:
+            case ControlType.CONTROL_MSG_TYPE_COLLAPSE_NOTIFICATION_PANEL:
+            case ControlType.CONTROL_MSG_TYPE_GET_CLIPBOARD:
+                break;
+            case ControlType.CONTROL_MSG_TYPE_SET_SCREEN_POWER_MODE:
+                offset = this.buffer.writeInt8(msg.action, offset);
+                break;
+
+        }
+        this.socket.write(this.buffer.subarray(0, offset))
+    }
+
+
+    private writePosition(offset: number, msg: ControlMsg) {
+        offset = this.buffer.writeInt32BE(msg.position.point.x, offset);
+        offset = this.buffer.writeInt32BE(msg.position.point.y, offset);
+        offset = this.buffer.writeInt16BE(msg.position.screenSize.width, offset);
+        offset = this.buffer.writeInt16BE(msg.position.screenSize.height, offset);
+        return offset;
+    }
+}
 

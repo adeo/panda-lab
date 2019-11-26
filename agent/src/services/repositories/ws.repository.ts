@@ -6,6 +6,7 @@ import * as WebSocket from 'ws';
 import {StreamService} from "../node/stream.service";
 import {AddressInfo} from "net";
 import {NetworkRepository} from "./network.repository";
+import {ControlMsg} from "../../models/stream";
 
 
 export class WsRepository {
@@ -34,6 +35,9 @@ export class WsRepository {
                 if (action == "stream") {
                     this.logger.info("New stream on device " + payload);
                     streamService.listenStream(ws, payload)
+                } else if (action == "control") {
+                    const msg = JSON.parse(payload) as ControlMsg;
+                    streamService.controlMsg(msg.deviceId, msg)
                 }
                 //ws.send(`Hello, you sent -> ${message}`);
             });

@@ -1,3 +1,5 @@
+import {ControlType} from "../../models/stream";
+import {AndroidMotionEventAction} from "../../services/node/stream.service";
 <template xmlns:v-init="http://www.w3.org/1999/xhtml">
     <div class="md-layout">
         <div class="md-layout-item pl-container">
@@ -51,7 +53,21 @@
                                 </md-list-item>
                             </md-list>
                         </div>
-                        <div class="md-layout-item md-layout" ref="video-box" id="media-box">
+                        <div v-if="video" id="device-btn">
+                            <md-button @mousedown="pressMenu" @mouseup="pressMenu"
+                                       class="md-icon-button">
+                                <md-icon>menu</md-icon>
+                            </md-button>
+                            <md-button @mousedown="pressHome" @mouseup="pressHome"
+                                       class="md-icon-button">
+                                <md-icon>home</md-icon>
+                            </md-button>
+                            <md-button @mousedown="pressBack" @mouseup="pressBack"
+                                       class="md-icon-button">
+                                <md-icon>arrow_back</md-icon>
+                            </md-button>
+                        </div>
+                        <div class="md-layout-item" ref="video-box" id="media-box">
                             <img v-if="!video"
                                  :src="device.pictureIcon ? device.pictureIcon : require('../../assets/images/device.png')"/>
                         </div>
@@ -72,6 +88,13 @@
     import {DateFormatter} from "../utils/Formatter";
     import ListTasks from "../widget/ListTasks.vue";
     import * as WSAvcPlayer from 'ws-avc-player/lib/WSAvcPlayer'
+    import {
+        AndroidKeycode,
+        AndroidMotionEventAction,
+        AndroidMotionEventButtons,
+        ControlMsg,
+        ControlType
+    } from "../../models/stream";
 
     @Component({
         components: {ListTasks}
@@ -112,6 +135,28 @@
             }
         }
 
+        pressMenu(mouseEvent: MouseEvent) {
+            this.pressKey(AndroidKeycode.AKEYCODE_APP_SWITCH, mouseEvent.buttons > 0)
+        }
+
+        pressBack(mouseEvent: MouseEvent) {
+            this.pressKey(AndroidKeycode.AKEYCODE_BACK, mouseEvent.buttons > 0)
+        }
+
+        pressHome(mouseEvent: MouseEvent) {
+            this.pressKey(AndroidKeycode.AKEYCODE_HOME, mouseEvent.buttons > 0)
+        }
+
+        pressKey(key: number, down: boolean) {
+            const msg = {
+                type: ControlType.CONTROL_MSG_TYPE_INJECT_KEYCODE,
+                keycode: key,
+                metaState: 0,
+                action: down ? AndroidMotionEventAction.AMOTION_EVENT_ACTION_DOWN : AndroidMotionEventAction.AMOTION_EVENT_ACTION_UP
+            } as ControlMsg;
+            this.sendControl(msg)
+        }
+
         protected startVideo(url) {
 
             this.wsavc = new WSAvcPlayer.default({
@@ -119,6 +164,17 @@
                 workerFile: "/scripts/Decoder.js",
             });
             let canvas = this.wsavc.AvcPlayer.canvas;
+
+            canvas.addEventListener("mousedown", e => {
+                this.sendMouseEvent(canvas, e, AndroidMotionEventAction.AMOTION_EVENT_ACTION_DOWN)
+            }, false);
+            canvas.addEventListener("mouseup", e => {
+                this.sendMouseEvent(canvas, e, AndroidMotionEventAction.AMOTION_EVENT_ACTION_UP)
+            }, false);
+            canvas.addEventListener("mousemove", e => {
+                this.sendMouseEvent(canvas, e, AndroidMotionEventAction.AMOTION_EVENT_ACTION_MOVE)
+            }, false);
+
             canvas.id = "stream";
             canvas.ref = "stream";
             canvas.style.background = "white";
@@ -129,30 +185,57 @@
                 console.log('WS Disconnected');
                 canvas.remove();
                 this.video = false;
-
+                window.removeEventListener("keypress", this.keyDown, false);
+                window.removeEventListener("onpaste", this.onPaste, false);
+                window.removeEventListener("oncut", this.onPaste, false);
+                window.removeEventListener("paste", this.onPaste, false);
             });
             this.wsavc.on('connected', () => {
                 console.log('WS connected');
                 (this.$refs['video-box'] as Element).appendChild(canvas);
-                this.wsavc.send('stream', this.$route.params.deviceId)
+                this.wsavc.send('stream', this.$route.params.deviceId);
                 this.video = true;
+                window.addEventListener("keypress", this.keyDown, false);
+                window.addEventListener("onpaste", this.onPaste, false);
+                window.addEventListener("oncut", this.onPaste, false);
+                window.addEventListener("paste", this.onPaste, false);
 
             });
 
             this.wsavc.on('resized', (payload) => {
                 console.log('resized', payload)
-                //const vb = document.getElementById('video-box')
-
-                //vb.style = `padding-bottom: calc( 100% * ${payload.height} / ${ payload.width })`
             });
             this.wsavc.on('stream_active', active => {
                 console.log('Stream is ', active ? 'active' : 'offline');
-                if(!active){
+                if (!active) {
                     this.wsavc.disconnect()
-                    //this.wsavc.send('stream', this.$route.params.deviceId)
                 }
             })
 
+
+        }
+
+        private async onPaste(event) {
+            const text = await navigator.clipboard.readText();
+            this.sendControl({
+                type: ControlType.CONTROL_MSG_TYPE_INJECT_TEXT,
+                text: text,
+            } as ControlMsg);
+            return false;
+        }
+
+        private keyDown(event: KeyboardEvent) {
+            if (event.keyCode == 13) {
+                this.pressKey(AndroidKeycode.AKEYCODE_ENTER, true);
+                this.pressKey(AndroidKeycode.AKEYCODE_ENTER, false);
+                event.preventDefault();
+            } else if (event.key.length == 1) {
+                this.sendControl({
+                    type: ControlType.CONTROL_MSG_TYPE_INJECT_TEXT,
+                    text: event.key,
+                } as ControlMsg);
+                event.preventDefault();
+            }
 
         }
 
@@ -161,6 +244,37 @@
             this.$router.back();
         }
 
+        private sendMouseEvent(canvas, mouseEvent: MouseEvent, action: AndroidMotionEventAction) {
+            if (mouseEvent.buttons > 0 || action == AndroidMotionEventAction.AMOTION_EVENT_ACTION_UP) {
+                const rect = canvas.getBoundingClientRect();
+                let x = mouseEvent.clientX - rect.left;
+                let y = mouseEvent.clientY - rect.top;
+                const event = {
+                    pointerId: 1,
+                    pressure: 0,
+                    type: ControlType.CONTROL_MSG_TYPE_INJECT_MOUSE_EVENT,
+                    action: action,
+                    buttons: AndroidMotionEventButtons.AMOTION_EVENT_BUTTON_PRIMARY,
+                    position: {
+                        point: {
+                            x: x * canvas.width / rect.width,
+                            y: y * canvas.height / rect.height,
+                        },
+                        screenSize: {
+                            width: canvas.width,
+                            height: canvas.height,
+                        }
+                    },
+                } as ControlMsg;
+
+                this.sendControl(event);
+            }
+        }
+
+        private sendControl(event: ControlMsg) {
+            event.deviceId = this.device._ref.id;
+            this.wsavc.send('control', JSON.stringify(event));
+        }
     }
 
 </script>
@@ -184,6 +298,11 @@
 
         #header {
             margin-bottom: 20px;
+        }
+
+        #device-btn button {
+            display: block;
+            margin: auto;
         }
     }
 </style>
