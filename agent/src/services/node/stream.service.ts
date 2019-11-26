@@ -28,12 +28,9 @@ export class StreamService {
                 private adbService: AdbService) {
         this.fs = require('fs');
         this.path = require('path');
-
         this.adb = require('adbkit');
         this.net = require("net");
         this.getPort = require('get-port');
-
-
     }
 
     private streamSubjectEmitter = new Subject<{ ws: WebSocket, deviceId: string }>();
@@ -43,16 +40,16 @@ export class StreamService {
     private sub = this.streamSubjectEmitter.pipe(
         concatMap(data => {
             let connectionObs: Observable<DeviceConnection>;
-            if (this.cacheMap.has(data.deviceId) && !this.cacheMap.get(data.deviceId).videoSocket.isFinish) {
+            if (this.cacheMap.has(data.deviceId) && !this.cacheMap.get(data.deviceId).videoSocket.isFinish()) {
                 connectionObs = of(this.cacheMap.get(data.deviceId));
             } else {
                 this.cacheMap.delete(data.deviceId);
-                connectionObs = this.newStream(data.ws, data.deviceId)
+                connectionObs = this.newStream(data.deviceId)
             }
             return connectionObs.pipe(
                 map(connection => {
                     this.cacheMap.set(data.deviceId, connection);
-                    connection.videoSocket.listen(data.ws);
+                    connection.videoSocket.addClient(data.ws);
                     return {ws: data.ws}
                 }),
                 catchError(err => {
@@ -82,7 +79,7 @@ export class StreamService {
         )
     }
 
-    private newStream(ws: WebSocket, deviceId: string) {
+    private newStream(deviceId: string) {
 
         return this.agentService.listenAgentDevices().pipe(
             first(),
@@ -96,12 +93,12 @@ export class StreamService {
                 }
             }),
             flatMap(value => {
-                return defer(() => this.startStream(value.adbDevice.serialId));
+                return defer(() => this.startStream(value.adbDevice.id));
             }),
         )
     }
 
-    async startStream(deviceId): Promise<DeviceConnection> {
+    async startStream(adbId): Promise<DeviceConnection> {
         const remoteServerPath = "/data/local/tmp/scrcpy-server";
 
         const localPort = await this.getPort({port: this.getPort.makeRange(27000, 28000)});
@@ -111,10 +108,10 @@ export class StreamService {
         //const adb = require('adbkit');
         const adbClient = this.adbService.adbClient;
 
-        await adbClient.push(deviceId, this.workspace.scrcpyJarPath, remoteServerPath);
+        await adbClient.push(adbId, this.workspace.scrcpyJarPath, remoteServerPath);
 
         //socket name scrcpy
-        await adbClient.reverse(deviceId, "localabstract:scrcpy", "tcp:" + localPort);
+        await adbClient.reverse(adbId, "localabstract:scrcpy", "tcp:" + localPort);
 
         let promiseResolve;
         let promiseReject;
@@ -130,7 +127,7 @@ export class StreamService {
                 connection.videoSocket.socket = null;
                 connection.server.close();
                 connection.server = null;
-                this.cacheMap.delete(deviceId);
+                this.cacheMap.delete(adbId);
 
                 require('child_process').execFile(adbClient.options.bin, ["reverse", "--remove", "localabstract:scrcpy"], (error, stdout, stderr) => {
                     this.logger.info("remove tcp connection with device", stdout);
@@ -140,7 +137,7 @@ export class StreamService {
         };
 
         connection.server = this.net.createServer(socket => {
-            if (connection.videoSocket.deviceName == undefined) {
+            if (connection.videoSocket.socket == undefined) {
                 this.logger.info("video socket created");
                 connection.videoSocket.initialized(socket).then(value => {
                     promiseResolve(connection);
@@ -158,7 +155,7 @@ export class StreamService {
 
         let maxFps = 30;
         let cmd = `CLASSPATH=${remoteServerPath} app_process / com.genymobile.scrcpy.Server 1.11 ${maxSize} ${bitRate} ${maxFps} ${tunnel_forward} - false ${control}`;
-        adbClient.shell(deviceId, cmd).then(this.adb.util.readAll)
+        adbClient.shell(adbId, cmd).then(this.adb.util.readAll)
             .then((result => {
                 this.logger.info("adb command finish with return : " + result.toString().trim());
             }));
@@ -197,6 +194,8 @@ class VideoSocket {
     }
 
     public initialized(socket: Socket): Promise<void> {
+        this.socket = socket;
+
         return new Promise<void>((resolve, reject) => {
             socket.once("data", (data) => {
                 if (data.length != this.DEVICE_NAME_FIELD_LENGTH + 4) {
@@ -206,7 +205,6 @@ class VideoSocket {
                 this.width = data.readInt16BE(this.DEVICE_NAME_FIELD_LENGTH);
                 this.height = data.readInt16BE(this.DEVICE_NAME_FIELD_LENGTH + 2);
                 this.deviceName = data.toString("utf8", 0, this.DEVICE_NAME_FIELD_LENGTH);
-                this.socket = socket;
                 // const wss = new WebSocketServer({port: 3333})
                 this.avcServer = new this.AvcServer(null, this.width, this.height);
                 this.avcServer.setVideoStream(this.socket);
@@ -221,17 +219,17 @@ class VideoSocket {
     }
 
 
-    listen(socket: WebSocket) {
+    addClient(socket: WebSocket) {
 
         //initial width and height (it adapts to the stream)
 
+        this.logger.info("New client listening");
         this.avcServer.new_client(socket);
         //const wss = new WebSocketServer({ port: 3333 });
         //this.socket.pipe(wss)
         //} else {
 
         //this.readable.put(data);
-
 
         // var currentBuffer = data;
         // while (currentBuffer.length > 0) {

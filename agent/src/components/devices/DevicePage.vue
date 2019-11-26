@@ -105,27 +105,38 @@
         }
 
 
-        destroyed(){
-            if(this.wsavc){
+        destroyed() {
+            if (this.wsavc) {
                 console.log("close steam");
                 this.wsavc.disconnect();
             }
         }
 
         protected startVideo(url) {
-            this.video = true;
 
-            this.wsavc = new WSAvcPlayer.default({useWorker: false});
+            this.wsavc = new WSAvcPlayer.default({
+                useWorker: true,
+                workerFile: "/scripts/Decoder.js",
+            });
             let canvas = this.wsavc.AvcPlayer.canvas;
             canvas.id = "stream";
-            (this.$refs['video-box'] as Element).appendChild(canvas);
-            var uri = "ws://" + url;
+            canvas.ref = "stream";
+            canvas.style.background = "white";
+            const uri = "ws://" + url;
             this.wsavc.connect(uri);
 
-            this.wsavc.on('disconnected', () => console.log('WS Disconnected'))
+            this.wsavc.on('disconnected', () => {
+                console.log('WS Disconnected');
+                canvas.remove();
+                this.video = false;
+
+            });
             this.wsavc.on('connected', () => {
-                console.log('WS connected')
+                console.log('WS connected');
+                (this.$refs['video-box'] as Element).appendChild(canvas);
                 this.wsavc.send('stream', this.$route.params.deviceId)
+                this.video = true;
+
             });
 
             this.wsavc.on('resized', (payload) => {
@@ -134,11 +145,16 @@
 
                 //vb.style = `padding-bottom: calc( 100% * ${payload.height} / ${ payload.width })`
             });
-            this.wsavc.on('stream_active', active => console.log('Stream is ', active ? 'active' : 'offline'))
+            this.wsavc.on('stream_active', active => {
+                console.log('Stream is ', active ? 'active' : 'offline');
+                if(!active){
+                    this.wsavc.disconnect()
+                    //this.wsavc.send('stream', this.$route.params.deviceId)
+                }
+            })
 
 
         }
-
 
 
         protected onBack() {

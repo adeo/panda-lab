@@ -23,7 +23,6 @@ import {StoreRepository} from "./repositories/store.repository";
 import * as winston from "winston";
 import {AgentsService} from "./agents.service";
 import {DevicesRepository} from "./repositories/devices.repository";
-import {WsRepository} from "./repositories/ws.repository";
 import {NetworkRepository} from "./repositories/network.repository";
 
 export class AgentService {
@@ -201,7 +200,7 @@ export class AgentService {
                 if (device.status == DeviceStatus.offline || !device.status) {
                     device.status = DeviceStatus.available;
                     deviceData.actionType = ActionType.update_status;
-                        device.streamUrl = this.networkRepo.getStreamUrl()
+                    device.streamUrl = this.networkRepo.getStreamUrl()
                 } else if (device.appBuildTime < this.setupService.getAgentPublishTime()) {
                     deviceData.actionType = ActionType.update_app;
                 } else if (deviceData.canActivateTCP() && this.enableTCP) {

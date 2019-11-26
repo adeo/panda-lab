@@ -105,7 +105,19 @@ export class AdbService {
                                     return EMPTY
                                 }))
                     }),
-                    toArray())
+                    toArray(),
+                    map(values => {
+                        const filteredMap = new Map<string, DeviceAdb>()
+                        values.forEach(
+                            v => {
+                                if (v.path.startsWith("usb") || !filteredMap.has(v.serialId)){
+                                    filteredMap.set(v.serialId, v);
+                                }
+                            }
+                        )
+                        return Array.from(filteredMap.values())
+                    })
+                )
             }),
             distinctUntilChanged((prev, current) => {
                 return JSON.stringify(prev) === JSON.stringify(current)
