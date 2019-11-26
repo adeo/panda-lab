@@ -60,7 +60,8 @@ export class SetupService {
         return of('Configuration workspace')
             .concat(
                 this.configureMobileApk().pipe(map(() => "Agent mobile downloaded")),
-                this.configureSpoonJar().pipe(map(() => "Spoon jar downloaded"))
+                this.configureSpoonJar().pipe(map(() => "Spoon jar downloaded")),
+                this.configureScrcpyServer().pipe(map(() => "Scrcpy server downloaded"))
             );
     }
 
@@ -92,6 +93,15 @@ export class SetupService {
 
     public getAgentApk(): string {
         return this.workspace.agentApkPath;
+    }
+
+    private configureScrcpyServer(): Observable<string>{
+        const jarPath = this.workspace.scrcpyJarPath;
+        if (!this.workspace.fileExist(jarPath)) {
+            return this.workspace.downloadFile(jarPath, 'https://github.com/Genymobile/scrcpy/releases/download/v1.11/scrcpy-server-v1.11')
+        } else {
+            return of(jarPath)
+        }
     }
 
     private configureSpoonJar(): Observable<string> {

@@ -17,7 +17,7 @@ import {AgentService} from "../agent.service";
 
 export class AdbService {
 
-    private adbClient: any;
+    public adbClient: any;
     private Readable: any;
     private request: any;
     private readonly listDevices: BehaviorSubject<Array<DeviceAdb>>;
@@ -105,7 +105,19 @@ export class AdbService {
                                     return EMPTY
                                 }))
                     }),
-                    toArray())
+                    toArray(),
+                    map(values => {
+                        const filteredMap = new Map<string, DeviceAdb>()
+                        values.forEach(
+                            v => {
+                                if (v.path.startsWith("usb") || !filteredMap.has(v.serialId)){
+                                    filteredMap.set(v.serialId, v);
+                                }
+                            }
+                        )
+                        return Array.from(filteredMap.values())
+                    })
+                )
             }),
             distinctUntilChanged((prev, current) => {
                 return JSON.stringify(prev) === JSON.stringify(current)

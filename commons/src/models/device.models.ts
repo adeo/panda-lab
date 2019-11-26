@@ -5,6 +5,7 @@ import DocumentReference = firestore.DocumentReference;
 export interface Device extends FirebaseModel {
     agent: DocumentReference;
     status: DeviceStatus;
+    streamUrl: string;
     serialId: string;
     name: string;
     ip: string;
