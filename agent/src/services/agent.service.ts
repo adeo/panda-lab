@@ -175,14 +175,16 @@ export class AgentService {
     }
 
     private generateDevicesData(adbDevices: DeviceAdb[], firebaseDevices: Device[]) {
-        const devicesData: AgentDeviceData[] = adbDevices.map(adbDevice => {
+        const devicesData: AgentDeviceData[] = adbDevices.map(adbDeviceInit => {
+            const adbDevice = Object.assign({}, adbDeviceInit)
             let agentDeviceData = new AgentDeviceData();
             agentDeviceData.actionType = this.autoEnroll ? ActionType.enroll : ActionType.none;
             agentDeviceData.adbDevice = adbDevice;
             return agentDeviceData
         });
 
-        firebaseDevices.forEach(device => {
+        firebaseDevices.forEach(deviceInit => {
+            const device = Object.assign({}, deviceInit);
             const deviceData = devicesData.find(a => a.adbDevice && a.adbDevice.serialId == device.serialId);
             if (!deviceData) {
                 const isBooked = device.status == DeviceStatus.booked;
@@ -196,6 +198,7 @@ export class AgentService {
                 agentDeviceData.firebaseDevice = device;
                 devicesData.push(agentDeviceData)
             } else if (deviceData.adbDevice.agentInstalled) {
+
                 deviceData.firebaseDevice = device;
                 if (device.status == DeviceStatus.offline || !device.status) {
                     device.status = DeviceStatus.available;
@@ -245,8 +248,11 @@ export class AgentService {
             }, error => {
                 this.logger.error(type + " - Action finish with error", error);
                 subject.complete()
+                this.notifyChange()
+
             }, () => {
                 subject.complete();
+                this.notifyChange()
             });
         return subject;
     }
@@ -269,6 +275,7 @@ export class AgentService {
             this.saveDeviceAction(device.firebaseDevice, "save device status"),
             of(<DeviceLog>{log: "try to connect to ip " + device.firebaseDevice.ip, type: DeviceLogType.INFO}),
             this.adb.connectIp(device.firebaseDevice.ip).pipe(
+                delay(1000),
                 ignoreElements(),
                 catchError(err => {
                     let errorMsg = "Can't connect to device on " + device.firebaseDevice.ip;
