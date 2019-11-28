@@ -1,7 +1,7 @@
 {
   "name": "functions",
   "scripts": {
-    "preinstall": "if [ -d ../commons ]; then npm run updateCommons; fi",
+    "preinstall": "npm run updateCommons",
     "updateCommons": "node package-commons.js",
     "lint": "tslint --project tsconfig.json",
     "build": "tsc",
