@@ -1,6 +1,7 @@
 const envfile = require('envfile');
 
-const config = require("../.config/config.json");
+const config = require("../../.config/config.json");
+
 const apiKey = config.apiKey;
 const authDomain = config.authDomain;
 const projectId = config.projectId;
@@ -23,7 +24,7 @@ const env = envfile.stringifySync({
 
 const fs = require('fs');
 
-fs.writeFile(".env", env, function(err) {
+fs.writeFile(__dirname + "/../.env", env, function(err) {
     if(err) {
         return console.log(err);
     }

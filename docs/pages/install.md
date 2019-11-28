@@ -14,7 +14,25 @@ Make sure you have followed all the steps in the configure section before trying
 
 [Configure project](configure){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 } 
 
+Pandalab install have been tested on MacOs and Windows with node version 10.+ and 12.+.
+
+## Known issues
+- Using node 13.+ to build may crash
+- Building windows agent on mac catalina fail (https://github.com/electron/electron-packager/issues/1055)
+- Building linux agent on windows fail (https://github.com/electron/electron/issues/2079)
+
 ---
+
+## Agent build targets
+
+You can choose the agent build targets os you need to build in `.config/config.json` with **agentBuildTargets**.
+Available target are mac (m), linux (l) and windows (w). By default it will only build for the hosting os.
+
+```json
+{
+   "agentBuildTargets": "mlw"
+}
+```
 
 ## Deploy
 

@@ -1,8 +1,8 @@
 #! /usr/bin/env node
 var admin = require("firebase-admin");
 
-const config = require("../.config/config.json");
-const serviceAccount = require((config.serviceAccountPath.startsWith("/") ? "" : "../") + config.serviceAccountPath);
+const config = require("../../.config/config.json");
+const serviceAccount = require((config.serviceAccountPath.startsWith("/") ? "" : "../../") + config.serviceAccountPath);
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

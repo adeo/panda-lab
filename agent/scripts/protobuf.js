@@ -25,8 +25,6 @@ function copyDirectoryRecursiveSync(source, target) {
 const targetPath = resolve('./dist_electron/src/protos');
 const sourcePath = resolve('./node_modules/@google-cloud/firestore/build/protos');
 
-
-
 if (!fs.existsSync(targetPath) || fs.readdirSync(targetPath).length === 0) {
     fs.mkdirSync(targetPath, {recursive: true});
     copyDirectoryRecursiveSync(sourcePath, targetPath)

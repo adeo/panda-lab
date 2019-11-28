@@ -4,14 +4,15 @@
   "main": "background.js",
   "private": true,
   "scripts": {
-    "prebuild": "node protobuf.js && node genEnv.js",
+    "prebuild": "node scripts/protobuf.js && node scripts/genEnv.js",
     "serve": "npm run prebuild && vue-cli-service serve",
     "build": "npm run prebuild && vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "electron:build": "npm run prebuild && vue-cli-service electron:build -mwl",
+    "electron:build": "npm run prebuild && npm run build:agent",
+    "build:agent": "script-file",
     "electron:serve": "npm run prebuild && vue-cli-service electron:serve",
-    "electron:deploy": "npm run electron:build && node uploadAgent.js",
-    "postinstall": "node postinstall.js && electron-builder install-app-deps",
+    "electron:deploy": "npm run electron:build && node scripts/uploadAgent.js",
+    "postinstall": "node scripts/postinstall.js && electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
   },
   "dependencies": {
@@ -72,6 +73,7 @@
     "eslint-plugin-vue": "^5.0.0",
     "node-sass": "^4.12.0",
     "sass-loader": "^8.0.0",
+    "script-file": "^0.12.0",
     "typescript": "^3.5.3",
     "vue-cli-plugin-electron-builder": "^1.4.0",
     "vue-template-compiler": "^2.6.10"

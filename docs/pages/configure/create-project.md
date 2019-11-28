@@ -24,6 +24,16 @@ We recommend a **Blaze** formula to keep it free until you get a huge traffic on
 
 ![image](../assets/firebase/firebase-plan.png)
 
+## Select your storage data center
+
+Go to the storage section of your console and click on **Get started**.
+
+![image](../assets/firebase/firebase-storage.png)
+
+Select the data center you want and validate.
+
+![image](../assets/firebase/firebase-storage-dc.png)
+
 ## Install Firebase cli
 
 Download and install the [Firebase CLI](https://firebase.google.com/docs/cli)
