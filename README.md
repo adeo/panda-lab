@@ -5,9 +5,9 @@
 PandaLab is an open source solution which helps you to manager fleet of devices and to run automatic tests on them.
 
 
-## [Documentation](https://mobiletribe.github.io/panda-lab/)
+## [Documentation](https://adeo.github.io/panda-lab/)
 
-To use PandaLab please check the [documentation](https://mobiletribe.github.io/panda-lab/)
+To use PandaLab please check the [documentation](https://adeo.github.io/panda-lab/)
 
 ## Developer commands
 
