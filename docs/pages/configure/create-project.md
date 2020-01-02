@@ -45,9 +45,9 @@ firebase login
 
 ## Clone and setup Pandalab
 
-Clone the [Pandalab project](https://github.com/MobileTribe/panda-lab) 
+Clone the [Pandalab project](https://github.com/adeo/panda-lab) 
 ```bash
-git clone https://github.com/MobileTribe/panda-lab.git
+git clone https://github.com/adeo/panda-lab.git
 cd panda-lab
 ```
 
