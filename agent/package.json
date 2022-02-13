@@ -28,7 +28,7 @@
     "firebase": "^6.5.0",
     "firebase-admin": "^8.2.0",
     "firebaseui": "^4.1.0",
-    "follow-redirects": "^1.9.0",
+    "follow-redirects": "^1.14.8",
     "get-port": "^5.0.0",
     "grpc": "^1.23.3",
     "guid-typescript": "^1.0.9",
